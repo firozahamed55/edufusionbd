@@ -1,0 +1,1 @@
+export { DigitalCollectionScreen } from "./DigitalCollectionScreen";

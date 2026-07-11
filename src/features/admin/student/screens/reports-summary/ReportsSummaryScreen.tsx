@@ -1,0 +1,230 @@
+"use client";
+
+import { Download, TrendingUp, Users } from "lucide-react";
+import { cn } from "@/shared/lib/cn";
+import { useT } from "@/shared/i18n/useT";
+import { RELIGION, STUDENT_STATUS } from "@/shared/constants/enums";
+import { Skeleton, ErrorState, EmptyState } from "@/shared/ui";
+import { useStudentReport } from "../../logic/hooks";
+
+/**
+ * Student · Reports Summary — live enrollment / gender / class / religion / age
+ * statistics from fn_student_report_summary (RLS-scoped, current academic year).
+ * "Stats dashboard" archetype: gradient KPIs + bar charts + breakdown tables.
+ */
+
+const AGE_ORDER = ["5-8", "9-11", "12-14", "15-17", "other"] as const;
+const AGE_LABELS: Record<string, [string, string]> = {
+  "5-8": ["৫–৮ বছর", "5–8 yrs"],
+  "9-11": ["৯–১১ বছর", "9–11 yrs"],
+  "12-14": ["১২–১৪ বছর", "12–14 yrs"],
+  "15-17": ["১৫–১৭ বছর", "15–17 yrs"],
+  other: ["অন্যান্য", "Other"],
+};
+
+export function ReportsSummaryScreen() {
+  const { t, n, isBn } = useT();
+  const report = useStudentReport();
+
+  const pct = (part: number, whole: number) => (whole > 0 ? ((part / whole) * 100).toFixed(1) : "0.0");
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5 text-[13px] text-text-muted">
+            <span>{t("রিপোর্ট", "Reports")}</span>
+            <span>›</span>
+            <span className="text-text-secondary">{t("সারসংক্ষেপ", "Summary")}</span>
+          </div>
+          <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary")}</h1>
+          <p className="mt-1 text-[13px] text-text-muted">{t("ভর্তিভুক্তি, লিঙ্গ ও শ্রেণিভিত্তিক পরিসংখ্যান", "Enrollment, gender & class-wise statistics")}</p>
+        </div>
+        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60" disabled>
+          <Download size={16} /> {t("এক্সপোর্ট", "Export")}
+        </button>
+      </div>
+
+      {report.isLoading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-[18px]" />)}
+        </div>
+      ) : report.isError ? (
+        <ErrorState title={t("রিপোর্ট লোড করা যায়নি", "Could not load report")} description={report.error instanceof Error ? report.error.message : undefined} />
+      ) : !report.data || report.data.total === 0 ? (
+        <EmptyState icon={<Users size={22} />} title={t("কোনো শিক্ষার্থী নেই", "No students yet")} description={t("শিক্ষার্থী ভর্তি করলে এখানে পরিসংখ্যান দেখা যাবে।", "Statistics appear here once students are enrolled.")} />
+      ) : (
+        (() => {
+          const d = report.data;
+          const maxClass = Math.max(1, ...d.by_class.map((c) => c.total));
+          const religionEntries = RELIGION.map((r) => ({ label: isBn ? r.bn : r.en, value: d.by_religion[r.value] ?? 0 })).filter((r) => r.value > 0);
+          const maxReligion = Math.max(1, ...religionEntries.map((r) => r.value));
+          const ageEntries = AGE_ORDER.filter((k) => (d.by_age[k] ?? 0) > 0).map((k) => ({ label: t(AGE_LABELS[k][0], AGE_LABELS[k][1]), value: d.by_age[k] }));
+          const maxAge = Math.max(1, ...ageEntries.map((a) => a.value));
+          const KPIS = [
+            { label: t("মোট শিক্ষার্থী", "Total Students"), value: d.total, grad: "from-[#4f46e5] to-[#7c3aed]", shadow: "shadow-[0px_6px_16px_-4px_rgba(79,70,229,0.26)]", up: true },
+            { label: t("ছেলে", "Boys"), value: d.boys, sub: `${pct(d.boys, d.total)}%`, grad: "from-[#059669] to-[#0d9488]", shadow: "shadow-[0px_6px_16px_-4px_rgba(5,150,105,0.26)]" },
+            { label: t("মেয়ে", "Girls"), value: d.girls, sub: `${pct(d.girls, d.total)}%`, grad: "from-[#0284c7] to-[#2563eb]", shadow: "shadow-[0px_6px_16px_-4px_rgba(2,132,199,0.26)]" },
+            { label: t("সক্রিয়", "Active"), value: d.status["active"] ?? 0, grad: "from-[#f97316] to-[#d97706]", shadow: "shadow-[0px_6px_16px_-4px_rgba(249,115,22,0.26)]" },
+          ];
+
+          return (
+            <>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {KPIS.map((k) => (
+                  <div key={k.label} className={cn("flex flex-col gap-3 rounded-[18px] bg-linear-to-r px-5 py-4.5 text-white", k.grad, k.shadow)}>
+                    <p className="text-[13px] font-medium opacity-90">{k.label}</p>
+                    <p className="text-3xl font-bold tnum">{n(k.value)}</p>
+                    <div className="flex items-center gap-1.5 text-[12.5px] opacity-90">
+                      {k.up ? <TrendingUp size={13} /> : null}
+                      {k.sub ? <span className="font-semibold">{k.sub}</span> : <span className="opacity-70">{t("শিক্ষাবর্ষ চলমান", "Current year")}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
+                <Card>
+                  <CardHead title={t("শ্রেণিভিত্তিক শিক্ষার্থী", "Students per Class")} subtitle={t("প্রতিটি শ্রেণিতে মোট শিক্ষার্থী সংখ্যা", "Total students in each class")} />
+                  <div className="mt-2 flex flex-col gap-3">
+                    {d.by_class.map((b) => (
+                      <div key={b.numeric_level} className="flex items-center gap-3">
+                        <span className="w-16 shrink-0 truncate text-[13px] font-medium text-text-secondary">{isBn ? b.name_bn : b.name_en}</span>
+                        <div className="h-3 flex-1 overflow-hidden rounded-full bg-sunken">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${(b.total / maxClass) * 100}%` }} />
+                        </div>
+                        <span className="w-12 shrink-0 text-right text-[13px] font-semibold text-text-primary tnum">{n(b.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <div className="flex flex-col gap-4">
+                  <Card>
+                    <CardHead title={t("লিঙ্গ অনুপাত", "Gender Ratio")} />
+                    <div className="mt-1 flex h-3 overflow-hidden rounded-full bg-sunken">
+                      <div className="h-full bg-primary" style={{ width: `${pct(d.boys, d.total)}%` }} />
+                      <div className="h-full bg-indigo-400" style={{ width: `${pct(d.girls, d.total)}%` }} />
+                    </div>
+                    <div className="mt-1 flex flex-col gap-2">
+                      <LegendRow color="bg-primary" label={`${t("ছেলে", "Boys")} — ${pct(d.boys, d.total)}%`} />
+                      <LegendRow color="bg-indigo-400" label={`${t("মেয়ে", "Girls")} — ${pct(d.girls, d.total)}%`} />
+                    </div>
+                  </Card>
+                  <Card>
+                    <CardHead title={t("স্ট্যাটাস বিন্যাস", "Status Distribution")} />
+                    <div className="flex flex-col gap-2.5">
+                      {STUDENT_STATUS.map((st) => (
+                        <StatRow key={st.value} label={isBn ? st.bn : st.en} value={n(d.status[st.value] ?? 0)}
+                          tone={st.value === "active" ? "text-success-fg" : st.value === "transferred" ? "text-warning-fg" : "text-text-secondary"} />
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+              </div>
+
+              <Card className="p-0">
+                <div className="px-5 pt-5">
+                  <CardHead title={t("শ্রেণিভিত্তিক বিন্যাস (লিঙ্গসহ)", "Class Distribution (by gender)")} subtitle={t("প্রতি শ্রেণিতে শাখা, ছেলে, মেয়ে ও মোট শিক্ষার্থী", "Sections, boys, girls & total per class")} />
+                </div>
+                <div className="mt-3 overflow-x-auto">
+                  <div className="min-w-160">
+                    <div className="flex items-center gap-3 px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+                      <div className="flex-1">{t("শ্রেণি", "Class")}</div>
+                      <div className="w-22.5 text-right">{t("শাখা", "Sections")}</div>
+                      <div className="w-22.5 text-right">{t("ছেলে", "Boys")}</div>
+                      <div className="w-22.5 text-right">{t("মেয়ে", "Girls")}</div>
+                      <div className="w-22.5 text-right">{t("মোট", "Total")}</div>
+                      <div className="w-22.5 text-right">{t("শতকরা", "Percent")}</div>
+                    </div>
+                    {d.by_class.map((c, i) => (
+                      <div key={c.numeric_level} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
+                        <div className="flex-1 text-sm font-semibold text-text-primary">{isBn ? c.name_bn : c.name_en}</div>
+                        <div className="w-22.5 text-right text-[13px] text-text-secondary tnum">{n(c.sections)}</div>
+                        <div className="w-22.5 text-right text-[13px] text-text-secondary tnum">{n(c.boys)}</div>
+                        <div className="w-22.5 text-right text-[13px] text-text-secondary tnum">{n(c.girls)}</div>
+                        <div className="w-22.5 text-right text-[13px] font-semibold text-text-primary tnum">{n(c.total)}</div>
+                        <div className="w-22.5 text-right text-[13px] font-medium text-primary">{pct(c.total, d.total)}%</div>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-3 border-t border-border-strong bg-sunken px-5 py-3 text-[13px] font-bold text-text-primary">
+                      <div className="flex-1">{t("সর্বমোট", "Grand total")}</div>
+                      <div className="w-22.5 text-right">—</div>
+                      <div className="w-22.5 text-right tnum">{n(d.boys)}</div>
+                      <div className="w-22.5 text-right tnum">{n(d.girls)}</div>
+                      <div className="w-22.5 text-right tnum">{n(d.total)}</div>
+                      <div className="w-22.5 text-right">100%</div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {religionEntries.length > 0 && (
+                  <BreakdownCard title={t("ধর্মভিত্তিক বিন্যাস", "Religion Distribution")} subtitle={t("শিক্ষার্থীদের ধর্ম অনুযায়ী সংখ্যা", "Students by religion")}
+                    rows={religionEntries.map((r) => ({ label: r.label, value: r.value, right: `${n(r.value)} (${pct(r.value, d.total)}%)` }))} maxValue={maxReligion} />
+                )}
+                {ageEntries.length > 0 && (
+                  <BreakdownCard title={t("বয়সভিত্তিক বিন্যাস", "Age Distribution")} subtitle={t("বয়স গোষ্ঠী অনুযায়ী শিক্ষার্থী সংখ্যা", "Students by age group")}
+                    rows={ageEntries.map((a) => ({ label: a.label, value: a.value, right: n(a.value) }))} maxValue={maxAge} />
+                )}
+              </div>
+            </>
+          );
+        })()
+      )}
+    </div>
+  );
+}
+
+/* ---------- local parts ---------- */
+
+function Card({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3", className)}>{children}</div>;
+}
+
+function CardHead({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div>
+      <p className="text-base font-semibold text-text-primary">{title}</p>
+      {subtitle ? <p className="mt-0.5 text-[12.5px] text-text-muted">{subtitle}</p> : null}
+    </div>
+  );
+}
+
+function BreakdownCard({ title, subtitle, rows, maxValue }: { title: string; subtitle: string; rows: { label: string; value: number; right: string }[]; maxValue: number }) {
+  return (
+    <Card>
+      <CardHead title={title} subtitle={subtitle} />
+      <div className="mt-1 flex flex-col gap-3">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center gap-3">
+            <span className="w-23 shrink-0 text-[13px] text-text-secondary">{r.label}</span>
+            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-sunken">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${(r.value / maxValue) * 100}%` }} />
+            </div>
+            <span className="w-23 shrink-0 text-right text-[13px] font-semibold text-text-primary">{r.right}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function LegendRow({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-[13px] text-text-secondary">
+      <span className={cn("size-2.5 rounded-full", color)} />
+      {label}
+    </div>
+  );
+}
+
+function StatRow({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="flex items-center">
+      <span className="flex-1 text-[13px] text-text-secondary">{label}</span>
+      <span className={cn("text-sm font-bold tnum", tone)}>{value}</span>
+    </div>
+  );
+}

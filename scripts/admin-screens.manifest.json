@@ -1,0 +1,70 @@
+{
+  "_comment": "Authoritative Admin-role screen inventory. Drives scaffold generation and Figma code collection. figma.light / figma.dark are node IDs in file ITLOEUcYUUfPZ82eurKJfb (page 'Admin' 4:6).",
+  "fileKey": "ITLOEUcYUUfPZ82eurKJfb",
+  "page": "4:6",
+  "screens": [
+    { "module": "dashboard", "slug": "overview", "route": "dashboard", "bn": "ড্যাশবোর্ড", "en": "Dashboard", "light": "6:2", "dark": "51:2" },
+
+    { "module": "student", "slug": "registration", "route": "student/registration", "bn": "নিবন্ধন", "en": "Registration", "light": "77:2", "dark": "565:2" },
+    { "module": "student", "slug": "update-basic", "route": "student/update-basic", "bn": "তথ্য হালনাগাদ", "en": "Update Basic", "light": "558:2", "dark": "565:492" },
+    { "module": "student", "slug": "update-class", "route": "student/update-class", "bn": "শ্রেণি হালনাগাদ", "en": "Update Class", "light": "562:2", "dark": "575:2" },
+    { "module": "student", "slug": "migration-merit", "route": "student/migration-merit", "bn": "মাইগ্রেশন (মেধা)", "en": "Migration — Merit", "light": "90:2", "dark": "597:2" },
+    { "module": "student", "slug": "migration-nomerit", "route": "student/migration-nomerit", "bn": "মাইগ্রেশন (মেধা ছাড়া)", "en": "Migration — No Merit", "light": "92:2", "dark": "597:418" },
+    { "module": "student", "slug": "migration-pushback", "route": "student/migration-pushback", "bn": "মাইগ্রেশন পুশব্যাক", "en": "Migration Pushback", "light": "94:2", "dark": "575:1193" },
+    { "module": "student", "slug": "reports-summary", "route": "student/reports-summary", "bn": "সারাংশ প্রতিবেদন", "en": "Reports Summary", "light": "96:2", "dark": "106:187" },
+
+    { "module": "teacher", "slug": "registration", "route": "teacher/registration", "bn": "নিবন্ধন", "en": "Registration", "light": "139:2", "dark": "143:2" },
+    { "module": "teacher", "slug": "list", "route": "teacher/list", "bn": "তালিকা", "en": "List", "light": "146:2", "dark": "150:2" },
+    { "module": "teacher", "slug": "update-profile", "route": "teacher/update-profile", "bn": "প্রোফাইল হালনাগাদ", "en": "Update Profile", "light": "161:2", "dark": "165:2" },
+
+    { "module": "attendance", "slug": "section", "route": "attendance/section", "bn": "সেকশন উপস্থিতি", "en": "Section", "light": "386:2", "dark": "687:2" },
+    { "module": "attendance", "slug": "exam", "route": "attendance/exam", "bn": "পরীক্ষা উপস্থিতি", "en": "Exam", "light": "528:2", "dark": "687:422" },
+    { "module": "attendance", "slug": "update-section", "route": "attendance/update-section", "bn": "সেকশন সংশোধন", "en": "Update · Section", "light": "659:2", "dark": "663:422" },
+    { "module": "attendance", "slug": "update-exam", "route": "attendance/update-exam", "bn": "পরীক্ষা সংশোধন", "en": "Update · Exam", "light": "639:2", "dark": "663:2" },
+    { "module": "attendance", "slug": "report", "route": "attendance/report", "bn": "প্রতিবেদন", "en": "Report", "light": "398:2", "dark": "668:2" },
+    { "module": "attendance", "slug": "analytics", "route": "attendance/analytics", "bn": "বিশ্লেষণ", "en": "Analytics", "light": "670:2", "dark": "687:883" },
+
+    { "module": "exam", "slug": "settings", "route": "exam/settings", "bn": "সেটিংস", "en": "Settings", "light": "169:2", "dark": "190:2" },
+    { "module": "exam", "slug": "mark-config", "route": "exam/mark-config", "bn": "মার্ক কনফিগ", "en": "Mark Config", "light": "524:2", "dark": "524:361" },
+    { "module": "exam", "slug": "marksheet-config", "route": "exam/marksheet-config", "bn": "মার্কশিট কনফিগ", "en": "Marksheet Config", "light": "525:2", "dark": "525:361" },
+    { "module": "exam", "slug": "comment-config", "route": "exam/comment-config", "bn": "মন্তব্য কনফিগ", "en": "Comment Config", "light": "525:720", "dark": "525:1079" },
+    { "module": "exam", "slug": "date-config", "route": "exam/date-config", "bn": "তারিখ কনফিগ", "en": "Date Config", "light": "525:1438", "dark": "525:1797" },
+    { "module": "exam", "slug": "mark-input", "route": "exam/mark-input", "bn": "মার্ক এন্ট্রি", "en": "Mark Input", "light": "180:2", "dark": "583:2" },
+    { "module": "exam", "slug": "mark-update", "route": "exam/mark-update", "bn": "মার্ক সংশোধন", "en": "Mark Update", "light": "226:2", "dark": "583:811" },
+    { "module": "exam", "slug": "mark-process", "route": "exam/mark-process", "bn": "মার্ক প্রসেস", "en": "Mark Process", "light": "230:2", "dark": "233:2" },
+    { "module": "exam", "slug": "result-process", "route": "exam/result-process", "bn": "ফলাফল প্রসেস", "en": "Result Process", "light": "193:2", "dark": "583:398" },
+    { "module": "exam", "slug": "result-sheet-download", "route": "exam/result-sheet-download", "bn": "রেজাল্ট শিট", "en": "Result Sheet", "light": "880:2", "dark": "884:2" },
+
+    { "module": "fee", "slug": "quick-collection-list", "route": "fee/quick-collection-list", "bn": "দ্রুত আদায় তালিকা", "en": "Quick Collection List", "light": "465:2", "dark": "470:2" },
+    { "module": "fee", "slug": "quick-collection-form", "route": "fee/quick-collection-form", "bn": "দ্রুত আদায়", "en": "Quick Collection", "light": "449:2", "dark": "462:2" },
+    { "module": "fee", "slug": "digital-collection", "route": "fee/digital-collection", "bn": "ডিজিটাল আদায়", "en": "Digital Collection", "light": "453:2", "dark": "464:2" },
+    { "module": "fee", "slug": "unpaid-section", "route": "fee/unpaid-section", "bn": "বকেয়া (সেকশন)", "en": "Unpaid — Section", "light": "400:2", "dark": "470:400" },
+    { "module": "fee", "slug": "unpaid-institute", "route": "fee/unpaid-institute", "bn": "বকেয়া (প্রতিষ্ঠান)", "en": "Unpaid — Institute", "light": "444:2", "dark": "470:794" },
+    { "module": "fee", "slug": "income-statement", "route": "fee/income-statement", "bn": "আয় বিবরণী", "en": "Income Statement", "light": "447:2", "dark": "470:1098" },
+    { "module": "fee", "slug": "fee-mapping", "route": "fee/fee-mapping", "bn": "ফি ম্যাপিং", "en": "Fee Mapping", "light": "456:2", "dark": "470:1377" },
+    { "module": "fee", "slug": "delete-fees", "route": "fee/delete-fees", "bn": "ফি মুছুন", "en": "Delete Fees", "light": "459:2", "dark": "464:701" },
+
+    { "module": "certificate", "slug": "template", "route": "certificate/template", "bn": "টেমপ্লেট", "en": "Template", "light": "201:2", "dark": "208:2" },
+    { "module": "certificate", "slug": "admit-instruction", "route": "certificate/admit-instruction", "bn": "প্রবেশপত্র নির্দেশনা", "en": "Admit Instruction", "light": "235:2", "dark": "237:2" },
+    { "module": "certificate", "slug": "exam-essentials", "route": "certificate/exam-essentials", "bn": "পরীক্ষা সামগ্রী", "en": "Exam Essentials", "light": "244:2", "dark": "244:306" },
+    { "module": "certificate", "slug": "id-card", "route": "certificate/id-card", "bn": "আইডি কার্ড", "en": "ID Card", "light": "819:2", "dark": "837:2" },
+    { "module": "certificate", "slug": "admit-card", "route": "certificate/admit-card", "bn": "প্রবেশপত্র", "en": "Admit Card", "light": "839:2", "dark": "844:2" },
+    { "module": "certificate", "slug": "testimonial", "route": "certificate/testimonial", "bn": "প্রশংসাপত্র", "en": "Testimonial", "light": "245:2", "dark": "255:36" },
+    { "module": "certificate", "slug": "transfer", "route": "certificate/transfer", "bn": "ট্রান্সফার সনদ", "en": "Transfer Certificate", "light": "238:2", "dark": "254:2" },
+
+    { "module": "sms-notice", "slug": "send", "route": "sms-notice/send", "bn": "এসএমএস পাঠান", "en": "Send", "light": "246:2", "dark": "250:18" },
+    { "module": "sms-notice", "slug": "templates", "route": "sms-notice/templates", "bn": "টেমপ্লেট", "en": "Templates", "light": "256:2", "dark": "257:2" },
+    { "module": "sms-notice", "slug": "history", "route": "sms-notice/history", "bn": "প্রেরিত ইতিহাস", "en": "Sent History", "light": "258:2", "dark": "259:2" },
+    { "module": "sms-notice", "slug": "notice-board", "route": "sms-notice/notice-board", "bn": "নোটিশ বোর্ড", "en": "Notice Board", "light": "260:2", "dark": "260:315" },
+    { "module": "sms-notice", "slug": "balance-purchase", "route": "sms-notice/balance-purchase", "bn": "ব্যালেন্স ও ক্রয়", "en": "Balance & Purchase", "light": "262:2", "dark": "264:2" },
+
+    { "module": "core", "slug": "startup", "route": "core/startup", "bn": "স্টার্টআপ", "en": "StartUp", "light": "112:2", "dark": "112:600" },
+    { "module": "core", "slug": "basic-config", "route": "core/basic-config", "bn": "মৌলিক কনফিগ", "en": "Basic Config", "light": "115:2", "dark": "115:626" },
+    { "module": "core", "slug": "class", "route": "core/class", "bn": "শ্রেণি কনফিগ", "en": "Class Config", "light": "116:2", "dark": "116:626" },
+    { "module": "core", "slug": "subject", "route": "core/subject", "bn": "বিষয় তালিকা", "en": "Subject List", "light": "119:2", "dark": "119:705" },
+    { "module": "core", "slug": "subject-group", "route": "core/subject-group", "bn": "বিষয় গ্রুপ", "en": "Subject Group", "light": "124:2", "dark": "124:610" },
+    { "module": "core", "slug": "grading", "route": "core/grading", "bn": "গ্রেডিং স্কিম", "en": "Grading Scheme", "light": "120:2", "dark": "120:610" },
+    { "module": "core", "slug": "signature", "route": "core/signature", "bn": "স্বাক্ষর", "en": "Signature", "light": "118:2", "dark": "118:549" },
+    { "module": "core", "slug": "user-list", "route": "core/user-list", "bn": "ইউজার তালিকা", "en": "User List", "light": "121:2", "dark": "121:619" }
+  ]
+}

@@ -1,0 +1,1 @@
+export { ResultProcessScreen } from "./ResultProcessScreen";

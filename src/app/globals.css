@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+/*
+  EduFusionBD design tokens — single source of truth for BOTH themes.
+
+  The RAW variables below use the EXACT names the Figma product file emits
+  (--color-bg-*, --color-text-*, --color-interactive-*, --color-status-*), so
+  code collected from Figma resolves against them directly and themes for free.
+  Semantic Tailwind utilities (bg-surface, text-primary, …) are mapped from the
+  same raw vars via @theme inline. Direction: Modern-SaaS indigo.
+*/
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  /* Surfaces */
+  --color-bg-canvas: #fafafb;
+  --color-bg-surface: #ffffff;
+  --color-bg-surface-raised: #ffffff;
+  --color-bg-sunken: #f5f5f7;
+
+  /* Borders */
+  --color-border-default: #ececf0;
+  --color-border-strong: #e2e2e8;
+
+  /* Text */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+  --color-text-on-primary: #ffffff;
+
+  /* Interactive (indigo) */
+  --color-interactive-primary: #4f46e5;
+  --color-interactive-primary-hover: #4338ca;
+  --color-interactive-primary-subtle: #eef0ff;
+  --color-focus-ring: #818cf8;
+  --color-accent: #059669;
+
+  /* Status */
+  --color-status-success-fg: #15803d;
+  --color-status-success-bg: #dcfce7;
+  --color-status-warning-fg: #b45309;
+  --color-status-warning-bg: #fef3c7;
+  --color-status-danger-fg: #b91c1c;
+  --color-status-danger-bg: #fee2e2;
+  --color-status-info-fg: #4f46e5;
+  --color-status-info-bg: #eef0ff;
+
+  /* Decorative palette (icon chips / gradients used in collected code) */
+  --indigo-100: #e0e3ff;
+  --indigo-400: #818cf8;
+  --indigo-500: #6366f1;
+  --green-500: #10b981;
+  --sky-100: #e0f2fe;
+  --sky-500: #0ea5e9;
+  --amber-100: #fef3c7;
+  --rose-100: #ffe4e6;
+  --teal-100: #ccfbf1;
+
+  /* Elevation — Figma "felt not seen" 2-layer light shadows.
+     Radius intentionally NOT overridden: screens use Tailwind's default
+     rounded-* scale (lg=8px, xl=12px, 2xl=16px), matching the Figma px values. */
+  --shadow-e1: 0 1px 3px rgba(15, 23, 41, 0.07);
+  --shadow-e2: 0 2px 8px rgba(15, 23, 41, 0.08);
+  --shadow-e3: 0 8px 24px -8px rgba(15, 23, 41, 0.09), 0 1px 3px rgba(15, 23, 41, 0.07);
+
+  /* Brand gradients (KPI / hero surfaces) — tokenized so they adapt per theme
+     instead of the hardcoded from-[#…] hex that never changed in dark mode. */
+  --gradient-indigo: linear-gradient(105deg, #4f46e5 0%, #7c3aed 100%);
+  --gradient-emerald: linear-gradient(105deg, #059669 0%, #0d9488 100%);
+  --gradient-sky: linear-gradient(105deg, #0284c7 0%, #2563eb 100%);
+  --gradient-amber: linear-gradient(105deg, #d97706 0%, #ea580c 100%);
+
+  /* Motion tokens — one easing + duration scale for the whole app. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.3, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+}
+
+/* Dark values = EXACT resolved output of the Figma file's Dark variable mode. */
+[data-theme="dark"] {
+  --color-bg-canvas: #0b0f18;
+  --color-bg-surface: #111726;
+  --color-bg-surface-raised: #161d2e;
+  --color-bg-sunken: #0b0f18;
+
+  --color-border-default: #232c40;
+  --color-border-strong: #232c40;
+
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-text-on-primary: #ffffff;
+
+  --color-interactive-primary: #818cf8;
+  --color-interactive-primary-hover: #a5b4fc;
+  --color-interactive-primary-subtle: #182032;
+  --color-focus-ring: #a5b4fc;
+  --color-accent: #34d399;
+
+  --color-status-success-fg: #6ee7b7;
+  --color-status-success-bg: #052e16;
+  --color-status-warning-fg: #fcd34d;
+  --color-status-warning-bg: #422006;
+  --color-status-danger-fg: #fca5a5;
+  --color-status-danger-bg: #450a0a;
+  --color-status-info-fg: #818cf8;
+  --color-status-info-bg: #182032;
+
+  --indigo-100: #182032;
+  --indigo-400: #818cf8;
+  --indigo-500: #6366f1;
+
+  /* Dark elevation (Figma: layered low-opacity, negative spread) */
+  --shadow-e1: 0 2px 7px rgba(5, 8, 15, 0.24);
+  --shadow-e2: 0 2px 7px rgba(5, 8, 15, 0.24), 0 10px 24px -6px rgba(5, 8, 15, 0.32);
+  --shadow-e3: 0 2px 7px rgba(5, 8, 15, 0.24), 0 18px 42px -6px rgba(5, 8, 15, 0.4);
+
+  /* Deeper gradient stops for dark surfaces (less glare, keeps contrast). */
+  --gradient-indigo: linear-gradient(105deg, #4338ca 0%, #6d28d9 100%);
+  --gradient-emerald: linear-gradient(105deg, #047857 0%, #0f766e 100%);
+  --gradient-sky: linear-gradient(105deg, #0369a1 0%, #1d4ed8 100%);
+  --gradient-amber: linear-gradient(105deg, #b45309 0%, #c2410c 100%);
+}
+
+/* Map raw semantic vars → Tailwind utilities (bg-surface, text-primary, border-border-default, …). */
+@theme inline {
+  --color-canvas: var(--color-bg-canvas);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-raised: var(--color-bg-surface-raised);
+  --color-sunken: var(--color-bg-sunken);
+  --color-border-default: var(--color-border-default);
+  --color-border-strong: var(--color-border-strong);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-on-primary: var(--color-text-on-primary);
+  --color-primary: var(--color-interactive-primary);
+  --color-primary-hover: var(--color-interactive-primary-hover);
+  --color-primary-subtle: var(--color-interactive-primary-subtle);
+  --color-accent: var(--color-accent);
+  --color-ring: var(--color-focus-ring);
+
+  --color-success-fg: var(--color-status-success-fg);
+  --color-success-bg: var(--color-status-success-bg);
+  --color-warning-fg: var(--color-status-warning-fg);
+  --color-warning-bg: var(--color-status-warning-bg);
+  --color-danger-fg: var(--color-status-danger-fg);
+  --color-danger-bg: var(--color-status-danger-bg);
+  --color-info-fg: var(--color-status-info-fg);
+  --color-info-bg: var(--color-status-info-bg);
+
+  --font-bn: var(--font-bn);
+  --font-latin: var(--font-latin);
+
+  /* Register elevation utilities (shadow-e1/e2/e3) against the themed vars. */
+  --shadow-e1: var(--shadow-e1);
+  --shadow-e2: var(--shadow-e2);
+  --shadow-e3: var(--shadow-e3);
+}
+
+* {
+  border-color: var(--color-border-default);
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background-color: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-bn);
+  /*
+    LAYOUT PARITY (bn ↔ en): switching locale swaps the body font between
+    Hind Siliguri (bn) and Inter (en). Left alone, Inter's larger x-height makes
+    English text render visibly bigger at the same px — breaking spacing and the
+    type scale. `font-size-adjust` pins BOTH faces to one x-height ratio, so a
+    given font-size looks the same physical size in either language. Result:
+    identical layout, spacing, alignment and typographic hierarchy across
+    locales — zero UI shift when toggling Bn/En.
+  */
+  font-size-adjust: 0.51;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Contextual shaping + ligatures → clean Bengali conjuncts and numerals. */
+  font-feature-settings: "calt" 1, "liga" 1;
+}
+
+:lang(en),
+.font-latin {
+  font-family: var(--font-latin);
+}
+
+/*
+  Tabular numerals for data-dense contexts (tables, stat tiles, pagination).
+  Opt-in via `.tnum`; keeps Bengali/Latin digits monospaced and column-aligned
+  without affecting body prose.
+*/
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Themed gradient surfaces — apply via className, adapts light/dark from the tokens. */
+.grad-indigo { background-image: var(--gradient-indigo); }
+.grad-emerald { background-image: var(--gradient-emerald); }
+.grad-sky { background-image: var(--gradient-sky); }
+.grad-amber { background-image: var(--gradient-amber); }
+
+/* Screen-reader-only utility (mirrors Tailwind's sr-only for use in plain CSS). */
+.sr-only-css {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/*
+  KEYBOARD FOCUS SAFETY NET (WCAG 2.2 · 2.4.7 Focus Visible + 2.4.11 Focus Appearance).
+  Many screens set `focus:outline-none` on native controls and replace it with only
+  a border-color change — which silently defeats the outline above AND is too weak an
+  indicator for SC 2.4.11. This rule guarantees a visible focus ring on EVERY native
+  control regardless of any `outline-none` utility: it uses `box-shadow` (a different
+  property, so `outline-none` cannot cancel it) and only fires for `:focus-visible`
+  (keyboard / programmatic focus), so mouse clicks stay quiet. Two layers = a 2px
+  surface gap + a 2px brand ring, visible in both themes.
+*/
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+  border-color: var(--color-interactive-primary);
+  box-shadow:
+    0 0 0 2px var(--color-bg-surface),
+    0 0 0 4px var(--color-focus-ring);
+}
+
+/* Honour the OS "reduce motion" setting — the app uses transitions everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

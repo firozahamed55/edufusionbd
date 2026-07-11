@@ -1,0 +1,1 @@
+export { AdmitCardScreen } from "./AdmitCardScreen";

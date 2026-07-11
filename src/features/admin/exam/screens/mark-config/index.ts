@@ -1,0 +1,1 @@
+export { MarkConfigScreen } from "./MarkConfigScreen";

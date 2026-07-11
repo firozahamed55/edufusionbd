@@ -1,0 +1,7 @@
+# Supabase project config for EduFusionBD.
+# Links this folder to the hosted project so `supabase db pull` materializes
+# every migration under supabase/migrations/ as a versioned .sql file.
+project_id = "dkumhtrrgsuwxucgncix"
+
+[db]
+major_version = 17
