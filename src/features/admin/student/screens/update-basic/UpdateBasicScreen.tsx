@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, Search, Pencil, Users } from "lucide-react";
+import { Search, Pencil, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { GENDER, RELIGION, BLOOD_GROUP, BLOOD_TOKEN, BLOOD_LABEL } from "@/shared/constants/enums";
 import {
-  Button, Field, Select, Input, Skeleton, EmptyState, ErrorState, Modal, useToast,
+  Button, Field, Select, Input, Skeleton, EmptyState, ErrorState, Modal, useToast, Breadcrumb,
 } from "@/shared/ui";
 import { useClassSectionsLookup, useStudentCategories } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
@@ -42,13 +42,13 @@ export function UpdateBasicScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-meta text-text-muted">
-          <span>{t("শিক্ষার্থী তথ্য", "Student Info")}</span>
-          <ChevronRight size={14} />
-          <span>{t("তথ্য হালনাগাদ", "Update")}</span>
-          <ChevronRight size={14} />
-          <span className="text-text-secondary">{t("মৌলিক তথ্য", "Basic Info")}</span>
-        </div>
+        <Breadcrumb
+          items={[
+            { label: t("শিক্ষার্থী তথ্য", "Student Info"), href: "/admin/student/registration" },
+            { label: t("তথ্য হালনাগাদ", "Update") },
+            { label: t("মৌলিক তথ্য", "Basic Info") },
+          ]}
+        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("মৌলিক তথ্য হালনাগাদ", "Update Basic Info")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("নির্বাচিত শিক্ষার্থীর মৌলিক তথ্য সম্পাদনা করুন", "Edit basic information of the selected student")}</p>
       </header>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { UserPlus, Search, MoreVertical } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination } from "@/shared/ui";
+import { Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination, Breadcrumb } from "@/shared/ui";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { useTeachers } from "./logic/useTeachers";
 
@@ -36,11 +36,12 @@ export function ListScreen() {
       {/* Header */}
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-1.5 text-meta text-text-muted">
-            <span>{t("শিক্ষক ও কর্মী", "Teachers & Staff")}</span>
-            <span>›</span>
-            <span>{t("শিক্ষক তালিকা", "Teacher List")}</span>
-          </div>
+          <Breadcrumb
+            items={[
+              { label: t("শিক্ষক ও কর্মী", "Teachers & Staff"), href: "/admin/teacher/registration" },
+              { label: t("শিক্ষক তালিকা", "Teacher List") },
+            ]}
+          />
           <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
             {t("শিক্ষক তালিকা", "Teacher List")}
           </h1>

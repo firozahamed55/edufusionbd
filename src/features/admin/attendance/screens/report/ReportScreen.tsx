@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Search, Percent, CheckCircle2, AlertTriangle, Hash, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState } from "@/shared/ui";
+import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useAttendanceSummary } from "../../logic/hooks";
@@ -29,7 +29,7 @@ export function ReportScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("একাডেমিক", "Academic")}</span><span>›</span><span className="text-text-secondary">{t("উপস্থিতি", "Attendance")}</span></div>
+        <Breadcrumb items={[{ label: t("একাডেমিক", "Academic") }, { label: t("উপস্থিতি রিপোর্ট", "Attendance Report") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("উপস্থিতি রিপোর্ট", "Attendance Report")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("শ্রেণি ও তারিখ অনুযায়ী উপস্থিতির সারসংক্ষেপ", "Attendance summary by class and date range")}</p>
       </header>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, Pencil, Award, X } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Button, EmptyState, ConfirmDialog, useToast } from "@/shared/ui";
+import { FormCard, Field, Input, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useGradeSchemes, useUpsertScheme, useDeleteScheme } from "../../logic/hooks";
 import type { GradeScale } from "../../logic/api";
 
@@ -47,7 +47,7 @@ export function GradingScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("গ্রেডিং", "Grading")}</span></div>
+        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("গ্রেডিং", "Grading") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("গ্রেডিং স্কিম", "Grading Schemes")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("গ্রেড, GPA ও নম্বর পরিসর নির্ধারণ করুন", "Define grades, GPA and mark ranges")}</p>
       </header>

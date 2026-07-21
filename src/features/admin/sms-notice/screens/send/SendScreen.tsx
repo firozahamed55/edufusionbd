@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Send, MessageSquare } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Textarea, Button, useToast } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, useToast, Breadcrumb } from "@/shared/ui";
 import { useSmsAccount, useTemplates, useSendCampaign } from "../../logic/hooks";
 
 const RECIPIENTS = [
@@ -42,7 +42,7 @@ export function SendScreen() {
     <div className="flex flex-col gap-5 pb-6">
       <header className="flex flex-wrap items-end gap-4">
         <div className="flex-1">
-          <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("SMS পাঠান", "Send SMS")}</span></div>
+          <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("SMS পাঠান", "Send SMS") }]} />
           <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS পাঠান", "Send SMS")}</h1>
           <p className="mt-1 text-meta text-text-muted">{t("অভিভাবক, শিক্ষার্থী বা শিক্ষকদের বার্তা পাঠান", "Message parents, students or teachers")}</p>
         </div>

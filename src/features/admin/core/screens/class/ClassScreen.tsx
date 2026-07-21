@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, Pencil, GraduationCap } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Button, EmptyState, ConfirmDialog, useToast } from "@/shared/ui";
+import { FormCard, Field, Input, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useClasses, useUpsertClass, useDeleteClass } from "../../logic/hooks";
 
 const EMPTY = { id: "", name_bn: "", name_en: "", numeric_level: "" };
@@ -29,7 +29,7 @@ export function ClassScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("শ্রেণি", "Classes")}</span></div>
+        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("শ্রেণি", "Classes") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("শ্রেণি ব্যবস্থাপনা", "Class Management")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের শ্রেণিসমূহ নির্ধারণ করুন", "Define the institution's classes")}</p>
       </header>

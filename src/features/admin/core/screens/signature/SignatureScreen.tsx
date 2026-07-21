@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, PenTool } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Button, EmptyState, ConfirmDialog, useToast } from "@/shared/ui";
+import { FormCard, Field, Input, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useSignatures, useUpsertSignature, useDeleteSignature } from "../../logic/hooks";
 
 export function SignatureScreen() {
@@ -26,7 +26,7 @@ export function SignatureScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("স্বাক্ষর", "Signatures")}</span></div>
+        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("স্বাক্ষর", "Signatures") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("স্বাক্ষর ব্যবস্থাপনা", "Signature Management")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("সনদ ও রিপোর্টে ব্যবহৃত স্বাক্ষর নির্ধারণ করুন", "Define signatures used in certificates & reports")}</p>
       </header>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FileDown, Wallet } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Skeleton, EmptyState, ErrorState } from "@/shared/ui";
+import { Field, Select, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useUnpaidBySection } from "../../logic/hooks";
@@ -21,8 +21,9 @@ export function UnpaidSectionScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <h1 className="text-h4 font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("সেকশন অনুযায়ী বকেয়া শিক্ষার্থী তালিকা", "Section-wise unpaid students")}</p>
+        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("বকেয়া তথ্য", "Dues") }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("সেকশন অনুযায়ী বকেয়া শিক্ষার্থী তালিকা", "Section-wise unpaid students")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">

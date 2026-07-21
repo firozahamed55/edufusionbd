@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Button, Skeleton, ErrorState } from "@/shared/ui";
+import { Field, Input, Button, Skeleton, ErrorState, Breadcrumb } from "@/shared/ui";
 import { useIncomeStatement } from "../../logic/hooks";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -24,8 +24,9 @@ export function IncomeStatementScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-h4 font-bold text-text-primary">{t("আয় বিবরণী", "Income Statement")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("আয়-ব্যায়ের সমন্বিত বিবরণী", "Combined income & expenditure")}</p>
+        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("আয় বিবরণী", "Income Statement") }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("আয় বিবরণী", "Income Statement")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("আয়-ব্যায়ের সমন্বিত বিবরণী", "Combined income & expenditure")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">

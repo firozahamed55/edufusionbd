@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Save, ClipboardList } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, SaveBar, UnsavedDot, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
+import { Field, Select, Input, Button, SaveBar, UnsavedDot, Skeleton, EmptyState, ErrorState, useToast, Breadcrumb } from "@/shared/ui";
 import { useClassSectionsLookup, useSubjects } from "@/shared/services/lookups/hooks";
 import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
@@ -55,7 +55,12 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("পরীক্ষা ও ফলাফল", "Exam & Results")}</span><span>›</span><span className="text-text-secondary">{mode === "input" ? t("মার্ক ইনপুট", "Mark Input") : t("মার্ক আপডেট", "Mark Update")}</span></div>
+        <Breadcrumb
+          items={[
+            { label: t("পরীক্ষা ও ফলাফল", "Exam & Results"), href: "/admin/exam/settings" },
+            { label: mode === "input" ? t("মার্ক ইনপুট", "Mark Input") : t("মার্ক আপডেট", "Mark Update") },
+          ]}
+        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{mode === "input" ? t("মার্ক ইনপুট", "Mark Input") : t("মার্ক আপডেট", "Mark Update")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("পরীক্ষা, শাখা ও বিষয় নির্বাচন করে নম্বর এন্ট্রি করুন", "Select exam, section & subject to enter marks")}</p>
       </header>

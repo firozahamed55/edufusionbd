@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, MessageSquareText } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useTemplates, useUpsertTemplate, useDeleteTemplate } from "../../logic/hooks";
 
 const CATEGORIES = [
@@ -36,7 +36,7 @@ export function TemplatesScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("টেমপ্লেট", "Templates")}</span></div>
+        <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("টেমপ্লেট", "Templates") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS টেমপ্লেট", "SMS Templates")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("পুনঃব্যবহারযোগ্য বার্তা টেমপ্লেট তৈরি করুন", "Create reusable message templates")}</p>
       </header>

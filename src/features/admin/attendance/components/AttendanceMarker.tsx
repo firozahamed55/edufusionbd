@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Check, RotateCcw, CheckCheck, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Button, Field, Select, Input, SaveBar, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
+import { Button, Field, Select, Input, SaveBar, Skeleton, EmptyState, ErrorState, useToast, Breadcrumb } from "@/shared/ui";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
@@ -82,9 +82,12 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted">
-          <span>{t("একাডেমিক", "Academic")}</span><span>›</span><span className="text-text-secondary">{t("উপস্থিতি", "Attendance")}</span>
-        </div>
+        <Breadcrumb
+          items={[
+            { label: t("একাডেমিক", "Academic") },
+            { label: isExam ? t("পরীক্ষা উপস্থিতি", "Exam Attendance") : t("সেকশন উপস্থিতি", "Section Attendance") },
+          ]}
+        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{isExam ? t("পরীক্ষা উপস্থিতি", "Exam Attendance") : t("সেকশন উপস্থিতি", "Section Attendance")}</h1>
         <p className="mt-1 text-meta text-text-muted">{isExam ? t("নির্বাচিত পরীক্ষায় উপস্থিতি চিহ্নিত করুন", "Mark attendance for the selected exam") : t("নির্বাচিত শ্রেণির আজকের উপস্থিতি চিহ্নিত করুন", "Mark today's attendance for the selected class")}</p>
       </header>

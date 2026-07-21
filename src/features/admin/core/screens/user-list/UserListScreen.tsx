@@ -3,7 +3,7 @@
 import { Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
 import { useUsers } from "../../logic/hooks";
 
 const statusTone: Record<string, string> = { active: "bg-success-bg text-success-fg", suspended: "bg-danger-bg text-danger-fg", invited: "bg-warning-bg text-warning-fg" };
@@ -16,7 +16,7 @@ export function UserListScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("ব্যবহারকারী", "Users")}</span></div>
+        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("ব্যবহারকারী", "Users") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ব্যবহারকারী ব্যবস্থাপনা", "User Management")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের ব্যবহারকারী ও তাদের ভূমিকা", "Institution users and their roles")}</p>
       </header>

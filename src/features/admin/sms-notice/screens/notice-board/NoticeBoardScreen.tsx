@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, Megaphone } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useNotices, useUpsertNotice, useDeleteNotice } from "../../logic/hooks";
 
 const AUDIENCES = [
@@ -41,7 +41,7 @@ export function NoticeBoardScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("নোটিশ বোর্ড", "Notice Board")}</span></div>
+        <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("নোটিশ বোর্ড", "Notice Board") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("নোটিশ বোর্ড", "Notice Board")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("নোটিশ প্রকাশ ও ব্যবস্থাপনা করুন", "Publish and manage notices")}</p>
       </header>

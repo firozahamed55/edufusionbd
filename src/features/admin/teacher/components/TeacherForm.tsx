@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, User, FileText, Upload, Info } from "lucide-react";
+import { User, FileText, Upload, Info } from "lucide-react";
 import { GENDER, RELIGION, BLOOD_GROUP, EMPLOYMENT_TYPE, BLOOD_TOKEN } from "@/shared/constants/enums";
 import { useT } from "@/shared/i18n/useT";
-import { Button, FormCard, Field, Input, Select, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
+import { Button, FormCard, Field, Input, Select, SaveBar, UnsavedDot, useToast, Breadcrumb } from "@/shared/ui";
 import {
   useDivisions,
   useDistricts,
@@ -163,11 +163,12 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-meta text-text-muted">
-          <span>{t("শিক্ষক ও কর্মী", "Teachers & Staff")}</span>
-          <ChevronRight size={14} />
-          <span className="text-text-secondary">{isRegister ? t("নিবন্ধন", "Registration") : t("প্রোফাইল হালনাগাদ", "Update Profile")}</span>
-        </div>
+        <Breadcrumb
+          items={[
+            { label: t("শিক্ষক ও কর্মী", "Teachers & Staff"), href: "/admin/teacher/registration" },
+            { label: isRegister ? t("নিবন্ধন", "Registration") : t("প্রোফাইল হালনাগাদ", "Update Profile") },
+          ]}
+        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
           {isRegister ? t("নতুন শিক্ষক নিবন্ধন", "New Teacher Registration") : t("শিক্ষক প্রোফাইল হালনাগাদ", "Update Teacher Profile")}
         </h1>

@@ -3,7 +3,7 @@
 import { CreditCard } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
 import { useDigitalTransactions } from "../../logic/hooks";
 
 /** Fee · Digital Collection — live online-payment transactions + computed KPIs. */
@@ -38,8 +38,9 @@ export function DigitalCollectionScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-h4 font-bold text-text-primary">{t("ডিজিটাল ফি কালেকশন", "Digital Collection")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("অনলাইন পেমেন্ট সংগ্রহ ও লেনদেন", "Online payments & transactions")}</p>
+        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ডিজিটাল ফি কালেকশন", "Digital Collection") }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ডিজিটাল ফি কালেকশন", "Digital Collection")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("অনলাইন পেমেন্ট সংগ্রহ ও লেনদেন", "Online payments & transactions")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

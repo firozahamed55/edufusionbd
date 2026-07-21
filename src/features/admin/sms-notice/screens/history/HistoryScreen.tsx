@@ -3,7 +3,7 @@
 import { History as HistoryIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
 import { useCampaigns } from "../../logic/hooks";
 
 const typeLabel: Record<string, { bn: string; en: string }> = {
@@ -20,7 +20,7 @@ export function HistoryScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("ইতিহাস", "History")}</span></div>
+        <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("ইতিহাস", "History") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS ইতিহাস", "SMS History")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("পাঠানো ক্যাম্পেইনসমূহের রেকর্ড", "Record of sent campaigns")}</p>
       </header>

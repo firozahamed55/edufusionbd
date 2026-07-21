@@ -3,7 +3,7 @@
 import { FileDown, Wallet } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
 import { useUnpaidByInstitute } from "../../logic/hooks";
 
 /** Fee · Dues (by Institute) — live class/section-wise dues summary. */
@@ -15,8 +15,9 @@ export function UnpaidInstituteScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <h1 className="text-h4 font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("প্রতিষ্ঠান অনুযায়ী বকেয়ার সারসংক্ষেপ", "Institute-wide dues summary")}</p>
+        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("বকেয়া তথ্য", "Dues") }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠান অনুযায়ী বকেয়ার সারসংক্ষেপ", "Institute-wide dues summary")}</p>
       </header>
 
       <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface p-5 shadow-e3">

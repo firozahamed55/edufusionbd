@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, Pencil, BookOpen } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Select, Button, EmptyState, ConfirmDialog, useToast } from "@/shared/ui";
+import { FormCard, Field, Input, Select, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useSubjects, useUpsertSubject, useDeleteSubject } from "../../logic/hooks";
 
 const EMPTY = { id: "", name_bn: "", name_en: "", code: "", type: "compulsory", full_marks: "100", pass_marks: "33" };
@@ -30,7 +30,7 @@ export function SubjectScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("বিষয়", "Subjects")}</span></div>
+        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয়", "Subjects") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বিষয় ব্যবস্থাপনা", "Subject Management")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের বিষয়সমূহ নির্ধারণ করুন", "Define the institution's subjects")}</p>
       </header>

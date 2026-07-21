@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { RotateCcw, Save } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { Button, SaveBar, UnsavedDot } from "@/shared/ui";
+import { Button, SaveBar, UnsavedDot, Breadcrumb } from "@/shared/ui";
 import type { ReactNode } from "react";
 
 /**
@@ -39,13 +39,13 @@ export function SettingsShell({
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted">
-          <span>পরীক্ষা ও ফলাফল</span>
-          <span>›</span>
-          <span>সেটিংস</span>
-          <span>›</span>
-          <span className="text-text-secondary">{active}</span>
-        </div>
+        <Breadcrumb
+          items={[
+            { label: "পরীক্ষা ও ফলাফল", href: "/admin/exam/settings" },
+            { label: "সেটিংস", href: "/admin/exam/settings" },
+            { label: active },
+          ]}
+        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">পরীক্ষা সেটিংস</h1>
         <p className="mt-1 text-meta text-text-muted">পরীক্ষা শুরু, মার্ক, মার্কশিট, মন্তব্য ও তারিখ কনফিগারেশন</p>
       </header>

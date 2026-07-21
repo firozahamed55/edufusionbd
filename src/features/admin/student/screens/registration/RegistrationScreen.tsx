@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, UserRound, FileText, Upload, Info } from "lucide-react";
+import { UserRound, FileText, Upload, Info } from "lucide-react";
 import { GENDER, RELIGION, BLOOD_GROUP } from "@/shared/constants/enums";
 import { useT } from "@/shared/i18n/useT";
-import { Button, FormCard, Field, Input, Select, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
+import { Button, FormCard, Field, Input, Select, SaveBar, UnsavedDot, useToast, Breadcrumb } from "@/shared/ui";
 import {
   useDivisions,
   useDistricts,
@@ -88,11 +88,12 @@ export function RegistrationScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-meta text-text-muted">
-          <span>{t("শিক্ষার্থী তথ্য", "Student Info")}</span>
-          <ChevronRight size={14} />
-          <span>{t("নিবন্ধন", "Registration")}</span>
-        </div>
+        <Breadcrumb
+          items={[
+            { label: t("শিক্ষার্থী তথ্য", "Student Info"), href: "/admin/student/registration" },
+            { label: t("নিবন্ধন", "Registration") },
+          ]}
+        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("নতুন শিক্ষার্থী ভর্তি", "New Student Admission")}</h1>
         <p className="mt-1 text-meta text-text-muted">
           {t("শিক্ষার্থীর তথ্য, শ্রেণি বিন্যাস ও অভিভাবক যুক্ত করুন", "Add student info, class placement and guardian")}

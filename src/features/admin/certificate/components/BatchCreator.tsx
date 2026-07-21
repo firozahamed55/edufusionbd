@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Wand2, IdCard, Layers } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Button, EmptyState, useToast } from "@/shared/ui";
+import { Field, Input, Select, Button, EmptyState, useToast, Breadcrumb } from "@/shared/ui";
 import { useClasses, useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useCreateIdBatch, useCreateAdmitBatch, useIdCardBatches, useAdmitBatches, useExamOptions } from "../logic/hooks";
@@ -45,7 +45,7 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{title}</span></div>
+        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: title }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
         <p className="mt-1 text-meta text-text-muted">{isId ? t("শিক্ষার্থীর পরিচয়পত্র ব্যাচ তৈরি করুন", "Create a student ID-card batch") : t("পরীক্ষার প্রবেশপত্র ব্যাচ তৈরি করুন", "Create an exam admit-card batch")}</p>
       </header>

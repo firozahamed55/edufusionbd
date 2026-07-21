@@ -6,7 +6,7 @@ import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { createClient } from "@/shared/services/supabase/client";
 import { findStudentByCode, type StudentLite } from "@/shared/services/roster/api";
-import { Field, Input, Select, Textarea, Button, EmptyState, useToast } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, EmptyState, useToast, Breadcrumb } from "@/shared/ui";
 import { useCreateTestimonial, useCreateTransfer, useTestimonials, useTransfers } from "../logic/hooks";
 
 /** Certificate record creator (testimonial | transfer) — live via fn_create_*. */
@@ -49,7 +49,7 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{title}</span></div>
+        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: title }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("শিক্ষার্থী খুঁজে সনদের তথ্য দিন ও তৈরি করুন", "Look up a student, fill the details and generate")}</p>
       </header>

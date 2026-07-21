@@ -2,7 +2,7 @@
 
 import { Wallet, Check, Package } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, Button, useToast } from "@/shared/ui";
+import { Skeleton, EmptyState, Button, useToast, Breadcrumb } from "@/shared/ui";
 import { useSmsAccount, usePackages, usePurchasePackage } from "../../logic/hooks";
 
 export function BalancePurchaseScreen() {
@@ -22,7 +22,7 @@ export function BalancePurchaseScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("ব্যালেন্স", "Balance")}</span></div>
+        <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("ব্যালেন্স", "Balance") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS ব্যালেন্স ও প্যাকেজ", "SMS Balance & Packages")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("বর্তমান ব্যালেন্স দেখুন ও প্যাকেজ কিনুন", "View balance and purchase packages")}</p>
       </header>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Save } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Textarea, Button, useToast } from "@/shared/ui";
+import { Field, Input, Textarea, Button, useToast, Breadcrumb } from "@/shared/ui";
 import { useSetting, useSaveSetting } from "../logic/hooks";
 
 export type SettingField = { key: string; label: string; type: "text" | "textarea" | "toggle" };
@@ -30,7 +30,7 @@ export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, 
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{breadcrumb}</span></div>
+        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: breadcrumb }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
         <p className="mt-1 text-meta text-text-muted">{subtitle}</p>
       </header>

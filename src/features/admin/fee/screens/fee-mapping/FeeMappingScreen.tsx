@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, List, CheckCircle2, PauseCircle, Tag, Trash2, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast } from "@/shared/ui";
+import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useClasses, useStudentCategories } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useFeeMappings, useFeeHeads, useUpsertFeeMapping, useDeleteFeeMapping } from "../../logic/hooks";
@@ -57,8 +57,9 @@ export function FeeMappingScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <h1 className="text-h4 font-bold text-text-primary">{t("ফি ম্যাপিং", "Fee Mapping")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("শ্রেণি-ভিত্তিক ফি কাঠামো নির্ধারণ", "Define class-wise fee structure")}</p>
+        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ফি ম্যাপিং", "Fee Mapping") }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ফি ম্যাপিং", "Fee Mapping")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("শ্রেণি-ভিত্তিক ফি কাঠামো নির্ধারণ", "Define class-wise fee structure")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

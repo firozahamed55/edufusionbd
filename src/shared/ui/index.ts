@@ -14,8 +14,12 @@ export {
   Checkbox,
 } from "./Form";
 export { Pagination } from "./Pagination";
+export { Breadcrumb, type Crumb } from "./Breadcrumb";
 export { Table, THead, TBody, TR, TH, TD, TableEmpty } from "./Table";
 export { Skeleton, Spinner, EmptyState, ErrorState } from "./states";
+export { PasswordInput } from "./PasswordInput";
+export { OtpInput } from "./OtpInput";
+export { Stepper } from "./Stepper";
 export { Modal, ConfirmDialog } from "./Dialog";
 export { ToastProvider, useToast } from "./Toast";
 export { BarChart, Donut, type BarDatum } from "./Chart";

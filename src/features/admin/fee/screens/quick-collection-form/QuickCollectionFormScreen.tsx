@@ -6,7 +6,7 @@ import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { PAYMENT_METHOD } from "@/shared/constants/enums";
 import { createClient } from "@/shared/services/supabase/client";
-import { Field, Input, Select, Button, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
+import { Field, Input, Select, Button, Skeleton, EmptyState, ErrorState, useToast, Breadcrumb } from "@/shared/ui";
 import { useStudentProfile, useStudentInvoices, useCollectFee, useAccounts } from "../../logic/hooks";
 import { findStudentIdByCode } from "../../logic/api";
 
@@ -59,8 +59,8 @@ export function QuickCollectionFormScreen() {
   return (
     <div className="flex flex-col gap-6 pb-6">
       <header>
-        <h1 className="text-h4 font-bold text-text-primary">{t("কুইক কালেকশন", "Quick Collection")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("দ্রুত ফি আদায়", "Fast fee collection")}</p>
+        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("দ্রুত ফি আদায়", "Fast fee collection") }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("কুইক কালেকশন", "Quick Collection")}</h1>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">

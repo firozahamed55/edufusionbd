@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, Search, Pencil } from "lucide-react";
+import { Search, Pencil } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Button, Field, Select } from "@/shared/ui";
+import { Button, Field, Select, Breadcrumb } from "@/shared/ui";
 import { useClassSections, useStudentsBySection } from "./logic/useUpdateClass";
 
 /**
@@ -43,13 +43,13 @@ export function UpdateClassScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-meta text-text-muted">
-          <span>{t("শিক্ষার্থী তথ্য", "Student Info")}</span>
-          <ChevronRight size={14} />
-          <span>{t("তথ্য হালনাগাদ", "Update")}</span>
-          <ChevronRight size={14} />
-          <span className="text-text-secondary">{t("শ্রেণি তথ্য", "Class Info")}</span>
-        </div>
+        <Breadcrumb
+          items={[
+            { label: t("শিক্ষার্থী তথ্য", "Student Info"), href: "/admin/student/registration" },
+            { label: t("তথ্য হালনাগাদ", "Update") },
+            { label: t("শ্রেণি তথ্য", "Class Info") },
+          ]}
+        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
           {t("শ্রেণি তথ্য হালনাগাদ", "Update Class Info")}
         </h1>

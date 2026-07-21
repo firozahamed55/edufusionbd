@@ -4,7 +4,7 @@ import { Download, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { RELIGION, STUDENT_STATUS } from "@/shared/constants/enums";
-import { Skeleton, ErrorState, EmptyState } from "@/shared/ui";
+import { Skeleton, ErrorState, EmptyState, Breadcrumb } from "@/shared/ui";
 import { useStudentReport } from "../../logic/hooks";
 
 /**
@@ -32,11 +32,12 @@ export function ReportsSummaryScreen() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-1.5 text-meta text-text-muted">
-            <span>{t("রিপোর্ট", "Reports")}</span>
-            <span>›</span>
-            <span className="text-text-secondary">{t("সারসংক্ষেপ", "Summary")}</span>
-          </div>
+          <Breadcrumb
+            items={[
+              { label: t("রিপোর্ট", "Reports"), href: "/admin/student/reports-summary" },
+              { label: t("সারসংক্ষেপ", "Summary") },
+            ]}
+          />
           <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary")}</h1>
           <p className="mt-1 text-meta text-text-muted">{t("ভর্তিভুক্তি, লিঙ্গ ও শ্রেণিভিত্তিক পরিসংখ্যান", "Enrollment, gender & class-wise statistics")}</p>
         </div>

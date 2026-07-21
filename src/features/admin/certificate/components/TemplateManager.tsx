@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, LayoutTemplate } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, EmptyState, ConfirmDialog, useToast } from "@/shared/ui";
+import { Field, Select, Input, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useTemplates, useUpsertTemplate, useDeleteTemplate } from "../logic/hooks";
 
 const TYPES = [
@@ -42,7 +42,7 @@ export function TemplateManager() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{t("টেমপ্লেট", "Templates")}</span></div>
+        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: t("টেমপ্লেট", "Templates") }]} />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("সার্টিফিকেট টেমপ্লেট", "Certificate Templates")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("বিভিন্ন সনদের টেমপ্লেট কাঠামো নির্ধারণ করুন", "Define template formats for each certificate type")}</p>
       </header>

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, Trash2, Receipt } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Checkbox, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast } from "@/shared/ui";
+import { Checkbox, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
 import { useAppliedFees, useDeleteFeeInvoices } from "../../logic/hooks";
 
 /** Fee · Delete Fees — live applied-fee invoices, multi-select destructive delete. */
@@ -33,8 +33,9 @@ export function DeleteFeesScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <h1 className="text-h4 font-bold text-text-primary">{t("ফি মুছুন", "Delete Fees")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("ভুলবশত আরোপিত ফি অপসারণ", "Remove mistakenly applied fees")}</p>
+        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ফি মুছুন", "Delete Fees") }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ফি মুছুন", "Delete Fees")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("ভুলবশত আরোপিত ফি অপসারণ", "Remove mistakenly applied fees")}</p>
       </header>
 
       <div className="flex items-start gap-3 rounded-xl border border-danger-fg/40 bg-danger-bg p-4 text-danger-fg">
