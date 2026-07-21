@@ -4,21 +4,24 @@ import Link from "next/link";
 import { RotateCcw, Save } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { Button, SaveBar, UnsavedDot, Breadcrumb } from "@/shared/ui";
+import { useT } from "@/shared/i18n/useT";
 import type { ReactNode } from "react";
 
 /**
- * Shared shell for the 5 tabbed exam-settings screens (পরীক্ষা শুরু / মার্ক /
- * মার্কশিট / মন্তব্য / তারিখ কনফিগ). Provides the header, real tab navigation
+ * Shared shell for the 5 tabbed exam-settings screens (Start / Mark /
+ * Marksheet / Comment / Date config). Provides the header, real tab navigation
  * (Links between the 5 routes) and the sticky save bar; each screen supplies
  * only its config cards. Figma 169:2 + siblings.
  */
 
-const TABS = [
-  { label: "পরীক্ষা শুরু", href: "/admin/exam/settings" },
-  { label: "মার্ক কনফিগ", href: "/admin/exam/mark-config" },
-  { label: "মার্কশিট কনফিগ", href: "/admin/exam/marksheet-config" },
-  { label: "মন্তব্য কনফিগ", href: "/admin/exam/comment-config" },
-  { label: "তারিখ কনফিগ", href: "/admin/exam/date-config" },
+export type SettingsTabId = "settings" | "mark" | "marksheet" | "comment" | "date";
+
+const TABS: { id: SettingsTabId; bn: string; en: string; href: string }[] = [
+  { id: "settings", bn: "পরীক্ষা শুরু", en: "Exam Start", href: "/admin/exam/settings" },
+  { id: "mark", bn: "মার্ক কনফিগ", en: "Mark Config", href: "/admin/exam/mark-config" },
+  { id: "marksheet", bn: "মার্কশিট কনফিগ", en: "Marksheet Config", href: "/admin/exam/marksheet-config" },
+  { id: "comment", bn: "মন্তব্য কনফিগ", en: "Comment Config", href: "/admin/exam/comment-config" },
+  { id: "date", bn: "তারিখ কনফিগ", en: "Date Config", href: "/admin/exam/date-config" },
 ];
 
 export function SettingsShell({
@@ -29,40 +32,42 @@ export function SettingsShell({
   saving,
   statusText,
 }: {
-  active: string;
+  active: SettingsTabId;
   children: ReactNode;
   onSave?: () => void;
   onReset?: () => void;
   saving?: boolean;
   statusText?: ReactNode;
 }) {
+  const { t } = useT();
+  const activeTab = TABS.find((tab) => tab.id === active);
   return (
     <div className="flex flex-col gap-5">
       <header>
         <Breadcrumb
           items={[
-            { label: "পরীক্ষা ও ফলাফল", href: "/admin/exam/settings" },
-            { label: "সেটিংস", href: "/admin/exam/settings" },
-            { label: active },
+            { label: t("পরীক্ষা ও ফলাফল", "Exam & Results"), href: "/admin/exam/settings" },
+            { label: t("সেটিংস", "Settings"), href: "/admin/exam/settings" },
+            { label: activeTab ? t(activeTab.bn, activeTab.en) : "" },
           ]}
         />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">পরীক্ষা সেটিংস</h1>
-        <p className="mt-1 text-meta text-text-muted">পরীক্ষা শুরু, মার্ক, মার্কশিট, মন্তব্য ও তারিখ কনফিগারেশন</p>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("পরীক্ষা সেটিংস", "Exam Settings")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("পরীক্ষা শুরু, মার্ক, মার্কশিট, মন্তব্য ও তারিখ কনফিগারেশন", "Exam start, mark, marksheet, comment & date configuration")}</p>
       </header>
 
       <div className="flex gap-6 overflow-x-auto border-b border-border-default">
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <Link
-            key={t.href}
-            href={t.href}
+            key={tab.id}
+            href={tab.href}
             className={cn(
               "-mb-px whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors",
-              t.label === active
+              tab.id === active
                 ? "border-primary text-primary"
                 : "border-transparent text-text-secondary hover:text-text-primary",
             )}
           >
-            {t.label}
+            {t(tab.bn, tab.en)}
           </Link>
         ))}
       </div>
@@ -70,12 +75,12 @@ export function SettingsShell({
       {children}
 
       {onSave ? (
-        <SaveBar status={<><UnsavedDot /><span>{statusText ?? "কনফিগারেশন সংরক্ষণ করুন"}</span></>}>
+        <SaveBar status={<><UnsavedDot /><span>{statusText ?? t("কনফিগারেশন সংরক্ষণ করুন", "Save configuration")}</span></>}>
           <Button variant="secondary" onClick={onReset} disabled={saving}>
-            <RotateCcw size={15} /> রিসেট
+            <RotateCcw size={15} /> {t("রিসেট", "Reset")}
           </Button>
           <Button variant="primary" onClick={onSave} disabled={saving}>
-            <Save size={16} /> {saving ? "সংরক্ষণ হচ্ছে…" : "সংরক্ষণ করুন"}
+            <Save size={16} /> {saving ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("সংরক্ষণ করুন", "Save")}
           </Button>
         </SaveBar>
       ) : null}

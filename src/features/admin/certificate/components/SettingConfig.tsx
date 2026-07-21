@@ -6,11 +6,12 @@ import { useT } from "@/shared/i18n/useT";
 import { Field, Input, Textarea, Button, useToast, Breadcrumb } from "@/shared/ui";
 import { useSetting, useSaveSetting } from "../logic/hooks";
 
-export type SettingField = { key: string; label: string; type: "text" | "textarea" | "toggle" };
+type Bilingual = { bn: string; en: string };
+export type SettingField = { key: string; label: Bilingual; type: "text" | "textarea" | "toggle" };
 
 /** Generic institution-setting editor (admit-instruction, exam-essentials) via fn_save_setting. */
 export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, cardTitle, fields }: {
-  settingKey: string; scope: string; breadcrumb: string; title: string; subtitle: string; cardTitle: string; fields: SettingField[];
+  settingKey: string; scope: string; breadcrumb: Bilingual; title: Bilingual; subtitle: Bilingual; cardTitle: Bilingual; fields: SettingField[];
 }) {
   const { t } = useT();
   const toast = useToast();
@@ -30,26 +31,26 @@ export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, 
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: breadcrumb }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
-        <p className="mt-1 text-meta text-text-muted">{subtitle}</p>
+        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: t(breadcrumb.bn, breadcrumb.en) }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t(title.bn, title.en)}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t(subtitle.bn, subtitle.en)}</p>
       </header>
 
       <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
-        <h2 className="text-base font-semibold text-text-primary">{cardTitle}</h2>
+        <h2 className="text-base font-semibold text-text-primary">{t(cardTitle.bn, cardTitle.en)}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {fields.map((f) =>
             f.type === "toggle" ? (
               <label key={f.key} className="flex items-center justify-between gap-3 rounded-lg border border-border-default px-3 py-2.5">
-                <span className="text-meta font-medium text-text-secondary">{f.label}</span>
+                <span className="text-meta font-medium text-text-secondary">{t(f.label.bn, f.label.en)}</span>
                 <button type="button" onClick={() => set(f.key, !form[f.key])} className={`relative inline-flex h-5 w-9 items-center rounded-full ${form[f.key] ? "bg-primary" : "bg-border-strong"}`}>
                   <span className={`absolute size-4 rounded-full bg-white ${form[f.key] ? "right-0.5" : "left-0.5"}`} />
                 </button>
               </label>
             ) : f.type === "textarea" ? (
-              <Field key={f.key} label={f.label} className="sm:col-span-2"><Textarea value={form[f.key] == null ? "" : String(form[f.key])} onChange={(e) => set(f.key, e.target.value)} /></Field>
+              <Field key={f.key} label={t(f.label.bn, f.label.en)} className="sm:col-span-2"><Textarea value={form[f.key] == null ? "" : String(form[f.key])} onChange={(e) => set(f.key, e.target.value)} /></Field>
             ) : (
-              <Field key={f.key} label={f.label}><Input value={form[f.key] == null ? "" : String(form[f.key])} onChange={(e) => set(f.key, e.target.value)} /></Field>
+              <Field key={f.key} label={t(f.label.bn, f.label.en)}><Input value={form[f.key] == null ? "" : String(form[f.key])} onChange={(e) => set(f.key, e.target.value)} /></Field>
             ),
           )}
         </div>

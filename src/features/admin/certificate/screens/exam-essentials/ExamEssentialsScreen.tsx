@@ -4,13 +4,16 @@ import { SettingConfig } from "../../components/SettingConfig";
 export function ExamEssentialsScreen() {
   return (
     <SettingConfig settingKey="exam_essentials" scope="certificate"
-      breadcrumb="পরীক্ষা প্রয়োজনীয়তা" title="পরীক্ষা প্রয়োজনীয়তা" subtitle="পরীক্ষার সনদ ও প্রবেশপত্রের সাধারণ তথ্য" cardTitle="প্রয়োজনীয় তথ্য"
+      breadcrumb={{ bn: "পরীক্ষা প্রয়োজনীয়তা", en: "Exam Essentials" }}
+      title={{ bn: "পরীক্ষা প্রয়োজনীয়তা", en: "Exam Essentials" }}
+      subtitle={{ bn: "পরীক্ষার সনদ ও প্রবেশপত্রের সাধারণ তথ্য", en: "Common details for exam certificates and admit cards" }}
+      cardTitle={{ bn: "প্রয়োজনীয় তথ্য", en: "Essential Details" }}
       fields={[
-        { key: "board", label: "বোর্ড / কর্তৃপক্ষ", type: "text" },
-        { key: "controller", label: "পরীক্ষা নিয়ন্ত্রক", type: "text" },
-        { key: "signatory", label: "স্বাক্ষরকারী", type: "text" },
-        { key: "instructions", label: "সাধারণ নির্দেশনা", type: "textarea" },
-        { key: "show_qr", label: "QR কোড দেখান", type: "toggle" },
+        { key: "board", label: { bn: "বোর্ড / কর্তৃপক্ষ", en: "Board / Authority" }, type: "text" },
+        { key: "controller", label: { bn: "পরীক্ষা নিয়ন্ত্রক", en: "Controller of Exams" }, type: "text" },
+        { key: "signatory", label: { bn: "স্বাক্ষরকারী", en: "Signatory" }, type: "text" },
+        { key: "instructions", label: { bn: "সাধারণ নির্দেশনা", en: "General instructions" }, type: "textarea" },
+        { key: "show_qr", label: { bn: "QR কোড দেখান", en: "Show QR code" }, type: "toggle" },
       ]} />
   );
 }

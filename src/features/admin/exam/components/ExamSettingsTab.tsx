@@ -39,7 +39,7 @@ export function ExamSettingsTab() {
   }
 
   return (
-    <SettingsShell active="পরীক্ষা শুরু" onSave={onSave} onReset={() => setF({ ...EMPTY })} saving={upsert.isPending}
+    <SettingsShell active="settings" onSave={onSave} onReset={() => setF({ ...EMPTY })} saving={upsert.isPending}
       statusText={f.id ? t("বিদ্যমান পরীক্ষা সম্পাদনা", "Editing existing exam") : t("নতুন পরীক্ষা", "New exam")}>
       <FormCard title={f.id ? t("পরীক্ষা সম্পাদনা", "Edit Exam") : t("নতুন পরীক্ষা তৈরি করুন", "Create New Exam")}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
