@@ -115,7 +115,7 @@ export function UpdateClassScreen() {
           ) : isError ? (
             <div className="px-5 py-10 text-center">
               <p className="text-sm text-danger-fg">{t("তালিকা লোড করা যায়নি", "Couldn't load the list")}</p>
-              <button onClick={() => refetch()} className="mt-2 text-sm font-semibold text-primary">
+              <button onClick={() => refetch()} className="mt-2 rounded-md px-1 py-0.5 text-sm font-semibold text-primary hover:underline">
                 {t("পুনরায় চেষ্টা", "Retry")}
               </button>
             </div>

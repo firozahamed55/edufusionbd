@@ -118,7 +118,7 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
           <div className="min-w-225">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student list")}</p>
-              <button onClick={() => markAll("present")} className="flex items-center gap-1.5 rounded-lg border border-success-fg bg-success-bg px-3 py-2 text-meta font-semibold text-success-fg">
+              <button onClick={() => markAll("present")} className="flex items-center gap-1.5 rounded-lg border border-success-fg bg-success-bg px-3 py-2 text-meta font-semibold text-success-fg transition-colors hover:brightness-95">
                 <CheckCheck size={15} /> {t("সবাইকে উপস্থিত", "All present")}
               </button>
               <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>

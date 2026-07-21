@@ -74,7 +74,7 @@ export function GradingScreen() {
               ))}
             </div>
           </div>
-          <button onClick={() => setScales((p) => [...p, { grade_letter: "", gpa_point: 0, min_marks: 0, max_marks: 0 }])} className="flex items-center gap-1.5 self-start text-meta font-semibold text-primary"><Plus size={14} /> {t("গ্রেড যোগ করুন", "Add grade")}</button>
+          <button onClick={() => setScales((p) => [...p, { grade_letter: "", gpa_point: 0, min_marks: 0, max_marks: 0 }])} className="flex items-center gap-1.5 self-start rounded-md px-1 py-0.5 text-meta font-semibold text-primary hover:underline"><Plus size={14} /> {t("গ্রেড যোগ করুন", "Add grade")}</button>
           <div className="flex justify-end gap-2">
             {id ? <Button variant="secondary" onClick={reset}>{t("বাতিল", "Cancel")}</Button> : null}
             <Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? t("সংরক্ষণ…", "Saving…") : id ? t("হালনাগাদ", "Update") : t("সংরক্ষণ করুন", "Save")}</Button>
