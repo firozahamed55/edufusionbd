@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { CreditCard } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
-import { useDigitalTransactions } from "../../logic/hooks";
+import { Skeleton, EmptyState, ErrorState, Breadcrumb, Pagination } from "@/shared/ui";
+import { useDigitalTransactions, useDigitalTransactionStats } from "../../logic/hooks";
 
 /** Fee · Digital Collection — live online-payment transactions + computed KPIs. */
 const statusMeta: Record<string, { bn: string; en: string; cls: string }> = {
@@ -19,19 +20,23 @@ const gatewayMeta: Record<string, { bn: string; en: string; cls: string }> = {
   rocket: { bn: "রকেট", en: "Rocket", cls: "bg-info-bg text-info-fg" },
 };
 
+const PER_PAGE = 25;
+
 export function DigitalCollectionScreen() {
   const { t, n, isBn } = useT();
-  const q = useDigitalTransactions();
-  const rows = q.data ?? [];
-  const success = rows.filter((r) => r.status === "success");
-  const pending = rows.filter((r) => r.status === "pending");
-  const successTotal = success.reduce((s, r) => s + r.amount, 0);
-  const rate = rows.length > 0 ? Math.round((success.length / rows.length) * 100) : 0;
+  const [page, setPage] = useState(1);
+  const q = useDigitalTransactions(page);
+  const stats = useDigitalTransactionStats();
+  const rows = q.data?.rows ?? [];
+  const total = q.data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const s = stats.data;
+  const rate = s && s.total > 0 ? Math.round((s.successCount / s.total) * 100) : 0;
 
   const KPIS = [
-    { value: `৳${n(successTotal)}`, label: t("সফল আদায়", "Collected"), grad: "from-[#4f46e5] to-[#7c3aed]", shadow: "shadow-[0px_6px_16px_-4px_rgba(79,70,229,0.26)]" },
-    { value: n(success.length), label: t("সফল লেনদেন", "Successful"), grad: "from-[#059669] to-[#0d9488]", shadow: "shadow-[0px_6px_16px_-4px_rgba(5,150,105,0.26)]" },
-    { value: n(pending.length), label: t("অপেক্ষমাণ", "Pending"), grad: "from-[#0284c7] to-[#2563eb]", shadow: "shadow-[0px_6px_16px_-4px_rgba(2,132,199,0.26)]" },
+    { value: `৳${n(s?.successTotal ?? 0)}`, label: t("সফল আদায়", "Collected"), grad: "from-[#4f46e5] to-[#7c3aed]", shadow: "shadow-[0px_6px_16px_-4px_rgba(79,70,229,0.26)]" },
+    { value: n(s?.successCount ?? 0), label: t("সফল লেনদেন", "Successful"), grad: "from-[#059669] to-[#0d9488]", shadow: "shadow-[0px_6px_16px_-4px_rgba(5,150,105,0.26)]" },
+    { value: n(s?.pendingCount ?? 0), label: t("অপেক্ষমাণ", "Pending"), grad: "from-[#0284c7] to-[#2563eb]", shadow: "shadow-[0px_6px_16px_-4px_rgba(2,132,199,0.26)]" },
     { value: `${n(rate)}%`, label: t("সফলতার হার", "Success rate"), grad: "from-[#f97316] to-[#d97706]", shadow: "shadow-[0px_6px_16px_-4px_rgba(249,115,22,0.26)]" },
   ];
 
@@ -64,7 +69,7 @@ export function DigitalCollectionScreen() {
           <div className="min-w-230">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("অনলাইন লেনদেন", "Online transactions")}</p>
-              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(total)}</span>
             </div>
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
               <div className="w-40">{t("তারিখ ও সময়", "Date & time")}</div>
@@ -91,6 +96,18 @@ export function DigitalCollectionScreen() {
           </div>
         </div>
       )}
+
+      {total > 0 ? (
+        <Pagination
+          label={t(
+            `${(page - 1) * PER_PAGE + 1}–${Math.min(page * PER_PAGE, total)} দেখানো হচ্ছে · মোট ${total} জন`,
+            `Showing ${(page - 1) * PER_PAGE + 1}-${Math.min(page * PER_PAGE, total)} of ${total}`,
+          )}
+          pages={pages}
+          current={page}
+          onPageChange={setPage}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,17 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, Breadcrumb, Pagination } from "@/shared/ui";
 import { useUsers } from "../../logic/hooks";
 
 const statusTone: Record<string, string> = { active: "bg-success-bg text-success-fg", suspended: "bg-danger-bg text-danger-fg", invited: "bg-warning-bg text-warning-fg" };
+const PER_PAGE = 25;
 
 export function UserListScreen() {
   const { t, isBn } = useT();
-  const q = useUsers();
-  const rows = q.data ?? [];
+  const [page, setPage] = useState(1);
+  const q = useUsers(page);
+  const rows = q.data?.rows ?? [];
+  const total = q.data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
     <div className="flex flex-col gap-5">
@@ -48,6 +53,18 @@ export function UserListScreen() {
           </div>
         </div>
       )}
+
+      {total > 0 ? (
+        <Pagination
+          label={t(
+            `${(page - 1) * PER_PAGE + 1}–${Math.min(page * PER_PAGE, total)} দেখানো হচ্ছে · মোট ${total} জন`,
+            `Showing ${(page - 1) * PER_PAGE + 1}-${Math.min(page * PER_PAGE, total)} of ${total}`,
+          )}
+          pages={pages}
+          current={page}
+          onPageChange={setPage}
+        />
+      ) : null}
       <p className="text-[12.5px] text-text-muted">{t("* নতুন ব্যবহারকারী তৈরি Supabase Auth-এর মাধ্যমে হয় (আমন্ত্রণ প্রবাহ পরবর্তী ধাপে যুক্ত হবে)।", isBn ? "" : "* New users are provisioned via Supabase Auth (invite flow added later).")}</p>
     </div>
   );

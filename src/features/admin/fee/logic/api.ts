@@ -179,17 +179,43 @@ export async function deleteFeeInvoices(supabase: BrowserClient, ids: string[]):
 /* --------------------------------------------------------------- digital + reports */
 
 export type DigitalTxn = { id: string; at: string; amount: number; gateway: string; gateway_txn_id: string | null; status: string; name_bn: string; name_en: string; code: string | null };
-export async function fetchDigitalTransactions(supabase: BrowserClient): Promise<DigitalTxn[]> {
-  const { data, error } = await supabase
+
+const DIGITAL_TXN_PAGE_SIZE = 25;
+
+export async function fetchDigitalTransactions(
+  supabase: BrowserClient,
+  { page = 1, perPage = DIGITAL_TXN_PAGE_SIZE }: { page?: number; perPage?: number } = {},
+): Promise<{ rows: DigitalTxn[]; total: number }> {
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+  const { data, error, count } = await supabase
     .from("digital_transaction")
-    .select("id, at, amount, gateway, gateway_txn_id, status, student:student_id(student_code, name_bn, name_en)")
-    .order("at", { ascending: false }).limit(100);
+    .select("id, at, amount, gateway, gateway_txn_id, status, student:student_id(student_code, name_bn, name_en)", { count: "exact" })
+    .order("at", { ascending: false })
+    .range(from, to);
   if (error) throw error;
   type Raw = { id: string; at: string; amount: number; gateway: string; gateway_txn_id: string | null; status: string; student: { student_code: string | null; name_bn: string; name_en: string } | null };
-  return ((data ?? []) as unknown as Raw[]).map((r) => ({
+  const rows = ((data ?? []) as unknown as Raw[]).map((r) => ({
     id: r.id, at: r.at, amount: num(r.amount), gateway: r.gateway, gateway_txn_id: r.gateway_txn_id, status: r.status,
     name_bn: r.student?.name_bn ?? "", name_en: r.student?.name_en ?? "", code: r.student?.student_code ?? null,
   }));
+  return { rows, total: count ?? 0 };
+}
+
+export type DigitalTxnStats = { total: number; successCount: number; successTotal: number; pendingCount: number };
+
+/** Institution-wide KPI totals — narrow columns, no join, independent of the paginated table above. */
+export async function fetchDigitalTransactionStats(supabase: BrowserClient): Promise<DigitalTxnStats> {
+  const { data, error } = await supabase.from("digital_transaction").select("status, amount");
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as { status: string; amount: number }[];
+  const success = rows.filter((r) => r.status === "success");
+  return {
+    total: rows.length,
+    successCount: success.length,
+    successTotal: success.reduce((s, r) => s + num(r.amount), 0),
+    pendingCount: rows.filter((r) => r.status === "pending").length,
+  };
 }
 
 export type UnpaidInstitute = {

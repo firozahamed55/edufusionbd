@@ -12,7 +12,8 @@ export const useSubjects = () => useQuery({ queryKey: ["core", "subjects"], quer
 export const useSubjectGroups = () => useQuery({ queryKey: ["core", "groups"], queryFn: () => api.fetchSubjectGroups(c()) });
 export const useGradeSchemes = () => useQuery({ queryKey: ["core", "schemes"], queryFn: () => api.fetchGradeSchemes(c()) });
 export const useSignatures = () => useQuery({ queryKey: ["core", "signatures"], queryFn: () => api.fetchSignatures(c()) });
-export const useUsers = () => useQuery({ queryKey: ["core", "users"], queryFn: () => api.fetchUsers(c()) });
+export const useUsers = (page: number) =>
+  useQuery({ queryKey: ["core", "users", "list", page], queryFn: () => api.fetchUsers(c(), { page }), placeholderData: (prev) => prev });
 
 function useMut<T>(fn: (v: T) => Promise<unknown>, keys: string[]) {
   const qc = useQueryClient();

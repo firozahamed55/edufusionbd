@@ -24,7 +24,11 @@ export const useUnpaidByInstitute = () => useQuery({ queryKey: ["fee", "unpaid-i
 
 export const useAppliedFees = () => useQuery({ queryKey: ["fee", "applied"], queryFn: () => api.fetchAppliedFees(c()) });
 
-export const useDigitalTransactions = () => useQuery({ queryKey: ["fee", "digital"], queryFn: () => api.fetchDigitalTransactions(c()) });
+export const useDigitalTransactions = (page: number) =>
+  useQuery({ queryKey: ["fee", "digital", "list", page], queryFn: () => api.fetchDigitalTransactions(c(), { page }), placeholderData: (prev) => prev });
+
+export const useDigitalTransactionStats = () =>
+  useQuery({ queryKey: ["fee", "digital", "stats"], queryFn: () => api.fetchDigitalTransactionStats(c()) });
 
 export const useIncomeStatement = (from: string, to: string, enabled: boolean) =>
   useQuery({ queryKey: ["fee", "income", from, to], queryFn: () => api.fetchIncomeStatement(c(), from, to), enabled });

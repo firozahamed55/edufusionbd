@@ -76,9 +76,22 @@ export const deleteSignature = (s: BrowserClient, id: string) => call(s, "fn_del
 
 /* users (read-only list) */
 export type UserRow = { id: string; full_name: string | null; phone: string | null; status: string; roles: string };
-export async function fetchUsers(s: BrowserClient): Promise<UserRow[]> {
-  const { data, error } = await s.from("profile").select("id, full_name, phone, status, roles:user_role(role:role_id(name))").order("created_at");
+
+const USERS_PAGE_SIZE = 25;
+
+export async function fetchUsers(
+  s: BrowserClient,
+  { page = 1, perPage = USERS_PAGE_SIZE }: { page?: number; perPage?: number } = {},
+): Promise<{ rows: UserRow[]; total: number }> {
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+  const { data, error, count } = await s
+    .from("profile")
+    .select("id, full_name, phone, status, roles:user_role(role:role_id(name))", { count: "exact" })
+    .order("created_at")
+    .range(from, to);
   if (error) throw error;
   type Raw = { id: string; full_name: string | null; phone: string | null; status: string; roles: { role: { name: string } | null }[] | null };
-  return ((data ?? []) as unknown as Raw[]).map((r) => ({ id: r.id, full_name: r.full_name, phone: r.phone, status: r.status, roles: (r.roles ?? []).map((x) => x.role?.name).filter(Boolean).join(", ") }));
+  const rows = ((data ?? []) as unknown as Raw[]).map((r) => ({ id: r.id, full_name: r.full_name, phone: r.phone, status: r.status, roles: (r.roles ?? []).map((x) => x.role?.name).filter(Boolean).join(", ") }));
+  return { rows, total: count ?? 0 };
 }
