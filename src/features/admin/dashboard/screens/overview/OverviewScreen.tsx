@@ -90,7 +90,7 @@ export function OverviewScreen() {
       {/* Greeting + actions */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex-1">
-          <h1 className="text-[26px] font-bold text-text-primary">
+          <h1 className="text-h3 font-bold text-text-primary">
             {t("সুপ্রভাত, নুসরাত", "Good morning, Nusrat")}
           </h1>
           <p className="mt-1.5 text-sm text-text-secondary">
@@ -152,7 +152,7 @@ export function OverviewScreen() {
         <Card className="gap-3">
           <div className="flex items-center">
             <h3 className="flex-1 text-base font-semibold text-text-primary">{t("অগ্রাধিকার ও সতর্কতা", "Priorities & Alerts")}</h3>
-            <button className="text-[13px] font-medium text-primary">{t("সব দেখুন", "View all")}</button>
+            <button className="text-meta font-medium text-primary">{t("সব দেখুন", "View all")}</button>
           </div>
           <Alert
             tone="danger"
@@ -198,7 +198,7 @@ export function OverviewScreen() {
       <Card className="gap-1">
         <div className="flex items-center pb-1.5">
           <h3 className="flex-1 text-base font-semibold text-text-primary">{t("সাম্প্রতিক নোটিশ", "Recent Notices")}</h3>
-          <button className="text-[13px] font-medium text-primary">{t("+ নতুন", "+ New")}</button>
+          <button className="text-meta font-medium text-primary">{t("+ নতুন", "+ New")}</button>
         </div>
         <div className="grid grid-cols-1 gap-3.5 pt-1.5 md:grid-cols-3">
           {(data?.notices ?? []).length === 0 ? (
@@ -244,7 +244,7 @@ function Kpi({
   return (
     <div className={cn("relative flex flex-col gap-3.5 overflow-hidden rounded-[18px] px-5 py-4.5 text-white", grad, shadow)}>
       <div className="flex items-center">
-        <p className="flex-1 text-[13px] font-medium">{label}</p>
+        <p className="flex-1 text-meta font-medium">{label}</p>
         <span className="grid size-9 place-items-center rounded-[10px] bg-white/20">
           <Icon size={20} />
         </span>
@@ -262,8 +262,8 @@ function Kpi({
 function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="flex flex-col gap-0.5 pt-1">
-      <h2 className="text-[17px] font-semibold text-text-primary">{title}</h2>
-      <p className="text-[13px] text-text-muted">{subtitle}</p>
+      <h2 className="text-label font-semibold text-text-primary">{title}</h2>
+      <p className="text-meta text-text-muted">{subtitle}</p>
     </div>
   );
 }
@@ -294,8 +294,8 @@ function LegendRow({ color, label, value }: { color: string; label: string; valu
   return (
     <div className="flex items-center gap-2">
       <span className={cn("size-2.5 rounded-full", color)} />
-      <span className="flex-1 text-[13px] text-text-secondary">{label}</span>
-      <span className="text-[13px] font-semibold text-text-primary">{value}</span>
+      <span className="flex-1 text-meta text-text-secondary">{label}</span>
+      <span className="text-meta font-semibold text-text-primary">{value}</span>
     </div>
   );
 }
@@ -333,7 +333,7 @@ function Alert({
       </div>
       <button
         className={cn(
-          "shrink-0 rounded-lg px-3 py-2 text-[13px] font-semibold",
+          "shrink-0 rounded-lg px-3 py-2 text-meta font-semibold",
           ctaTone === "danger"
             ? "bg-danger-fg text-white"
             : "border border-border-strong bg-surface text-text-primary hover:bg-sunken",
@@ -377,7 +377,7 @@ function Notice({
         <Icon size={20} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-text-primary">{title}</p>
+        <p className="text-meta font-semibold text-text-primary">{title}</p>
         <p className="mt-0.5 text-xs text-text-muted">{time}</p>
       </div>
     </div>

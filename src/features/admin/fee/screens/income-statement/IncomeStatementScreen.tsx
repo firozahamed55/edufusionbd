@@ -24,8 +24,8 @@ export function IncomeStatementScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-[22px] font-bold text-text-primary">{t("আয় বিবরণী", "Income Statement")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-[13px] text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("আয়-ব্যায়ের সমন্বিত বিবরণী", "Combined income & expenditure")}</p>
+        <h1 className="text-h4 font-bold text-text-primary">{t("আয় বিবরণী", "Income Statement")}</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("আয়-ব্যায়ের সমন্বিত বিবরণী", "Combined income & expenditure")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -56,7 +56,7 @@ export function IncomeStatementScreen() {
 }
 
 function Empty({ t }: { t: (bn: string, en: string) => string }) {
-  return <div className="px-5 py-6 text-center text-[13px] text-text-muted">{t("কোনো তথ্য পাওয়া যায়নি", "No data found")}</div>;
+  return <div className="px-5 py-6 text-center text-meta text-text-muted">{t("কোনো তথ্য পাওয়া যায়নি", "No data found")}</div>;
 }
 
 function Ledger({ title, totalLabel, credit, children }: { title: string; totalLabel: string; credit: string; children: React.ReactNode }) {
@@ -81,9 +81,9 @@ function Ledger({ title, totalLabel, credit, children }: { title: string; totalL
 function LedgerRow({ head, debit, credit, last }: { head: string; debit?: string; credit?: string; last?: boolean }) {
   return (
     <div className={cn("flex items-center gap-3 px-5 py-3.5", !last && "border-b border-border-default")}>
-      <div className="flex-1 text-[13px] text-text-secondary">{head}</div>
-      <div className="w-40 text-right text-[13px] text-text-secondary tnum">{debit ?? "—"}</div>
-      <div className="w-40 text-right text-[13px] font-semibold text-text-primary tnum">{credit ?? "—"}</div>
+      <div className="flex-1 text-meta text-text-secondary">{head}</div>
+      <div className="w-40 text-right text-meta text-text-secondary tnum">{debit ?? "—"}</div>
+      <div className="w-40 text-right text-meta font-semibold text-text-primary tnum">{credit ?? "—"}</div>
     </div>
   );
 }

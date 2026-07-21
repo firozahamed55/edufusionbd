@@ -36,9 +36,9 @@ export function SubjectGroupScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("বিষয় গ্রুপ", "Subject Groups")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("বিষয় গ্রুপ", "Subject Groups")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("বিভাগভিত্তিক বিষয় গ্রুপ তৈরি করুন (বিজ্ঞান, মানবিক…)", "Create subject groups (Science, Arts…)")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("বিষয় গ্রুপ", "Subject Groups")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বিষয় গ্রুপ", "Subject Groups")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("বিভাগভিত্তিক বিষয় গ্রুপ তৈরি করুন (বিজ্ঞান, মানবিক…)", "Create subject groups (Science, Arts…)")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr]">
@@ -46,10 +46,10 @@ export function SubjectGroupScreen() {
           <div className="flex flex-col gap-4">
             <Field label={t("গ্রুপের নাম", "Group name")} required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("বিজ্ঞান", "Science")} /></Field>
             <div className="flex flex-col gap-2">
-              <span className="text-[13px] font-medium text-text-secondary">{t("বিষয় নির্বাচন", "Select subjects")}</span>
+              <span className="text-meta font-medium text-text-secondary">{t("বিষয় নির্বাচন", "Select subjects")}</span>
               <div className="flex max-h-56 flex-col gap-1 overflow-y-auto rounded-lg border border-border-default p-2">
-                {subs.length === 0 ? <p className="p-2 text-[13px] text-text-muted">{t("প্রথমে বিষয় যোগ করুন", "Add subjects first")}</p> : subs.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-text-secondary hover:bg-sunken">
+                {subs.length === 0 ? <p className="p-2 text-meta text-text-muted">{t("প্রথমে বিষয় যোগ করুন", "Add subjects first")}</p> : subs.map((s) => (
+                  <label key={s.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-meta text-text-secondary hover:bg-sunken">
                     <input type="checkbox" checked={picked.has(s.id)} onChange={() => toggle(s.id)} className="size-4 accent-primary" />
                     {isBn ? s.name_bn : s.name_en}
                   </label>

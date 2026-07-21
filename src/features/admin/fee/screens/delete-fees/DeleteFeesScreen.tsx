@@ -33,13 +33,13 @@ export function DeleteFeesScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <h1 className="text-[22px] font-bold text-text-primary">{t("ফি মুছুন", "Delete Fees")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-[13px] text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("ভুলবশত আরোপিত ফি অপসারণ", "Remove mistakenly applied fees")}</p>
+        <h1 className="text-h4 font-bold text-text-primary">{t("ফি মুছুন", "Delete Fees")}</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("ভুলবশত আরোপিত ফি অপসারণ", "Remove mistakenly applied fees")}</p>
       </header>
 
       <div className="flex items-start gap-3 rounded-xl border border-danger-fg/40 bg-danger-bg p-4 text-danger-fg">
         <AlertTriangle size={20} className="mt-0.5 shrink-0" />
-        <p className="text-[13px] font-medium leading-relaxed">{t("সতর্কতা: মুছে ফেলা ফি অকার্যকর (void) হবে এবং তালিকা থেকে সরিয়ে ফেলা হবে।", "Warning: deleted fees are voided and removed from the list.")}</p>
+        <p className="text-meta font-medium leading-relaxed">{t("সতর্কতা: মুছে ফেলা ফি অকার্যকর (void) হবে এবং তালিকা থেকে সরিয়ে ফেলা হবে।", "Warning: deleted fees are voided and removed from the list.")}</p>
       </div>
 
       {q.isLoading ? (
@@ -53,7 +53,7 @@ export function DeleteFeesScreen() {
           <div className="min-w-205">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("আরোপিত ফি তালিকা", "Applied fees")}</p>
-              <span className="text-[13px] font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
             </div>
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
               <div className="flex w-6 items-center"><Checkbox checked={allSelected} onChange={toggleAll} aria-label={t("সব নির্বাচন", "Select all")} /></div>
@@ -70,16 +70,16 @@ export function DeleteFeesScreen() {
                 <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5 border-b border-border-default last:border-0", checked && "bg-danger-bg/40")}>
                   <div className="flex w-6 items-center"><Checkbox checked={checked} onChange={() => toggleOne(r.id)} aria-label={t("নির্বাচন", "Select")} /></div>
                   <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                  <div className="w-30 font-latin text-[13px] text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
-                  <div className="w-40 text-[13px] text-text-secondary">{r.heads || "—"}</div>
-                  <div className="w-25 text-[13px] text-text-muted">{r.period ?? "—"}</div>
+                  <div className="w-30 font-latin text-meta text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
+                  <div className="w-40 text-meta text-text-secondary">{r.heads || "—"}</div>
+                  <div className="w-25 text-meta text-text-muted">{r.period ?? "—"}</div>
                   <div className="w-22.5 text-right text-sm font-bold text-text-primary tnum">৳{n(r.due)}</div>
                   <div className="w-22.5 text-center"><span className="inline-block rounded-full bg-warning-bg px-2.5 py-1 text-xs font-semibold text-warning-fg">{r.status}</span></div>
                 </div>
               );
             })}
             <div className="flex flex-wrap items-center gap-3 border-t border-border-default px-5 py-4">
-              <span className="flex-1 text-[13px] text-text-secondary">{t(`${selected.size} টি ফি নির্বাচিত`, `${selected.size} selected`)} · {t("মোট", "Total")} ৳{n(selectedTotal)}</span>
+              <span className="flex-1 text-meta text-text-secondary">{t(`${selected.size} টি ফি নির্বাচিত`, `${selected.size} selected`)} · {t("মোট", "Total")} ৳{n(selectedTotal)}</span>
               <button onClick={() => setConfirm(true)} disabled={selected.size === 0 || del.isPending}
                 className="flex items-center gap-2 rounded-lg bg-danger-fg px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                 <Trash2 size={16} /> {del.isPending ? t("মুছছে…", "Deleting…") : t("নির্বাচিত মুছুন", "Delete selected")}

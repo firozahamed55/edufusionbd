@@ -43,7 +43,7 @@ export function BarChart({
                 className="flex w-full max-w-12 flex-col items-center justify-end"
                 style={{ height: `${Math.max(6, (d.value / ceiling) * 100)}%` }}
               >
-                <span className="mb-1 text-[11px] font-semibold text-text-secondary">
+                <span className="mb-1 text-micro font-semibold text-text-secondary">
                   {d.display ?? d.value}
                   {unit}
                 </span>
@@ -103,7 +103,7 @@ export function Donut({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[29px] font-bold text-text-primary tnum">
+        <span className="text-stat font-bold text-text-primary tnum">
           {valueLabel ?? `${clamped}%`}
         </span>
         {label ? <span className="text-xs text-text-muted">{label}</span> : null}

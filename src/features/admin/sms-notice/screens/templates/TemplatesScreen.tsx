@@ -36,9 +36,9 @@ export function TemplatesScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("টেমপ্লেট", "Templates")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("SMS টেমপ্লেট", "SMS Templates")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("পুনঃব্যবহারযোগ্য বার্তা টেমপ্লেট তৈরি করুন", "Create reusable message templates")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("টেমপ্লেট", "Templates")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS টেমপ্লেট", "SMS Templates")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("পুনঃব্যবহারযোগ্য বার্তা টেমপ্লেট তৈরি করুন", "Create reusable message templates")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
@@ -57,10 +57,10 @@ export function TemplatesScreen() {
           ) : rows.map((r, i) => (
             <div key={r.id} className={cn("flex items-start gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2"><p className="text-sm font-semibold text-text-primary">{r.name}</p><span className="rounded-full bg-primary-subtle px-2 py-0.5 text-[11px] font-semibold text-primary">{catLabel(r.category, isBn)}</span></div>
-                <p className="mt-0.5 line-clamp-2 text-[13px] text-text-muted">{r.body}</p>
+                <div className="flex items-center gap-2"><p className="text-sm font-semibold text-text-primary">{r.name}</p><span className="rounded-full bg-primary-subtle px-2 py-0.5 text-micro font-semibold text-primary">{catLabel(r.category, isBn)}</span></div>
+                <p className="mt-0.5 line-clamp-2 text-meta text-text-muted">{r.body}</p>
               </div>
-              <span className="shrink-0 text-[12px] text-text-muted tnum">{n(r.usage_count)}×</span>
+              <span className="shrink-0 text-xs text-text-muted tnum">{n(r.usage_count)}×</span>
               <button onClick={() => setDelId(r.id)} aria-label={t("মুছুন", "Delete")} className="grid size-7 shrink-0 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
             </div>
           ))}

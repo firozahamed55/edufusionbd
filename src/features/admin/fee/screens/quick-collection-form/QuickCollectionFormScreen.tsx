@@ -59,8 +59,8 @@ export function QuickCollectionFormScreen() {
   return (
     <div className="flex flex-col gap-6 pb-6">
       <header>
-        <h1 className="text-[22px] font-bold text-text-primary">{t("কুইক কালেকশন", "Quick Collection")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-[13px] text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("দ্রুত ফি আদায়", "Fast fee collection")}</p>
+        <h1 className="text-h4 font-bold text-text-primary">{t("কুইক কালেকশন", "Quick Collection")}</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("দ্রুত ফি আদায়", "Fast fee collection")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
@@ -73,7 +73,7 @@ export function QuickCollectionFormScreen() {
 
         <div className="flex flex-col gap-2.5 rounded-2xl bg-surface p-5 shadow-e3">
           {!studentId ? (
-            <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-text-muted"><User size={18} /> {t("একজন শিক্ষার্থী খুঁজুন", "Look up a student")}</div>
+            <div className="flex flex-1 items-center justify-center gap-2 text-meta text-text-muted"><User size={18} /> {t("একজন শিক্ষার্থী খুঁজুন", "Look up a student")}</div>
           ) : profile.isLoading ? (
             <div className="flex flex-col gap-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-6" />)}</div>
           ) : profile.data ? (
@@ -124,9 +124,9 @@ export function QuickCollectionFormScreen() {
                 rows.map((r, i) => (
                   <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
                     <div className="w-40 text-sm font-semibold text-text-primary">{r.heads || "—"}</div>
-                    <div className="flex-1 text-[13px] text-text-secondary">{r.period ?? "—"}</div>
-                    <div className="w-25 text-right text-[13px] text-text-secondary tnum">৳{n(r.total)}</div>
-                    <div className="w-25 text-right text-[13px] font-semibold text-danger-fg tnum">৳{n(r.due)}</div>
+                    <div className="flex-1 text-meta text-text-secondary">{r.period ?? "—"}</div>
+                    <div className="w-25 text-right text-meta text-text-secondary tnum">৳{n(r.total)}</div>
+                    <div className="w-25 text-right text-meta font-semibold text-danger-fg tnum">৳{n(r.due)}</div>
                     <div className="w-32">
                       <Input type="number" min={0} value={amounts[r.id] ?? ""} onChange={(e) => setAmounts((p) => ({ ...p, [r.id]: e.target.value }))} placeholder={String(r.due)} disabled={r.due <= 0} className="h-9 text-right font-latin" />
                     </div>
@@ -151,7 +151,7 @@ export function QuickCollectionFormScreen() {
 
 function ProfileRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="flex items-center gap-3 text-[13px]">
+    <div className="flex items-center gap-3 text-meta">
       <span className="w-20 shrink-0 text-text-muted">{label}</span>
       <span className={cn("flex-1 truncate", strong ? "font-semibold text-text-primary" : "text-text-secondary")}>{value}</span>
     </div>
@@ -160,7 +160,7 @@ function ProfileRow({ label, value, strong }: { label: string; value: string; st
 function SummaryTile({ gradient, label, value }: { gradient: string; label: string; value: string }) {
   return (
     <div className={cn("flex flex-col gap-2 rounded-2xl bg-linear-to-r p-5 text-center text-white shadow-e3", gradient)}>
-      <p className="text-[13px] font-medium opacity-90">{label}</p>
+      <p className="text-meta font-medium opacity-90">{label}</p>
       <p className="text-2xl font-bold tnum">{value}</p>
     </div>
   );

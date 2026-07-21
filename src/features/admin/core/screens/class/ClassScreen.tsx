@@ -29,9 +29,9 @@ export function ClassScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("শ্রেণি", "Classes")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("শ্রেণি ব্যবস্থাপনা", "Class Management")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("প্রতিষ্ঠানের শ্রেণিসমূহ নির্ধারণ করুন", "Define the institution's classes")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("শ্রেণি", "Classes")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("শ্রেণি ব্যবস্থাপনা", "Class Management")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের শ্রেণিসমূহ নির্ধারণ করুন", "Define the institution's classes")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[340px_1fr]">
@@ -53,7 +53,7 @@ export function ClassScreen() {
             <div className="p-5"><EmptyState icon={<GraduationCap size={22} />} title={t("কোনো শ্রেণি নেই", "No classes yet")} /></div>
           ) : rows.map((r, i) => (
             <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
-              <div className="w-16 text-[13px] font-semibold text-primary tnum">{r.numeric_level != null ? n(r.numeric_level) : "—"}</div>
+              <div className="w-16 text-meta font-semibold text-primary tnum">{r.numeric_level != null ? n(r.numeric_level) : "—"}</div>
               <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
               <button onClick={() => setF({ id: r.id, name_bn: r.name_bn, name_en: r.name_en, numeric_level: r.numeric_level != null ? String(r.numeric_level) : "" })} aria-label={t("সম্পাদনা", "Edit")} className="grid size-7 place-items-center rounded-md text-text-muted hover:bg-sunken"><Pencil size={15} /></button>
               <button onClick={() => setDelId(r.id)} aria-label={t("মুছুন", "Delete")} className="grid size-7 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>

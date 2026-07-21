@@ -36,15 +36,15 @@ export function ListScreen() {
       {/* Header */}
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-1.5 text-[13px] text-text-muted">
+          <div className="flex items-center gap-1.5 text-meta text-text-muted">
             <span>{t("শিক্ষক ও কর্মী", "Teachers & Staff")}</span>
             <span>›</span>
             <span>{t("শিক্ষক তালিকা", "Teacher List")}</span>
           </div>
-          <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">
+          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
             {t("শিক্ষক তালিকা", "Teacher List")}
           </h1>
-          <p className="mt-1 text-[13px] text-text-muted">
+          <p className="mt-1 text-meta text-text-muted">
             {t("সকল শিক্ষক ও কর্মীর তথ্য, বিষয় ও স্ট্যাটাস", "All teachers & staff — subject and status")}
           </p>
         </div>
@@ -73,7 +73,7 @@ export function ListScreen() {
           value={dept}
           onChange={(e) => setDept(e.target.value)}
           aria-label={t("বিভাগ ফিল্টার", "Filter by department")}
-          className="rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-[13px] font-medium text-text-secondary"
+          className="rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary"
         >
           <option value="">{t("বিভাগ: সব", "Department: All")}</option>
           {departments.map((d) => (
@@ -148,7 +148,7 @@ export function ListScreen() {
                         <span className="text-text-muted">—</span>
                       )}
                     </TD>
-                    <TD className="text-[13px] font-medium text-text-secondary">
+                    <TD className="text-meta font-medium text-text-secondary">
                       {r.subject_bn || r.subject_en ? t(r.subject_bn ?? "", r.subject_en ?? "") : "—"}
                     </TD>
                     <TD>

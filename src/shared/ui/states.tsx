@@ -56,7 +56,7 @@ export function EmptyState({
         </span>
       ) : null}
       <div className="flex flex-col gap-1">
-        <p className="text-[15px] font-semibold text-text-primary">{title}</p>
+        <p className="text-body font-semibold text-text-primary">{title}</p>
         {description ? (
           <p className="mx-auto max-w-sm text-sm text-text-muted">{description}</p>
         ) : null}
@@ -89,7 +89,7 @@ export function ErrorState({
         <AlertCircle size={22} aria-hidden />
       </span>
       <div className="flex flex-col gap-1">
-        <p className="text-[15px] font-semibold text-text-primary">{title}</p>
+        <p className="text-body font-semibold text-text-primary">{title}</p>
         {description ? (
           <p className="mx-auto max-w-sm text-sm text-text-muted">{description}</p>
         ) : null}

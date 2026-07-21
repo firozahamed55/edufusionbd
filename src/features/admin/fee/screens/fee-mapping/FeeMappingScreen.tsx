@@ -57,8 +57,8 @@ export function FeeMappingScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <h1 className="text-[22px] font-bold text-text-primary">{t("ফি ম্যাপিং", "Fee Mapping")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-[13px] text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("শ্রেণি-ভিত্তিক ফি কাঠামো নির্ধারণ", "Define class-wise fee structure")}</p>
+        <h1 className="text-h4 font-bold text-text-primary">{t("ফি ম্যাপিং", "Fee Mapping")}</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("শ্রেণি-ভিত্তিক ফি কাঠামো নির্ধারণ", "Define class-wise fee structure")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -88,7 +88,7 @@ export function FeeMappingScreen() {
           <div className="min-w-160">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("ফি ম্যাপিং তালিকা", "Fee mappings")}</p>
-              <span className="text-[13px] font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
             </div>
             {mappings.isLoading ? (
               <div className="flex flex-col gap-2 p-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
@@ -108,10 +108,10 @@ export function FeeMappingScreen() {
                 </div>
                 {rows.map((m, i) => (
                   <div key={m.id} className={cn("flex items-center gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
-                    <div className="flex-1 text-[13px] font-medium text-text-primary">{isBn ? m.class_bn : m.class_en}{m.category ? ` · ${m.category}` : ""}</div>
+                    <div className="flex-1 text-meta font-medium text-text-primary">{isBn ? m.class_bn : m.class_en}{m.category ? ` · ${m.category}` : ""}</div>
                     <div className="w-27.5"><span className="inline-block rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">{m.head}</span></div>
                     <div className="w-20 text-right text-sm font-bold text-text-primary tnum">৳{n(m.amount)}</div>
-                    <div className="w-30 text-[13px] text-text-secondary">{freqLabel(m.frequency, isBn)}</div>
+                    <div className="w-30 text-meta text-text-secondary">{freqLabel(m.frequency, isBn)}</div>
                     <div className="flex w-17.5 justify-center">
                       <button onClick={() => toggle(m.id, !m.is_active)} aria-label={t("টগল", "Toggle")} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", m.is_active ? "bg-primary" : "bg-border-strong")}>
                         <span className={cn("absolute size-4 rounded-full bg-white transition-all", m.is_active ? "right-0.5" : "left-0.5")} />

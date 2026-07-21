@@ -38,13 +38,13 @@ export function MigrationPushbackScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-[13px] text-text-muted">
+        <div className="flex items-center gap-1 text-meta text-text-muted">
           <span>{t("মাইগ্রেশন", "Migration")}</span>
           <ChevronRight size={14} />
           <span className="text-text-secondary">{t("পুশব্যাক", "Pushback")}</span>
         </div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("মাইগ্রেশন পুশব্যাক", "Migration Pushback")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("সম্পন্ন মাইগ্রেশন ব্যাচ পূর্বাবস্থায় ফিরিয়ে আনুন", "Reverse a completed migration batch")}</p>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("মাইগ্রেশন পুশব্যাক", "Migration Pushback")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("সম্পন্ন মাইগ্রেশন ব্যাচ পূর্বাবস্থায় ফিরিয়ে আনুন", "Reverse a completed migration batch")}</p>
       </header>
 
       <FormCard title={t("মাইগ্রেশন ব্যাচ নির্বাচন", "Select Migration Batch")}>
@@ -67,7 +67,7 @@ export function MigrationPushbackScreen() {
 
       {batchId && selectedBatch ? (
         <>
-          <div className="flex items-start gap-2.5 rounded-xl border border-danger-fg/30 bg-danger-bg px-4 py-3 text-[13px] leading-relaxed text-danger-fg">
+          <div className="flex items-start gap-2.5 rounded-xl border border-danger-fg/30 bg-danger-bg px-4 py-3 text-meta leading-relaxed text-danger-fg">
             <AlertTriangle size={17} className="mt-0.5 shrink-0" />
             <p>
               <span className="font-semibold">{t("সতর্কতা:", "Warning:")}</span>{" "}
@@ -96,8 +96,8 @@ export function MigrationPushbackScreen() {
                 {(affected.data ?? []).map((r, i) => (
                   <div key={i} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
                     <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                    <div className="w-24 text-right text-[13px] text-text-secondary tnum">{r.old_roll != null ? n(r.old_roll) : "—"}</div>
-                    <div className="w-24 text-right text-[13px] text-text-secondary tnum">{r.new_roll != null ? n(r.new_roll) : "—"}</div>
+                    <div className="w-24 text-right text-meta text-text-secondary tnum">{r.old_roll != null ? n(r.old_roll) : "—"}</div>
+                    <div className="w-24 text-right text-meta text-text-secondary tnum">{r.new_roll != null ? n(r.new_roll) : "—"}</div>
                     <div className="w-28">
                       <span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", r.result === "pass" || !r.result ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg")}>
                         {r.result === "fail" ? t("অকৃতকার্য", "Failed") : t("উত্তীর্ণ", "Passed")}

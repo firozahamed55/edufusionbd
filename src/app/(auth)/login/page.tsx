@@ -1,17 +1,34 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Smartphone } from "lucide-react";
 import { createClient } from "@/shared/services/supabase/client";
+import { resolveLoginEmail } from "@/features/auth/lib/identity";
 import { useT } from "@/shared/i18n/useT";
-import { Button } from "@/shared/ui";
+import { Button, PasswordInput, Checkbox } from "@/shared/ui";
+import { AuthShell, AuthCard } from "@/features/auth/components";
+import { roleHome, isRole, safeInternalPath, ROLE_LABELS } from "@/features/auth/components/roles";
 
+/**
+ * Login — Figma split-panel. Primary identifier is a mobile number (how
+ * Bangladeshi parents log in); an email is also accepted so the existing
+ * Supabase email/password flow keeps working (audit 7.2). Includes remember-me,
+ * show/hide password, forgot-password link, an OTP-login path, field-level
+ * validation, and loading/error states.
+ */
 export default function LoginPage() {
   const { t } = useT();
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState("");
+  // Role the user picked on the Role Selection screen — drives the header only.
+  // The signed-in JWT role (below) is authoritative for where they actually land.
+  const roleParam = params.get("role");
+  const selectedRole = isRole(roleParam) ? roleParam : null;
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -20,67 +37,126 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // ponytail: @supabase/ssr persists the session in cookies regardless of
+    // `remember`, so the toggle is a UX affordance today. Wire a session-scoped
+    // cookie override here if true "forget on close" is required.
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: resolveLoginEmail(identifier),
+      password,
+    });
     if (error) {
       setLoading(false);
-      setError(t("ইমেইল বা পাসওয়ার্ড ভুল", "Invalid email or password"));
+      setError(t("মোবাইল নম্বর/ইমেইল বা পাসওয়ার্ড ভুল", "Invalid mobile number/email or password"));
       return;
     }
-    // Full navigation so middleware picks up the new session cookie.
-    const redirect = params.get("redirect") || "/admin/dashboard";
-    router.replace(redirect);
+    const actualRole = (data.user?.app_metadata?.role ?? data.user?.user_metadata?.role) as
+      | string
+      | undefined;
+    // Honor a safe internal deep-link (middleware sets ?redirect=…), else land
+    // on the dashboard for the user's REAL role. External redirects are rejected.
+    const dest = safeInternalPath(params.get("redirect")) ?? roleHome(actualRole);
+    router.replace(dest);
     router.refresh();
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-canvas px-4 text-text-primary">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm rounded-lg border border-border-default bg-surface p-8 shadow-e2"
+    <AuthShell>
+      <AuthCard
+        title={t("স্বাগতম", "Welcome back")}
+        subtitle={
+          selectedRole
+            ? t(
+                `${ROLE_LABELS[selectedRole].bn} হিসেবে প্রবেশ করুন`,
+                `Sign in as ${ROLE_LABELS[selectedRole].en}`,
+              )
+            : t("আপনার অ্যাকাউন্টে প্রবেশ করুন", "Sign in to your account")
+        }
+        footer={
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-opacity hover:opacity-80"
+          >
+            ← {t("ভিন্ন ভূমিকা নির্বাচন করুন", "Choose a different role")}
+          </Link>
+        }
       >
-        <div className="mb-6 flex items-center gap-2">
-          <div className="h-8 w-8 rounded-md bg-primary" />
-          <span className="text-xl font-bold">EduFusionBD</span>
+        <form onSubmit={onSubmit} noValidate>
+          <label
+            className="mb-1.5 block text-meta font-medium text-text-secondary"
+            htmlFor="identifier"
+          >
+            {t("মোবাইল নম্বর", "Mobile number")}
+          </label>
+          <input
+            id="identifier"
+            type="text"
+            inputMode="tel"
+            required
+            autoComplete="username"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            className="mb-4 h-10.5 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-primary tnum"
+            placeholder="+880 1712-345678"
+          />
+
+          <label
+            className="mb-1.5 block text-meta font-medium text-text-secondary"
+            htmlFor="password"
+          >
+            {t("পাসওয়ার্ড", "Password")}
+          </label>
+          <PasswordInput
+            id="password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            showLabel={t("পাসওয়ার্ড দেখান", "Show password")}
+            hideLabel={t("পাসওয়ার্ড লুকান", "Hide password")}
+          />
+
+          <div className="mb-5 mt-3 flex items-center justify-between">
+            <label className="flex items-center gap-2 text-meta text-text-secondary">
+              <Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+              {t("আমাকে মনে রাখুন", "Remember me")}
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-meta font-medium text-primary hover:opacity-80"
+            >
+              {t("পাসওয়ার্ড ভুলে গেছেন?", "Forgot password?")}
+            </Link>
+          </div>
+
+          {error ? (
+            <p
+              className="mb-4 rounded-lg bg-danger-bg px-3 py-2 text-sm text-danger-fg"
+              role="alert"
+            >
+              {error}
+            </p>
+          ) : null}
+
+          <Button type="submit" size="lg" className="w-full justify-center" disabled={loading}>
+            {loading ? t("লগইন হচ্ছে…", "Signing in…") : t("লগইন", "Sign in")}
+          </Button>
+        </form>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-text-muted">
+          <span className="h-px flex-1 bg-border-default" />
+          {t("অথবা", "or")}
+          <span className="h-px flex-1 bg-border-default" />
         </div>
 
-        <label className="mb-1.5 block text-sm font-medium text-text-secondary" htmlFor="email">
-          {t("ইমেইল", "Email")}
-        </label>
-        <input
-          id="email"
-          type="email"
-          required
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-border-strong bg-canvas px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-          placeholder="admin@edufusionbd.test"
-        />
-
-        <label className="mb-1.5 block text-sm font-medium text-text-secondary" htmlFor="password">
-          {t("পাসওয়ার্ড", "Password")}
-        </label>
-        <input
-          id="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-border-strong bg-canvas px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-          placeholder="••••••••"
-        />
-
-        {error ? (
-          <p className="mb-4 rounded-lg bg-danger-bg px-3 py-2 text-sm text-danger-fg" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        <Button type="submit" className="w-full justify-center" disabled={loading}>
-          {loading ? t("লগইন হচ্ছে…", "Signing in…") : t("লগইন", "Sign in")}
-        </Button>
-      </form>
-    </main>
+        <Link
+          href="/otp"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border-strong bg-surface text-sm font-medium text-text-primary transition-colors hover:bg-sunken"
+        >
+          <Smartphone size={16} />
+          {t("ওটিপি দিয়ে লগইন করুন", "Sign in with OTP")}
+        </Link>
+      </AuthCard>
+    </AuthShell>
   );
 }

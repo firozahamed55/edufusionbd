@@ -41,9 +41,9 @@ export function NoticeBoardScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("নোটিশ বোর্ড", "Notice Board")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("নোটিশ বোর্ড", "Notice Board")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("নোটিশ প্রকাশ ও ব্যবস্থাপনা করুন", "Publish and manage notices")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("SMS ও নোটিশ", "SMS & Notice")}</span><span>›</span><span className="text-text-secondary">{t("নোটিশ বোর্ড", "Notice Board")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("নোটিশ বোর্ড", "Notice Board")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("নোটিশ প্রকাশ ও ব্যবস্থাপনা করুন", "Publish and manage notices")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr]">
@@ -65,9 +65,9 @@ export function NoticeBoardScreen() {
           ) : rows.map((r) => (
             <div key={r.id} className="flex items-start gap-3 rounded-2xl bg-surface p-5 shadow-e3">
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-text-primary">{r.title}</p><span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", statusTone[r.status] ?? "bg-sunken text-text-secondary")}>{lab(STATUSES, r.status, isBn)}</span></div>
-                {r.body ? <p className="mt-1 line-clamp-2 text-[13px] text-text-muted">{r.body}</p> : null}
-                <p className="mt-1.5 text-[12px] text-text-muted">{lab(AUDIENCES, r.audience, isBn)}{r.event_date ? ` · ${n(new Date(r.event_date).toLocaleDateString(isBn ? "bn-BD" : "en-GB", { dateStyle: "medium" }))}` : ""}</p>
+                <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-text-primary">{r.title}</p><span className={cn("rounded-full px-2 py-0.5 text-micro font-semibold", statusTone[r.status] ?? "bg-sunken text-text-secondary")}>{lab(STATUSES, r.status, isBn)}</span></div>
+                {r.body ? <p className="mt-1 line-clamp-2 text-meta text-text-muted">{r.body}</p> : null}
+                <p className="mt-1.5 text-xs text-text-muted">{lab(AUDIENCES, r.audience, isBn)}{r.event_date ? ` · ${n(new Date(r.event_date).toLocaleDateString(isBn ? "bn-BD" : "en-GB", { dateStyle: "medium" }))}` : ""}</p>
               </div>
               <button onClick={() => setDelId(r.id)} aria-label={t("মুছুন", "Delete")} className="grid size-8 shrink-0 place-items-center rounded-lg text-danger-fg hover:bg-sunken"><Trash2 size={16} /></button>
             </div>

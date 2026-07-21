@@ -29,7 +29,7 @@ export function Pagination({
   const { t, n } = useT();
   return (
     <div className="flex flex-wrap items-center gap-3 border-t border-border-default px-5 py-3.5">
-      <span className="flex-1 text-[13px] text-text-muted">{label}</span>
+      <span className="flex-1 text-meta text-text-muted">{label}</span>
       <div className="flex items-center gap-1.5">
         <PageBtn
           aria-label={t("আগে", "Previous")}
@@ -50,7 +50,7 @@ export function Pagination({
         >
           <ChevronRight size={15} />
         </PageBtn>
-        <button className="ml-1 flex h-8 items-center gap-1 rounded-lg border border-border-strong bg-surface px-2.5 text-[13px] font-medium text-text-secondary hover:bg-sunken">
+        <button className="ml-1 flex h-8 items-center gap-1 rounded-lg border border-border-strong bg-surface px-2.5 text-meta font-medium text-text-secondary hover:bg-sunken">
           {n(perPage ?? 10)}
           <ChevronDown size={13} className="text-text-muted" />
         </button>
@@ -69,7 +69,7 @@ function PageBtn({
     <button
       type="button"
       className={cn(
-        "grid size-8 place-items-center rounded-lg text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+        "grid size-8 place-items-center rounded-lg text-meta font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
         active
           ? "bg-primary text-text-on-primary"
           : "border border-border-strong bg-surface text-text-secondary hover:bg-sunken",

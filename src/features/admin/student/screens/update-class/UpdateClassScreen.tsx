@@ -43,17 +43,17 @@ export function UpdateClassScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-[13px] text-text-muted">
+        <div className="flex items-center gap-1 text-meta text-text-muted">
           <span>{t("শিক্ষার্থী তথ্য", "Student Info")}</span>
           <ChevronRight size={14} />
           <span>{t("তথ্য হালনাগাদ", "Update")}</span>
           <ChevronRight size={14} />
           <span className="text-text-secondary">{t("শ্রেণি তথ্য", "Class Info")}</span>
         </div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
           {t("শ্রেণি তথ্য হালনাগাদ", "Update Class Info")}
         </h1>
-        <p className="mt-1 text-[13px] text-text-muted">
+        <p className="mt-1 text-meta text-text-muted">
           {t("শ্রেণি নির্বাচন করে শিক্ষার্থী তালিকা দেখুন", "Select a class-section to view its students")}
         </p>
       </header>
@@ -78,7 +78,7 @@ export function UpdateClassScreen() {
             <p className="flex-1 text-base font-semibold text-text-primary">
               {t("শিক্ষার্থী তালিকা", "Student List")}
             </p>
-            <span className="text-[13px] font-semibold text-primary">
+            <span className="text-meta font-semibold text-primary">
               {t("মোট পাওয়া গেছে:", "Total found:")} {n(rows.length)}
             </span>
           </div>
@@ -99,7 +99,7 @@ export function UpdateClassScreen() {
                 value={nameFilter}
                 onChange={(e) => setNameFilter(e.target.value)}
                 placeholder={t("নাম/আইডি", "Name/ID")}
-                className="h-8 w-full rounded-md border border-border-strong bg-surface px-2 text-[12px] text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
+                className="h-8 w-full rounded-md border border-border-strong bg-surface px-2 text-xs text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
               />
             </div>
             <div className="w-40" />
@@ -135,12 +135,12 @@ export function UpdateClassScreen() {
                 key={r.enrollmentId}
                 className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}
               >
-                <div className="w-30 font-latin text-[13px] font-medium text-text-secondary">{r.code ?? "—"}</div>
-                <div className="w-15 text-[13px] text-text-secondary">{r.roll != null ? n(r.roll) : "—"}</div>
+                <div className="w-30 font-latin text-meta font-medium text-text-secondary">{r.code ?? "—"}</div>
+                <div className="w-15 text-meta text-text-secondary">{r.roll != null ? n(r.roll) : "—"}</div>
                 <div className="w-42.5 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                <div className="w-40 text-[13px] text-text-secondary">{r.father ?? "—"}</div>
-                <div className="w-30 text-[13px] text-text-secondary">{fmtDate(r.dob)}</div>
-                <div className="flex-1 font-latin text-[13px] text-text-secondary">{r.phone ? n(r.phone) : "—"}</div>
+                <div className="w-40 text-meta text-text-secondary">{r.father ?? "—"}</div>
+                <div className="w-30 text-meta text-text-secondary">{fmtDate(r.dob)}</div>
+                <div className="flex-1 font-latin text-meta text-text-secondary">{r.phone ? n(r.phone) : "—"}</div>
                 <div className="flex w-17.5 justify-end">
                   <button
                     aria-label={t("সম্পাদনা", "Edit")}

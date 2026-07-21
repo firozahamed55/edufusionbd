@@ -37,9 +37,9 @@ export function AnalyticsScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("একাডেমিক", "Academic")}</span><span>›</span><span className="text-text-secondary">{t("উপস্থিতি", "Attendance")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("উপস্থিতি বিশ্লেষণ", "Attendance Analytics")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("উপস্থিতির প্রবণতা ও ঝুঁকি বিশ্লেষণ", "Attendance trends & risk analysis")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("একাডেমিক", "Academic")}</span><span>›</span><span className="text-text-secondary">{t("উপস্থিতি", "Attendance")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("উপস্থিতি বিশ্লেষণ", "Attendance Analytics")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("উপস্থিতির প্রবণতা ও ঝুঁকি বিশ্লেষণ", "Attendance trends & risk analysis")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -71,7 +71,7 @@ export function AnalyticsScreen() {
             </div>
             <div className="mt-2 flex flex-col gap-2.5">
               {SPLIT.map((s) => (
-                <div key={s.key} className="flex items-center gap-2 text-[13px]">
+                <div key={s.key} className="flex items-center gap-2 text-meta">
                   <span className={cn("size-2.5 rounded-full", s.color)} />
                   <span className="flex-1 text-text-secondary">{t(s.bn, s.en)}</span>
                   <span className="font-semibold text-text-primary tnum">{n(Math.round((s.v / splitTotal) * 100))}%</span>
@@ -85,7 +85,7 @@ export function AnalyticsScreen() {
             <div className="min-w-180">
               <div className="flex items-center gap-2 px-5 pt-5">
                 <p className="text-base font-semibold text-text-primary">{t("ঝুঁকিপূর্ণ শিক্ষার্থী", "At-risk students")}</p>
-                <span className="rounded-full bg-danger-bg px-2.5 py-1 text-[11px] font-semibold text-danger-fg">{t("<৭৫% উপস্থিতি", "<75% attendance")}</span>
+                <span className="rounded-full bg-danger-bg px-2.5 py-1 text-micro font-semibold text-danger-fg">{t("<৭৫% উপস্থিতি", "<75% attendance")}</span>
               </div>
               <div className="mt-3 flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
                 <div className="w-32.5">{t("আইডি", "ID")}</div>
@@ -99,13 +99,13 @@ export function AnalyticsScreen() {
                 <div className="p-5"><EmptyState title={t("কোনো ঝুঁকিপূর্ণ শিক্ষার্থী নেই", "No at-risk students")} /></div>
               ) : d.at_risk.map((r, i) => (
                 <div key={`${r.code}-${i}`} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                  <div className="w-32.5 font-latin text-[13px] font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
+                  <div className="w-32.5 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
                   <div className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                  <div className="w-15 text-[13px] text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
-                  <div className="w-27.5 text-right text-[13px] font-semibold text-danger-fg tnum">{n(r.absent)}</div>
+                  <div className="w-15 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
+                  <div className="w-27.5 text-right text-meta font-semibold text-danger-fg tnum">{n(r.absent)}</div>
                   <div className="w-27.5 text-right text-sm font-bold text-danger-fg tnum">{n(r.rate)}%</div>
                   <div className="flex w-32.5 justify-end">
-                    <button disabled className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-2 text-[13px] font-medium text-text-muted opacity-60"><Send size={14} /> {t("SMS", "SMS")}</button>
+                    <button disabled className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-2 text-meta font-medium text-text-muted opacity-60"><Send size={14} /> {t("SMS", "SMS")}</button>
                   </div>
                 </div>
               ))}

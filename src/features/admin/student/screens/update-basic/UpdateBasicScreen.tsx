@@ -42,15 +42,15 @@ export function UpdateBasicScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-[13px] text-text-muted">
+        <div className="flex items-center gap-1 text-meta text-text-muted">
           <span>{t("শিক্ষার্থী তথ্য", "Student Info")}</span>
           <ChevronRight size={14} />
           <span>{t("তথ্য হালনাগাদ", "Update")}</span>
           <ChevronRight size={14} />
           <span className="text-text-secondary">{t("মৌলিক তথ্য", "Basic Info")}</span>
         </div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("মৌলিক তথ্য হালনাগাদ", "Update Basic Info")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("নির্বাচিত শিক্ষার্থীর মৌলিক তথ্য সম্পাদনা করুন", "Edit basic information of the selected student")}</p>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("মৌলিক তথ্য হালনাগাদ", "Update Basic Info")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("নির্বাচিত শিক্ষার্থীর মৌলিক তথ্য সম্পাদনা করুন", "Edit basic information of the selected student")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -81,7 +81,7 @@ export function UpdateBasicScreen() {
         <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
           <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
             <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student List")}</p>
-            <span className="text-[13px] font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n(rows.length)}</span>
+            <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n(rows.length)}</span>
           </div>
           <div className="flex items-center gap-3 px-5 pt-4 text-[12.5px] font-semibold text-text-muted">
             <div className="w-37.5">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
@@ -99,8 +99,8 @@ export function UpdateBasicScreen() {
           </div>
           {rows.map((r, i) => (
             <div key={r.enrollmentId} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-              <div className="w-37.5 font-latin text-[13px] font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
-              <div className="w-20 text-[13px] text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
+              <div className="w-37.5 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
+              <div className="w-20 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
               <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
               <div className="w-37.5">
                 <span className="inline-block rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">{r.category ?? t("সাধারণ", "General")}</span>
@@ -125,7 +125,7 @@ function ColFilter({ className, placeholder, value, onChange }: { className?: st
   return (
     <div className={className}>
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="h-8 w-full rounded-md border border-border-strong bg-surface px-2 text-[12px] text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none" />
+        className="h-8 w-full rounded-md border border-border-strong bg-surface px-2 text-xs text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none" />
     </div>
   );
 }

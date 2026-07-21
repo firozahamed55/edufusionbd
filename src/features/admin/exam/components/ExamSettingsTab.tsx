@@ -54,9 +54,9 @@ export function ExamSettingsTab() {
 
       <FormCard title={t("বিদ্যমান পরীক্ষা", "Existing Exams")}>
         {exams.isLoading ? (
-          <p className="text-[13px] text-text-muted">{t("লোড হচ্ছে…", "Loading…")}</p>
+          <p className="text-meta text-text-muted">{t("লোড হচ্ছে…", "Loading…")}</p>
         ) : (exams.data ?? []).length === 0 ? (
-          <p className="text-[13px] text-text-muted">{t("এখনও কোনো পরীক্ষা নেই।", "No exams yet.")}</p>
+          <p className="text-meta text-text-muted">{t("এখনও কোনো পরীক্ষা নেই।", "No exams yet.")}</p>
         ) : (
           <div className="flex flex-col">
             <div className="flex items-center gap-3 border-b border-border-default pb-2 text-[12.5px] font-semibold text-text-muted">
@@ -68,11 +68,11 @@ export function ExamSettingsTab() {
             {(exams.data ?? []).map((e, i) => (
               <div key={e.id} className={cn("flex items-center gap-3 py-2.5", i % 2 === 1 && "bg-sunken")}>
                 <div className="flex-1 text-sm font-medium text-text-primary">{e.name}</div>
-                <div className="w-28 text-[13px] text-text-secondary">{TYPES.find((x) => x.value === e.type)?.[isBn ? "bn" : "en"] ?? e.type ?? "—"}</div>
+                <div className="w-28 text-meta text-text-secondary">{TYPES.find((x) => x.value === e.type)?.[isBn ? "bn" : "en"] ?? e.type ?? "—"}</div>
                 <div className="w-28"><span className="inline-block rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">{STATUSES.find((x) => x.value === e.status)?.[isBn ? "bn" : "en"] ?? e.status}</span></div>
                 <div className="w-20 text-right">
                   <button onClick={() => setF({ id: e.id, name: e.name, type: e.type ?? "term", grade_scheme_id: "", start_date: e.start_date ?? "", end_date: e.end_date ?? "", status: e.status })}
-                    className="text-[13px] font-semibold text-primary hover:underline">{t("সম্পাদনা", "Edit")}</button>
+                    className="text-meta font-semibold text-primary hover:underline">{t("সম্পাদনা", "Edit")}</button>
                 </div>
               </div>
             ))}

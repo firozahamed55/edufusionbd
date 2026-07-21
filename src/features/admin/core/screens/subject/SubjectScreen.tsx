@@ -30,9 +30,9 @@ export function SubjectScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("বিষয়", "Subjects")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("বিষয় ব্যবস্থাপনা", "Subject Management")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("প্রতিষ্ঠানের বিষয়সমূহ নির্ধারণ করুন", "Define the institution's subjects")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("বিষয়", "Subjects")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বিষয় ব্যবস্থাপনা", "Subject Management")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের বিষয়সমূহ নির্ধারণ করুন", "Define the institution's subjects")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[340px_1fr]">
@@ -59,9 +59,9 @@ export function SubjectScreen() {
             <div className="p-5"><EmptyState icon={<BookOpen size={22} />} title={t("কোনো বিষয় নেই", "No subjects yet")} /></div>
           ) : rows.map((r, i) => (
             <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
-              <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}{r.code ? <span className="ml-2 font-latin text-[12px] text-text-muted">{r.code}</span> : null}</div>
-              <span className="rounded-full bg-primary-subtle px-2 py-0.5 text-[11px] font-semibold text-primary">{TYPES.find((x) => x.value === r.type)?.[isBn ? "bn" : "en"] ?? r.type}</span>
-              <div className="w-20 text-right text-[13px] text-text-secondary tnum">{r.full_marks != null ? n(r.full_marks) : "—"}</div>
+              <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}{r.code ? <span className="ml-2 font-latin text-xs text-text-muted">{r.code}</span> : null}</div>
+              <span className="rounded-full bg-primary-subtle px-2 py-0.5 text-micro font-semibold text-primary">{TYPES.find((x) => x.value === r.type)?.[isBn ? "bn" : "en"] ?? r.type}</span>
+              <div className="w-20 text-right text-meta text-text-secondary tnum">{r.full_marks != null ? n(r.full_marks) : "—"}</div>
               <button onClick={() => setF({ id: r.id, name_bn: r.name_bn, name_en: r.name_en, code: r.code ?? "", type: r.type, full_marks: r.full_marks != null ? String(r.full_marks) : "", pass_marks: r.pass_marks != null ? String(r.pass_marks) : "" })} aria-label={t("সম্পাদনা", "Edit")} className="grid size-7 place-items-center rounded-md text-text-muted hover:bg-sunken"><Pencil size={15} /></button>
               <button onClick={() => setDelId(r.id)} aria-label={t("মুছুন", "Delete")} className="grid size-7 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
             </div>

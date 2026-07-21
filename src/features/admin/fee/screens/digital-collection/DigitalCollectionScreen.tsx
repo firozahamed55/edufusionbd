@@ -38,8 +38,8 @@ export function DigitalCollectionScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-[22px] font-bold text-text-primary">{t("ডিজিটাল ফি কালেকশন", "Digital Collection")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-[13px] text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("অনলাইন পেমেন্ট সংগ্রহ ও লেনদেন", "Online payments & transactions")}</p>
+        <h1 className="text-h4 font-bold text-text-primary">{t("ডিজিটাল ফি কালেকশন", "Digital Collection")}</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("অনলাইন পেমেন্ট সংগ্রহ ও লেনদেন", "Online payments & transactions")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -47,7 +47,7 @@ export function DigitalCollectionScreen() {
           KPIS.map((k) => (
             <div key={k.label} className={cn("flex flex-col gap-2 rounded-[18px] bg-linear-to-r px-5 py-4.5 text-white", k.grad, k.shadow)}>
               <p className="text-2xl font-bold tnum">{k.value}</p>
-              <p className="text-[13px] font-medium opacity-90">{k.label}</p>
+              <p className="text-meta font-medium opacity-90">{k.label}</p>
             </div>
           ))}
       </div>
@@ -63,7 +63,7 @@ export function DigitalCollectionScreen() {
           <div className="min-w-230">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("অনলাইন লেনদেন", "Online transactions")}</p>
-              <span className="text-[13px] font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
             </div>
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
               <div className="w-40">{t("তারিখ ও সময়", "Date & time")}</div>
@@ -78,11 +78,11 @@ export function DigitalCollectionScreen() {
               const st = statusMeta[r.status] ?? { bn: r.status, en: r.status, cls: "bg-sunken text-text-secondary" };
               return (
                 <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                  <div className="w-40 text-[13px] text-text-secondary tnum">{n(new Date(r.at).toLocaleString(isBn ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short" }))}</div>
+                  <div className="w-40 text-meta text-text-secondary tnum">{n(new Date(r.at).toLocaleString(isBn ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short" }))}</div>
                   <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                  <div className="w-22.5 text-right text-[13px] font-semibold text-text-primary tnum">৳{n(r.amount)}</div>
+                  <div className="w-22.5 text-right text-meta font-semibold text-text-primary tnum">৳{n(r.amount)}</div>
                   <div className="w-22.5 text-center"><span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", g.cls)}>{isBn ? g.bn : g.en}</span></div>
-                  <div className="w-32.5 font-latin text-[13px] text-text-secondary">{r.gateway_txn_id ?? "—"}</div>
+                  <div className="w-32.5 font-latin text-meta text-text-secondary">{r.gateway_txn_id ?? "—"}</div>
                   <div className="w-27.5 text-center"><span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", st.cls)}>{isBn ? st.bn : st.en}</span></div>
                 </div>
               );

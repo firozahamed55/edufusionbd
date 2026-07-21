@@ -16,9 +16,9 @@ export function UserListScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("ব্যবহারকারী", "Users")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("ব্যবহারকারী ব্যবস্থাপনা", "User Management")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("প্রতিষ্ঠানের ব্যবহারকারী ও তাদের ভূমিকা", "Institution users and their roles")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("ব্যবহারকারী", "Users")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ব্যবহারকারী ব্যবস্থাপনা", "User Management")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের ব্যবহারকারী ও তাদের ভূমিকা", "Institution users and their roles")}</p>
       </header>
 
       {q.isLoading ? (
@@ -40,8 +40,8 @@ export function UserListScreen() {
             {rows.map((r, i) => (
               <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
                 <div className="flex-1 text-sm font-medium text-text-primary">{r.full_name ?? "—"}</div>
-                <div className="w-40 font-latin text-[13px] text-text-secondary">{r.phone ?? "—"}</div>
-                <div className="w-48 text-[13px] text-text-secondary">{r.roles || "—"}</div>
+                <div className="w-40 font-latin text-meta text-text-secondary">{r.phone ?? "—"}</div>
+                <div className="w-48 text-meta text-text-secondary">{r.roles || "—"}</div>
                 <div className="w-28 text-center"><span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", statusTone[r.status] ?? "bg-sunken text-text-secondary")}>{r.status}</span></div>
               </div>
             ))}

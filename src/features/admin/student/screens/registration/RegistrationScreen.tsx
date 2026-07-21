@@ -88,13 +88,13 @@ export function RegistrationScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-[13px] text-text-muted">
+        <div className="flex items-center gap-1 text-meta text-text-muted">
           <span>{t("শিক্ষার্থী তথ্য", "Student Info")}</span>
           <ChevronRight size={14} />
           <span>{t("নিবন্ধন", "Registration")}</span>
         </div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("নতুন শিক্ষার্থী ভর্তি", "New Student Admission")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("নতুন শিক্ষার্থী ভর্তি", "New Student Admission")}</h1>
+        <p className="mt-1 text-meta text-text-muted">
           {t("শিক্ষার্থীর তথ্য, শ্রেণি বিন্যাস ও অভিভাবক যুক্ত করুন", "Add student info, class placement and guardian")}
         </p>
       </header>
@@ -197,7 +197,7 @@ export function RegistrationScreen() {
           {/* Address */}
           <FormCard title={t("ঠিকানা", "Address")}>
             <div className="flex flex-col gap-4">
-              <p className="text-[13px] font-semibold text-text-secondary">{t("বর্তমান ঠিকানা", "Present Address")}</p>
+              <p className="text-meta font-semibold text-text-secondary">{t("বর্তমান ঠিকানা", "Present Address")}</p>
               <div className="grid grid-cols-3 gap-4">
                 <Field label={t("বিভাগ", "Division")}>
                   <Select value={f.present_division_id} placeholder={PICK} options={opt(divisions.data)}
@@ -226,7 +226,7 @@ export function RegistrationScreen() {
               </label>
               {!f.same_as_present && (
                 <>
-                  <p className="text-[13px] font-semibold text-text-secondary">{t("স্থায়ী ঠিকানা", "Permanent Address")}</p>
+                  <p className="text-meta font-semibold text-text-secondary">{t("স্থায়ী ঠিকানা", "Permanent Address")}</p>
                   <div className="grid grid-cols-3 gap-4">
                     <Field label={t("বিভাগ", "Division")}>
                       <Select value={f.permanent_division_id} placeholder={PICK} options={opt(divisions.data)}
@@ -270,8 +270,8 @@ export function RegistrationScreen() {
               {[t("জন্ম নিবন্ধন সনদ", "Birth Certificate"), t("পূর্ববর্তী স্কুলের ছাড়পত্র", "Previous School TC"), t("অভিভাবকের NID কপি", "Guardian NID copy")].map((doc) => (
                 <div key={doc} className="flex items-center gap-3 rounded-[10px] border border-border-default bg-surface px-3 py-2.5">
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken text-text-secondary"><FileText size={16} /></span>
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-text-secondary">{doc}</span>
-                  <button className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-primary"><Upload size={14} /> {t("আপলোড", "Upload")}</button>
+                  <span className="min-w-0 flex-1 truncate text-meta text-text-secondary">{doc}</span>
+                  <button className="flex shrink-0 items-center gap-1 text-meta font-semibold text-primary"><Upload size={14} /> {t("আপলোড", "Upload")}</button>
                 </div>
               ))}
             </div>

@@ -45,9 +45,9 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{title}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{title}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{isId ? t("শিক্ষার্থীর পরিচয়পত্র ব্যাচ তৈরি করুন", "Create a student ID-card batch") : t("পরীক্ষার প্রবেশপত্র ব্যাচ তৈরি করুন", "Create an exam admit-card batch")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{title}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
+        <p className="mt-1 text-meta text-text-muted">{isId ? t("শিক্ষার্থীর পরিচয়পত্র ব্যাচ তৈরি করুন", "Create a student ID-card batch") : t("পরীক্ষার প্রবেশপত্র ব্যাচ তৈরি করুন", "Create an exam admit-card batch")}</p>
       </header>
 
       <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
@@ -90,7 +90,7 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
             {list.map((b, i) => (
               <div key={b.id} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
                 <div className="flex-1 text-sm font-medium text-text-primary">{b.class_name}{b.section_name ? ` · ${b.section_name}` : ""}</div>
-                <div className="w-40 text-[13px] text-text-secondary tnum">{b.roll_from != null ? n(b.roll_from) : "—"} – {b.roll_to != null ? n(b.roll_to) : "—"}</div>
+                <div className="w-40 text-meta text-text-secondary tnum">{b.roll_from != null ? n(b.roll_from) : "—"} – {b.roll_to != null ? n(b.roll_to) : "—"}</div>
               </div>
             ))}
           </>

@@ -41,7 +41,7 @@ export function ConfigTab({ kind, active, cardTitle, fields }: {
           {fields.map((f) =>
             f.type === "toggle" ? (
               <label key={f.key} className="flex items-center justify-between gap-3 rounded-lg border border-border-default px-3 py-2.5">
-                <span className="text-[13px] font-medium text-text-secondary">{f.label}</span>
+                <span className="text-meta font-medium text-text-secondary">{f.label}</span>
                 <button type="button" onClick={() => set(f.key, !form[f.key])}><ExamToggle on={Boolean(form[f.key])} /></button>
               </label>
             ) : (

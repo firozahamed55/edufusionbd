@@ -26,9 +26,9 @@ export function SignatureScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("স্বাক্ষর", "Signatures")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("স্বাক্ষর ব্যবস্থাপনা", "Signature Management")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("সনদ ও রিপোর্টে ব্যবহৃত স্বাক্ষর নির্ধারণ করুন", "Define signatures used in certificates & reports")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{t("স্বাক্ষর", "Signatures")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("স্বাক্ষর ব্যবস্থাপনা", "Signature Management")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("সনদ ও রিপোর্টে ব্যবহৃত স্বাক্ষর নির্ধারণ করুন", "Define signatures used in certificates & reports")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[340px_1fr]">

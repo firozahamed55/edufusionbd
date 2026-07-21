@@ -42,9 +42,9 @@ export function TemplateManager() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{t("টেমপ্লেট", "Templates")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("সার্টিফিকেট টেমপ্লেট", "Certificate Templates")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("বিভিন্ন সনদের টেমপ্লেট কাঠামো নির্ধারণ করুন", "Define template formats for each certificate type")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{t("টেমপ্লেট", "Templates")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("সার্টিফিকেট টেমপ্লেট", "Certificate Templates")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("বিভিন্ন সনদের টেমপ্লেট কাঠামো নির্ধারণ করুন", "Define template formats for each certificate type")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
@@ -53,14 +53,14 @@ export function TemplateManager() {
           <Field label={t("ধরন", "Type")} required><Select value={f.type} options={TYPES.map((x) => ({ value: x.value, label: isBn ? x.bn : x.en }))} onChange={(e) => setF((p) => ({ ...p, type: e.target.value }))} /></Field>
           <Field label={t("হেডার টেক্সট", "Header text")}><Input value={f.header_text} onChange={(e) => setF((p) => ({ ...p, header_text: e.target.value }))} placeholder={t("প্রতিষ্ঠানের নাম", "Institution name")} /></Field>
           <Field label={t("ফুটার টেক্সট", "Footer text")}><Input value={f.footer_text} onChange={(e) => setF((p) => ({ ...p, footer_text: e.target.value }))} /></Field>
-          <label className="flex items-center gap-2 text-[13px] text-text-secondary"><input type="checkbox" checked={f.is_default} onChange={(e) => setF((p) => ({ ...p, is_default: e.target.checked }))} className="size-4 accent-primary" /> {t("ডিফল্ট টেমপ্লেট", "Default template")}</label>
+          <label className="flex items-center gap-2 text-meta text-text-secondary"><input type="checkbox" checked={f.is_default} onChange={(e) => setF((p) => ({ ...p, is_default: e.target.checked }))} className="size-4 accent-primary" /> {t("ডিফল্ট টেমপ্লেট", "Default template")}</label>
           <Button variant="primary" onClick={add} disabled={upsert.isPending}><Plus size={16} /> {upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("টেমপ্লেট যোগ করুন", "Add template")}</Button>
         </div>
 
         <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
           <div className="flex items-center gap-3 border-b border-border-default px-5 py-4"><p className="flex-1 text-base font-semibold text-text-primary">{t("টেমপ্লেট তালিকা", "Templates")}</p></div>
           {templates.isLoading ? (
-            <div className="p-5 text-[13px] text-text-muted">{t("লোড হচ্ছে…", "Loading…")}</div>
+            <div className="p-5 text-meta text-text-muted">{t("লোড হচ্ছে…", "Loading…")}</div>
           ) : rows.length === 0 ? (
             <div className="p-5"><EmptyState icon={<LayoutTemplate size={22} />} title={t("কোনো টেমপ্লেট নেই", "No templates yet")} /></div>
           ) : (

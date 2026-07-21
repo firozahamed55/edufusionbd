@@ -163,15 +163,15 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-[13px] text-text-muted">
+        <div className="flex items-center gap-1 text-meta text-text-muted">
           <span>{t("শিক্ষক ও কর্মী", "Teachers & Staff")}</span>
           <ChevronRight size={14} />
           <span className="text-text-secondary">{isRegister ? t("নিবন্ধন", "Registration") : t("প্রোফাইল হালনাগাদ", "Update Profile")}</span>
         </div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
           {isRegister ? t("নতুন শিক্ষক নিবন্ধন", "New Teacher Registration") : t("শিক্ষক প্রোফাইল হালনাগাদ", "Update Teacher Profile")}
         </h1>
-        <p className="mt-1 text-[13px] text-text-muted">
+        <p className="mt-1 text-meta text-text-muted">
           {isRegister
             ? t("শিক্ষকের ব্যক্তিগত তথ্য, পদবি ও যোগাযোগ যুক্ত করুন", "Add the teacher's personal info, designation and contact")
             : t("বিদ্যমান শিক্ষক নির্বাচন করে তথ্য হালনাগাদ ও সংরক্ষণ করুন", "Select an existing teacher, edit and save")}
@@ -190,11 +190,11 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
               />
             </Field>
             {f.employee_code ? (
-              <span className="pb-2.5 text-[13px] font-semibold text-primary font-latin">{f.employee_code}</span>
+              <span className="pb-2.5 text-meta font-semibold text-primary font-latin">{f.employee_code}</span>
             ) : null}
           </div>
           {detail.isLoading && selectedId ? (
-            <p className="text-[13px] text-text-muted">{t("তথ্য লোড হচ্ছে…", "Loading details…")}</p>
+            <p className="text-meta text-text-muted">{t("তথ্য লোড হচ্ছে…", "Loading details…")}</p>
           ) : null}
         </FormCard>
       )}
@@ -301,7 +301,7 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
 
           <FormCard title={t("ঠিকানা", "Address")}>
             <div className="flex flex-col gap-4">
-              <p className="text-[13px] font-semibold text-text-secondary">{t("বর্তমান ঠিকানা", "Present Address")}</p>
+              <p className="text-meta font-semibold text-text-secondary">{t("বর্তমান ঠিকানা", "Present Address")}</p>
               <div className="grid grid-cols-3 gap-4">
                 <Field label={t("বিভাগ", "Division")}>
                   <Select value={f.present_division_id} placeholder={PICK} options={opt(divisions.data)}
@@ -330,7 +330,7 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
               </label>
               {!f.same_as_present && (
                 <>
-                  <p className="text-[13px] font-semibold text-text-secondary">{t("স্থায়ী ঠিকানা", "Permanent Address")}</p>
+                  <p className="text-meta font-semibold text-text-secondary">{t("স্থায়ী ঠিকানা", "Permanent Address")}</p>
                   <div className="grid grid-cols-3 gap-4">
                     <Field label={t("বিভাগ", "Division")}>
                       <Select value={f.permanent_division_id} placeholder={PICK} options={opt(divisions.data)}
@@ -379,8 +379,8 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken text-text-secondary">
                     <FileText size={16} />
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-text-secondary">{doc}</span>
-                  <button className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-primary">
+                  <span className="min-w-0 flex-1 truncate text-meta text-text-secondary">{doc}</span>
+                  <button className="flex shrink-0 items-center gap-1 text-meta font-semibold text-primary">
                     <Upload size={14} /> {t("আপলোড", "Upload")}
                   </button>
                 </div>

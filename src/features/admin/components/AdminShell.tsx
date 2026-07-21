@@ -72,7 +72,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         href={item.href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors",
+          "flex h-9 items-center gap-2.5 rounded-lg px-3 text-meta transition-colors",
           active
             ? "bg-primary-subtle font-semibold text-text-primary"
             : "font-medium text-text-secondary hover:bg-sunken",
@@ -125,7 +125,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <div key={gi} className="flex flex-col gap-0.5">
                   <Link
                     href={group.items[0].href}
-                    className="flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium text-text-secondary hover:bg-sunken"
+                    className="flex h-9 items-center gap-2.5 rounded-lg px-3 text-meta font-medium text-text-secondary hover:bg-sunken"
                   >
                     <span className="flex-1 truncate">{t(group.label)}</span>
                     <GroupChevron size={14} className="shrink-0 text-text-muted" />
@@ -154,17 +154,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
           E
         </div>
         <div className="leading-tight">
-          <p className="text-[15px] font-semibold">
+          <p className="text-body font-semibold">
             {tx("এডুফিউশনবিডি", "EduFusionBD")}
           </p>
-          <p className="text-[11px] text-text-muted">{tx("অ্যাডমিন", "Admin")}</p>
+          <p className="text-micro text-text-muted">{tx("অ্যাডমিন", "Admin")}</p>
         </div>
       </div>
 
       {ADMIN_NAV_SECTIONS.map((section, i) => (
         <div key={i} className="flex flex-col gap-1">
           {section.label ? (
-            <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+            <p className="px-3 pb-1 pt-3 text-micro font-semibold uppercase tracking-wide text-text-muted">
               {locale === "bn" ? section.label.bn : section.label.en}
             </p>
           ) : null}
@@ -241,11 +241,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
           <div className="flex-1" />
 
-          <div className="hidden items-center gap-1.5 text-[13px] font-medium text-text-secondary md:flex">
+          <div className="hidden items-center gap-1.5 text-meta font-medium text-text-secondary md:flex">
             <CalendarDays size={15} />
             <span>{tx("১২ জুন, ২:৪৫ PM", "12 Jun, 2:45 PM")}</span>
           </div>
-          <div className="hidden items-center gap-1.5 rounded-full bg-success-bg px-3 py-1.5 text-[13px] font-semibold text-success-fg sm:flex">
+          <div className="hidden items-center gap-1.5 rounded-full bg-success-bg px-3 py-1.5 text-meta font-semibold text-success-fg sm:flex">
             <MessageSquareText size={15} />
             <span>{smsAccount ? `${num(smsAccount.balance.toLocaleString())} SMS` : "—"}</span>
           </div>
@@ -261,14 +261,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
               onClick={() => setMenuOpen((o) => !o)}
               className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 hover:bg-sunken"
             >
-              <span className="grid size-8 place-items-center rounded-full bg-primary text-[13px] font-semibold text-text-on-primary">
+              <span className="grid size-8 place-items-center rounded-full bg-primary text-meta font-semibold text-text-on-primary">
                 {tx("অ্যা", "AD")}
               </span>
               <span className="hidden leading-tight sm:block">
-                <span className="block text-[13px] font-semibold text-text-primary">
+                <span className="block text-meta font-semibold text-text-primary">
                   {tx("অ্যাডমিন", "Admin")}
                 </span>
-                <span className="block text-[11px] text-text-muted">
+                <span className="block text-micro text-text-muted">
                   {tx("প্রধান শিক্ষক", "Head Teacher")}
                 </span>
               </span>
@@ -292,7 +292,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     type="button"
                     role="menuitem"
                     onClick={signOut}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-danger-fg hover:bg-sunken"
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-meta font-medium text-danger-fg hover:bg-sunken"
                   >
                     <LogOut size={16} />
                     {tx("লগ আউট", "Sign out")}

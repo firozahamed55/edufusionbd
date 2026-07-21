@@ -49,9 +49,9 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{title}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{title}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("শিক্ষার্থী খুঁজে সনদের তথ্য দিন ও তৈরি করুন", "Look up a student, fill the details and generate")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{title}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("শিক্ষার্থী খুঁজে সনদের তথ্য দিন ও তৈরি করুন", "Look up a student, fill the details and generate")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -59,7 +59,7 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
           <Input value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && lookup()} placeholder="STU-0001" className="font-latin" />
         </Field>
         <Button variant="primary" className="h-10.5" onClick={lookup}><Search size={16} /> {t("অনুসন্ধান", "Search")}</Button>
-        {student ? <span className="pb-2.5 text-[13px] font-semibold text-primary">{isBn ? student.name_bn : student.name_en} · {student.code ? n(student.code) : ""}</span> : null}
+        {student ? <span className="pb-2.5 text-meta font-semibold text-primary">{isBn ? student.name_bn : student.name_en} · {student.code ? n(student.code) : ""}</span> : null}
       </div>
 
       {!student ? (
@@ -106,8 +106,8 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
             {list.map((r, i) => (
               <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
                 <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                <div className="w-40 font-latin text-[13px] text-text-secondary">{r.cert_no ?? "—"}</div>
-                <div className="w-24 text-[13px] text-text-secondary tnum">{r.session ? n(r.session) : "—"}</div>
+                <div className="w-40 font-latin text-meta text-text-secondary">{r.cert_no ?? "—"}</div>
+                <div className="w-24 text-meta text-text-secondary tnum">{r.session ? n(r.session) : "—"}</div>
               </div>
             ))}
           </>

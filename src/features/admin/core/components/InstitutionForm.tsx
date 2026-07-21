@@ -32,9 +32,9 @@ export function InstitutionForm({ mode }: { mode: "startup" | "basic" }) {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{mode === "startup" ? t("স্টার্টআপ", "Startup") : t("মৌলিক সেটিংস", "Basic Settings")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{mode === "startup" ? t("প্রতিষ্ঠান স্টার্টআপ", "Institution Startup") : t("মৌলিক সেটিংস", "Basic Settings")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("প্রতিষ্ঠানের মৌলিক তথ্য নির্ধারণ ও হালনাগাদ করুন", "Configure the institution's core information")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("কোর সেটিংস", "Core Settings")}</span><span>›</span><span className="text-text-secondary">{mode === "startup" ? t("স্টার্টআপ", "Startup") : t("মৌলিক সেটিংস", "Basic Settings")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{mode === "startup" ? t("প্রতিষ্ঠান স্টার্টআপ", "Institution Startup") : t("মৌলিক সেটিংস", "Basic Settings")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের মৌলিক তথ্য নির্ধারণ ও হালনাগাদ করুন", "Configure the institution's core information")}</p>
       </header>
 
       {inst.isLoading ? (

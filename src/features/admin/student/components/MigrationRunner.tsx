@@ -74,13 +74,13 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1 text-[13px] text-text-muted">
+        <div className="flex items-center gap-1 text-meta text-text-muted">
           <span>{t("মাইগ্রেশন", "Migration")}</span>
           <ChevronRight size={14} />
           <span className="text-text-secondary">{isMerit ? t("মেধাক্রমসহ", "With Merit") : t("মেধাক্রম ছাড়া", "Without Merit")}</span>
         </div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{isMerit ? t("মাইগ্রেশন — মেধাক্রমসহ", "Migration — With Merit") : t("মাইগ্রেশন — মেধাক্রম ছাড়া", "Migration — Without Merit")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("শিক্ষার্থীদের পরবর্তী শ্রেণিতে উন্নীত করুন", "Promote students to the next class")}</p>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{isMerit ? t("মাইগ্রেশন — মেধাক্রমসহ", "Migration — With Merit") : t("মাইগ্রেশন — মেধাক্রম ছাড়া", "Migration — Without Merit")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("শিক্ষার্থীদের পরবর্তী শ্রেণিতে উন্নীত করুন", "Promote students to the next class")}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-3 rounded-2xl bg-surface p-5 shadow-e3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
@@ -108,8 +108,8 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
         <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
           <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
             <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student List")}</p>
-            {selected.size > 0 ? <span className="text-[13px] font-semibold text-text-secondary">{n(selected.size)} {t("নির্বাচিত", "selected")}</span> : null}
-            <span className="text-[13px] font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n(rows.length)}</span>
+            {selected.size > 0 ? <span className="text-meta font-semibold text-text-secondary">{n(selected.size)} {t("নির্বাচিত", "selected")}</span> : null}
+            <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n(rows.length)}</span>
           </div>
           <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-[12.5px] font-semibold text-text-muted">
             <div className="flex w-10 items-center">
@@ -128,10 +128,10 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
                 <div className="flex w-10 items-center">
                   <Checkbox checked={checked} onChange={() => toggleOne(r.enrollmentId)} aria-label={t(`নির্বাচন করুন ${r.name_en}`, `Select ${r.name_en}`)} />
                 </div>
-                <div className="w-37.5 font-latin text-[13px] font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
-                <div className="w-20 text-[13px] text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
+                <div className="w-37.5 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
+                <div className="w-20 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
                 <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                {isMerit ? <div className="w-24 text-[13px] font-semibold text-text-primary tnum">{n(i + 1)}</div> : null}
+                {isMerit ? <div className="w-24 text-meta font-semibold text-text-primary tnum">{n(i + 1)}</div> : null}
                 <div className="flex w-17.5 justify-end">
                   <button aria-label={t("উন্নীত করুন", "Promote")} onClick={() => { setSelected(new Set([r.enrollmentId])); }}
                     className="grid size-8 place-items-center rounded-lg bg-primary text-text-on-primary hover:bg-primary-hover">

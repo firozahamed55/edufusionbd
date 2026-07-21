@@ -41,9 +41,9 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("পরীক্ষা ও ফলাফল", "Exam & Results")}</span><span>›</span><span className="text-text-secondary">{isProcess ? t("ফলাফল প্রক্রিয়াকরণ", "Result Processing") : t("মার্কশিট ডাউনলোড", "Result Sheet")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{isProcess ? t("ফলাফল প্রক্রিয়াকরণ", "Result Processing") : t("ফলাফল ও মার্কশিট", "Results & Mark Sheet")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{isProcess ? t("নম্বর থেকে GPA, গ্রেড ও মেধাক্রম গণনা করুন", "Compute GPA, grade & merit rank from marks") : t("প্রক্রিয়াকৃত ফলাফল দেখুন ও ডাউনলোড করুন", "View & download processed results")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("পরীক্ষা ও ফলাফল", "Exam & Results")}</span><span>›</span><span className="text-text-secondary">{isProcess ? t("ফলাফল প্রক্রিয়াকরণ", "Result Processing") : t("মার্কশিট ডাউনলোড", "Result Sheet")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{isProcess ? t("ফলাফল প্রক্রিয়াকরণ", "Result Processing") : t("ফলাফল ও মার্কশিট", "Results & Mark Sheet")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{isProcess ? t("নম্বর থেকে GPA, গ্রেড ও মেধাক্রম গণনা করুন", "Compute GPA, grade & merit rank from marks") : t("প্রক্রিয়াকৃত ফলাফল দেখুন ও ডাউনলোড করুন", "View & download processed results")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -76,7 +76,7 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
           <div className="min-w-180">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("ফলাফল তালিকা", "Results")}</p>
-              <span className="text-[13px] font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
             </div>
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
               <div className="w-20">{t("মেধাক্রম", "Merit")}</div>
@@ -88,11 +88,11 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
             </div>
             {rows.map((r, i) => (
               <div key={`${r.code}-${i}`} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                <div className="w-20 text-[13px] font-bold text-primary tnum">{r.merit != null ? n(r.merit) : "—"}</div>
-                <div className="w-32.5 font-latin text-[13px] text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
+                <div className="w-20 text-meta font-bold text-primary tnum">{r.merit != null ? n(r.merit) : "—"}</div>
+                <div className="w-32.5 font-latin text-meta text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
                 <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                <div className="w-24 text-right text-[13px] font-semibold text-text-primary tnum">{r.total != null ? n(r.total) : "—"}</div>
-                <div className="w-20 text-center text-[13px] font-bold text-text-primary tnum">{r.gpa != null ? n(r.gpa) : "—"}</div>
+                <div className="w-24 text-right text-meta font-semibold text-text-primary tnum">{r.total != null ? n(r.total) : "—"}</div>
+                <div className="w-20 text-center text-meta font-bold text-text-primary tnum">{r.gpa != null ? n(r.gpa) : "—"}</div>
                 <div className="w-24 text-center"><span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", resultTone(r.result))}>{r.result === "pass" ? t("উত্তীর্ণ", "Pass") : r.result === "fail" ? t("অকৃতকার্য", "Fail") : "—"}</span></div>
               </div>
             ))}

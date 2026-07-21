@@ -32,13 +32,13 @@ export function ReportsSummaryScreen() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-1.5 text-[13px] text-text-muted">
+          <div className="flex items-center gap-1.5 text-meta text-text-muted">
             <span>{t("রিপোর্ট", "Reports")}</span>
             <span>›</span>
             <span className="text-text-secondary">{t("সারসংক্ষেপ", "Summary")}</span>
           </div>
-          <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary")}</h1>
-          <p className="mt-1 text-[13px] text-text-muted">{t("ভর্তিভুক্তি, লিঙ্গ ও শ্রেণিভিত্তিক পরিসংখ্যান", "Enrollment, gender & class-wise statistics")}</p>
+          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary")}</h1>
+          <p className="mt-1 text-meta text-text-muted">{t("ভর্তিভুক্তি, লিঙ্গ ও শ্রেণিভিত্তিক পরিসংখ্যান", "Enrollment, gender & class-wise statistics")}</p>
         </div>
         <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60" disabled>
           <Download size={16} /> {t("এক্সপোর্ট", "Export")}
@@ -73,7 +73,7 @@ export function ReportsSummaryScreen() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {KPIS.map((k) => (
                   <div key={k.label} className={cn("flex flex-col gap-3 rounded-[18px] bg-linear-to-r px-5 py-4.5 text-white", k.grad, k.shadow)}>
-                    <p className="text-[13px] font-medium opacity-90">{k.label}</p>
+                    <p className="text-meta font-medium opacity-90">{k.label}</p>
                     <p className="text-3xl font-bold tnum">{n(k.value)}</p>
                     <div className="flex items-center gap-1.5 text-[12.5px] opacity-90">
                       {k.up ? <TrendingUp size={13} /> : null}
@@ -89,11 +89,11 @@ export function ReportsSummaryScreen() {
                   <div className="mt-2 flex flex-col gap-3">
                     {d.by_class.map((b) => (
                       <div key={b.numeric_level} className="flex items-center gap-3">
-                        <span className="w-16 shrink-0 truncate text-[13px] font-medium text-text-secondary">{isBn ? b.name_bn : b.name_en}</span>
+                        <span className="w-16 shrink-0 truncate text-meta font-medium text-text-secondary">{isBn ? b.name_bn : b.name_en}</span>
                         <div className="h-3 flex-1 overflow-hidden rounded-full bg-sunken">
                           <div className="h-full rounded-full bg-primary" style={{ width: `${(b.total / maxClass) * 100}%` }} />
                         </div>
-                        <span className="w-12 shrink-0 text-right text-[13px] font-semibold text-text-primary tnum">{n(b.total)}</span>
+                        <span className="w-12 shrink-0 text-right text-meta font-semibold text-text-primary tnum">{n(b.total)}</span>
                       </div>
                     ))}
                   </div>
@@ -140,14 +140,14 @@ export function ReportsSummaryScreen() {
                     {d.by_class.map((c, i) => (
                       <div key={c.numeric_level} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
                         <div className="flex-1 text-sm font-semibold text-text-primary">{isBn ? c.name_bn : c.name_en}</div>
-                        <div className="w-22.5 text-right text-[13px] text-text-secondary tnum">{n(c.sections)}</div>
-                        <div className="w-22.5 text-right text-[13px] text-text-secondary tnum">{n(c.boys)}</div>
-                        <div className="w-22.5 text-right text-[13px] text-text-secondary tnum">{n(c.girls)}</div>
-                        <div className="w-22.5 text-right text-[13px] font-semibold text-text-primary tnum">{n(c.total)}</div>
-                        <div className="w-22.5 text-right text-[13px] font-medium text-primary">{pct(c.total, d.total)}%</div>
+                        <div className="w-22.5 text-right text-meta text-text-secondary tnum">{n(c.sections)}</div>
+                        <div className="w-22.5 text-right text-meta text-text-secondary tnum">{n(c.boys)}</div>
+                        <div className="w-22.5 text-right text-meta text-text-secondary tnum">{n(c.girls)}</div>
+                        <div className="w-22.5 text-right text-meta font-semibold text-text-primary tnum">{n(c.total)}</div>
+                        <div className="w-22.5 text-right text-meta font-medium text-primary">{pct(c.total, d.total)}%</div>
                       </div>
                     ))}
-                    <div className="flex items-center gap-3 border-t border-border-strong bg-sunken px-5 py-3 text-[13px] font-bold text-text-primary">
+                    <div className="flex items-center gap-3 border-t border-border-strong bg-sunken px-5 py-3 text-meta font-bold text-text-primary">
                       <div className="flex-1">{t("সর্বমোট", "Grand total")}</div>
                       <div className="w-22.5 text-right">—</div>
                       <div className="w-22.5 text-right tnum">{n(d.boys)}</div>
@@ -199,11 +199,11 @@ function BreakdownCard({ title, subtitle, rows, maxValue }: { title: string; sub
       <div className="mt-1 flex flex-col gap-3">
         {rows.map((r) => (
           <div key={r.label} className="flex items-center gap-3">
-            <span className="w-23 shrink-0 text-[13px] text-text-secondary">{r.label}</span>
+            <span className="w-23 shrink-0 text-meta text-text-secondary">{r.label}</span>
             <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-sunken">
               <div className="h-full rounded-full bg-primary" style={{ width: `${(r.value / maxValue) * 100}%` }} />
             </div>
-            <span className="w-23 shrink-0 text-right text-[13px] font-semibold text-text-primary">{r.right}</span>
+            <span className="w-23 shrink-0 text-right text-meta font-semibold text-text-primary">{r.right}</span>
           </div>
         ))}
       </div>
@@ -213,7 +213,7 @@ function BreakdownCard({ title, subtitle, rows, maxValue }: { title: string; sub
 
 function LegendRow({ color, label }: { color: string; label: string }) {
   return (
-    <div className="flex items-center gap-2 text-[13px] text-text-secondary">
+    <div className="flex items-center gap-2 text-meta text-text-secondary">
       <span className={cn("size-2.5 rounded-full", color)} />
       {label}
     </div>
@@ -223,7 +223,7 @@ function LegendRow({ color, label }: { color: string; label: string }) {
 function StatRow({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
     <div className="flex items-center">
-      <span className="flex-1 text-[13px] text-text-secondary">{label}</span>
+      <span className="flex-1 text-meta text-text-secondary">{label}</span>
       <span className={cn("text-sm font-bold tnum", tone)}>{value}</span>
     </div>
   );

@@ -49,15 +49,15 @@ export function AuditLogScreen() {
   return (
     <div className="flex flex-col gap-7">
       <div>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted">
+        <div className="flex items-center gap-1.5 text-meta text-text-muted">
           <span>{t("কোর সেটিংস", "Core Settings")}</span>
           <span>›</span>
           <span className="text-text-secondary">{t("পরিবর্তনের ইতিহাস", "Audit Log")}</span>
         </div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
           {t("পরিবর্তনের ইতিহাস", "Audit Log")}
         </h1>
-        <p className="mt-1 text-[13px] text-text-muted">
+        <p className="mt-1 text-meta text-text-muted">
           {t("কে, কখন, কী পরিবর্তন করেছে তার সম্পূর্ণ তালিকা", "Every recorded change — who, when, and what")}
         </p>
       </div>
@@ -69,7 +69,7 @@ export function AuditLogScreen() {
           setPage(1);
         }}
         aria-label={t("বিভাগ ফিল্টার", "Filter by entity")}
-        className="w-fit rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-[13px] font-medium text-text-secondary"
+        className="w-fit rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary"
       >
         <option value="">{t("সব বিভাগ", "All entities")}</option>
         {AUDIT_ENTITIES.map((e) => (
@@ -121,12 +121,12 @@ export function AuditLogScreen() {
               ) : (
                 data!.rows.map((r) => (
                   <TR key={r.id}>
-                    <TD className="text-[13px] text-text-secondary">{new Date(r.at).toLocaleString()}</TD>
+                    <TD className="text-meta text-text-secondary">{new Date(r.at).toLocaleString()}</TD>
                     <TD>{t(ENTITY_LABEL[r.entity]?.bn ?? r.entity, ENTITY_LABEL[r.entity]?.en ?? r.entity)}</TD>
                     <TD>
                       <Badge tone={ACTION_TONE[r.action] ?? "info"}>{r.action}</Badge>
                     </TD>
-                    <TD className="text-[13px] text-text-secondary">{r.changedByName ?? t("সিস্টেম", "System")}</TD>
+                    <TD className="text-meta text-text-secondary">{r.changedByName ?? t("সিস্টেম", "System")}</TD>
                     <TD className="text-center">
                       <button
                         onClick={() => setSelected(r)}
@@ -160,14 +160,14 @@ export function AuditLogScreen() {
         {selected ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <p className="mb-1 text-[12px] font-semibold uppercase text-text-muted">{t("আগে", "Before")}</p>
-              <pre className="max-h-64 overflow-auto rounded-lg bg-sunken p-3 text-[12px]">
+              <p className="mb-1 text-xs font-semibold uppercase text-text-muted">{t("আগে", "Before")}</p>
+              <pre className="max-h-64 overflow-auto rounded-lg bg-sunken p-3 text-xs">
                 {JSON.stringify(selected.before, null, 2) ?? "—"}
               </pre>
             </div>
             <div>
-              <p className="mb-1 text-[12px] font-semibold uppercase text-text-muted">{t("পরে", "After")}</p>
-              <pre className="max-h-64 overflow-auto rounded-lg bg-sunken p-3 text-[12px]">
+              <p className="mb-1 text-xs font-semibold uppercase text-text-muted">{t("পরে", "After")}</p>
+              <pre className="max-h-64 overflow-auto rounded-lg bg-sunken p-3 text-xs">
                 {JSON.stringify(selected.after, null, 2) ?? "—"}
               </pre>
             </div>

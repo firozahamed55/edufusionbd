@@ -15,12 +15,12 @@ export function UnpaidInstituteScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <h1 className="text-[22px] font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-[13px] text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("প্রতিষ্ঠান অনুযায়ী বকেয়ার সারসংক্ষেপ", "Institute-wide dues summary")}</p>
+        <h1 className="text-h4 font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("প্রতিষ্ঠান অনুযায়ী বকেয়ার সারসংক্ষেপ", "Institute-wide dues summary")}</p>
       </header>
 
       <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface p-5 shadow-e3">
-        <span className="text-[13px] text-text-muted">{t("শিক্ষাবর্ষ", "Academic Year")}: <b className="text-text-secondary tnum">{n(2026)}</b></span>
+        <span className="text-meta text-text-muted">{t("শিক্ষাবর্ষ", "Academic Year")}: <b className="text-text-secondary tnum">{n(2026)}</b></span>
         <div className="flex-1" />
         <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60" disabled>
           <FileDown size={16} /> {t("PDF ডাউনলোড", "Download PDF")}
@@ -38,7 +38,7 @@ export function UnpaidInstituteScreen() {
           <div className="min-w-180">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("শ্রেণি-ভিত্তিক বকেয়ার সারসংক্ষেপ", "Class-wise dues summary")}</p>
-              <span className="text-[13px] font-semibold text-primary">{t("মোট সারি", "Rows")}: {n(d.rows.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট সারি", "Rows")}: {n(d.rows.length)}</span>
             </div>
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
               <div className="flex-1">{t("শ্রেণি", "Class")}</div>
@@ -50,9 +50,9 @@ export function UnpaidInstituteScreen() {
             {d.rows.map((r, i) => (
               <div key={`${r.numeric_level}-${r.sec_name}-${i}`} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
                 <div className="flex-1 text-sm font-semibold text-text-primary">{isBn ? r.cls_bn : r.cls_en}</div>
-                <div className="w-35 text-[13px] text-text-secondary">{r.sec_name ?? "—"}</div>
-                <div className="w-32.5 text-right text-[13px] text-text-secondary tnum">{n(r.total_students)}</div>
-                <div className="w-32.5 text-right text-[13px] font-semibold text-danger-fg tnum">{n(r.due_students)}</div>
+                <div className="w-35 text-meta text-text-secondary">{r.sec_name ?? "—"}</div>
+                <div className="w-32.5 text-right text-meta text-text-secondary tnum">{n(r.total_students)}</div>
+                <div className="w-32.5 text-right text-meta font-semibold text-danger-fg tnum">{n(r.due_students)}</div>
                 <div className="w-32.5 text-right text-sm font-bold text-text-primary tnum">৳{n(r.due_amount)}</div>
               </div>
             ))}

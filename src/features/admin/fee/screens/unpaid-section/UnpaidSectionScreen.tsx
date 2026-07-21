@@ -21,8 +21,8 @@ export function UnpaidSectionScreen() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <h1 className="text-[22px] font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-[13px] text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("সেকশন অনুযায়ী বকেয়া শিক্ষার্থী তালিকা", "Section-wise unpaid students")}</p>
+        <h1 className="text-h4 font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-meta text-text-muted">{t("ফি ও অর্থ", "Fees & Finance")} <span>•</span> {t("সেকশন অনুযায়ী বকেয়া শিক্ষার্থী তালিকা", "Section-wise unpaid students")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -48,7 +48,7 @@ export function UnpaidSectionScreen() {
           <div className="min-w-240">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("বকেয়া শিক্ষার্থী তালিকা", "Unpaid student list")}</p>
-              <span className="text-[13px] font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n((q.data ?? []).length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n((q.data ?? []).length)}</span>
             </div>
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
               <div className="w-30">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
@@ -59,8 +59,8 @@ export function UnpaidSectionScreen() {
             </div>
             {(q.data ?? []).map((r, i) => (
               <div key={r.studentId} className={cn("flex items-start gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                <div className="w-30 font-latin text-[13px] font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
-                <div className="w-15 text-[13px] text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
+                <div className="w-30 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
+                <div className="w-15 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
                 <div className="w-37.5 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
                 <div className="flex-1 text-[12.5px] leading-relaxed text-text-muted">{r.detail || "—"}</div>
                 <div className="w-25 text-right text-sm font-bold text-text-primary tnum">৳{n(r.due)}</div>

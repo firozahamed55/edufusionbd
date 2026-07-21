@@ -30,9 +30,9 @@ export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, 
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{breadcrumb}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{title}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{subtitle}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("সার্টিফিকেট", "Certificate")}</span><span>›</span><span className="text-text-secondary">{breadcrumb}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
+        <p className="mt-1 text-meta text-text-muted">{subtitle}</p>
       </header>
 
       <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
@@ -41,7 +41,7 @@ export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, 
           {fields.map((f) =>
             f.type === "toggle" ? (
               <label key={f.key} className="flex items-center justify-between gap-3 rounded-lg border border-border-default px-3 py-2.5">
-                <span className="text-[13px] font-medium text-text-secondary">{f.label}</span>
+                <span className="text-meta font-medium text-text-secondary">{f.label}</span>
                 <button type="button" onClick={() => set(f.key, !form[f.key])} className={`relative inline-flex h-5 w-9 items-center rounded-full ${form[f.key] ? "bg-primary" : "bg-border-strong"}`}>
                   <span className={`absolute size-4 rounded-full bg-white ${form[f.key] ? "right-0.5" : "left-0.5"}`} />
                 </button>

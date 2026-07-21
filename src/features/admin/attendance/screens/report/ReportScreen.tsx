@@ -29,9 +29,9 @@ export function ReportScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("একাডেমিক", "Academic")}</span><span>›</span><span className="text-text-secondary">{t("উপস্থিতি", "Attendance")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{t("উপস্থিতি রিপোর্ট", "Attendance Report")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("শ্রেণি ও তারিখ অনুযায়ী উপস্থিতির সারসংক্ষেপ", "Attendance summary by class and date range")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("একাডেমিক", "Academic")}</span><span>›</span><span className="text-text-secondary">{t("উপস্থিতি", "Attendance")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("উপস্থিতি রিপোর্ট", "Attendance Report")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("শ্রেণি ও তারিখ অনুযায়ী উপস্থিতির সারসংক্ষেপ", "Attendance summary by class and date range")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -61,7 +61,7 @@ export function ReportScreen() {
           <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student list")}</p>
-              <span className="text-[13px] font-semibold text-primary">{t("মোট", "Total")}: {n(d.students.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(d.students.length)}</span>
             </div>
             <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-[12.5px] font-semibold text-text-muted">
               <div className="w-35">{t("আইডি", "ID")}</div>
@@ -74,10 +74,10 @@ export function ReportScreen() {
               <div className="p-5"><EmptyState title={t("এই সময়ে কোনো উপস্থিতি রেকর্ড নেই", "No attendance records in this range")} /></div>
             ) : d.students.map((r, i) => (
               <div key={`${r.code}-${i}`} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                <div className="w-35 font-latin text-[13px] font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
-                <div className="w-17.5 text-[13px] text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
+                <div className="w-35 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
+                <div className="w-17.5 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
                 <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                <div className="w-37.5 text-[13px] text-text-secondary tnum">{n(r.present)} / {n(r.total)}</div>
+                <div className="w-37.5 text-meta text-text-secondary tnum">{n(r.present)} / {n(r.total)}</div>
                 <div className={cn("w-30 text-right text-sm font-bold tnum", rateTone(r.rate))}>{n(r.rate)}%</div>
               </div>
             ))}

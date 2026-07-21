@@ -71,7 +71,7 @@ export function AttColFilter({ className, placeholder }: { className?: string; p
     <div className={className}>
       <input
         placeholder={placeholder}
-        className="h-8 w-full rounded-md border border-border-strong bg-surface px-2 text-[12px] text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
+        className="h-8 w-full rounded-md border border-border-strong bg-surface px-2 text-xs text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
       />
     </div>
   );

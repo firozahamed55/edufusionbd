@@ -82,11 +82,11 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted">
+        <div className="flex items-center gap-1.5 text-meta text-text-muted">
           <span>{t("একাডেমিক", "Academic")}</span><span>›</span><span className="text-text-secondary">{t("উপস্থিতি", "Attendance")}</span>
         </div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{isExam ? t("পরীক্ষা উপস্থিতি", "Exam Attendance") : t("সেকশন উপস্থিতি", "Section Attendance")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{isExam ? t("নির্বাচিত পরীক্ষায় উপস্থিতি চিহ্নিত করুন", "Mark attendance for the selected exam") : t("নির্বাচিত শ্রেণির আজকের উপস্থিতি চিহ্নিত করুন", "Mark today's attendance for the selected class")}</p>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{isExam ? t("পরীক্ষা উপস্থিতি", "Exam Attendance") : t("সেকশন উপস্থিতি", "Section Attendance")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{isExam ? t("নির্বাচিত পরীক্ষায় উপস্থিতি চিহ্নিত করুন", "Mark attendance for the selected exam") : t("নির্বাচিত শ্রেণির আজকের উপস্থিতি চিহ্নিত করুন", "Mark today's attendance for the selected class")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -115,15 +115,15 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
           <div className="min-w-225">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student list")}</p>
-              <button onClick={() => markAll("present")} className="flex items-center gap-1.5 rounded-lg border border-success-fg bg-success-bg px-3 py-2 text-[13px] font-semibold text-success-fg">
+              <button onClick={() => markAll("present")} className="flex items-center gap-1.5 rounded-lg border border-success-fg bg-success-bg px-3 py-2 text-meta font-semibold text-success-fg">
                 <CheckCheck size={15} /> {t("সবাইকে উপস্থিত", "All present")}
               </button>
-              <span className="text-[13px] font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
             </div>
             {rows.map((r, i) => (
               <div key={r.enrollmentId} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
-                <div className="w-37.5 font-latin text-[13px] font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
-                <div className="w-17.5 text-[13px] text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
+                <div className="w-37.5 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
+                <div className="w-17.5 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
                 <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
                 <div className="flex items-center gap-2">
                   {STATUSES.map((s) => (
@@ -140,13 +140,13 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
 
       <SaveBar
         status={
-          <div className="flex flex-wrap items-center gap-3 text-[13px] text-text-secondary">
+          <div className="flex flex-wrap items-center gap-3 text-meta text-text-secondary">
             <span className="font-semibold text-text-primary">{t("সারসংক্ষেপ", "Summary")}</span>
             {STATUSES.map((s) => <SummaryDot key={s.value} color={s.dot} label={`${t(s.bn, s.en)} ${n(summary[s.value] ?? 0)}`} />)}
           </div>
         }
       >
-        <label className="mr-1 flex items-center gap-2 text-[13px] text-text-secondary">
+        <label className="mr-1 flex items-center gap-2 text-meta text-text-secondary">
           {t("অনুপস্থিতদের অভিভাবককে SMS", "SMS to absentees' guardians")}
           <button type="button" onClick={() => setSms((v) => !v)}><Toggle on={sms} /></button>
         </label>

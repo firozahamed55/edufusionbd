@@ -62,7 +62,7 @@ export function Field({
   return (
     <label className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       {label ? (
-        <span className="text-[13px] font-medium text-text-secondary">
+        <span className="text-meta font-medium text-text-secondary">
           {label}
           {required ? <span className="text-danger-fg"> *</span> : null}
         </span>
@@ -147,7 +147,7 @@ export function SaveBar({
     <div className="sticky bottom-0 z-20 -mx-4 -mb-4 mt-2 border-t border-border-default bg-surface/90 px-4 py-3.5 backdrop-blur sm:-mx-6 sm:-mb-6 sm:px-6 lg:-mx-8 lg:-mb-8 lg:px-8">
       <div className="flex items-center gap-3">
         {status ? (
-          <div className="flex flex-1 items-center gap-2 text-[13px] text-text-muted">
+          <div className="flex flex-1 items-center gap-2 text-meta text-text-muted">
             {status}
           </div>
         ) : (

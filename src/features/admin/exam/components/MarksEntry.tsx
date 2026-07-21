@@ -55,9 +55,9 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <div className="flex items-center gap-1.5 text-[13px] text-text-muted"><span>{t("পরীক্ষা ও ফলাফল", "Exam & Results")}</span><span>›</span><span className="text-text-secondary">{mode === "input" ? t("মার্ক ইনপুট", "Mark Input") : t("মার্ক আপডেট", "Mark Update")}</span></div>
-        <h1 className="mt-1.5 text-[22px] font-bold text-text-primary">{mode === "input" ? t("মার্ক ইনপুট", "Mark Input") : t("মার্ক আপডেট", "Mark Update")}</h1>
-        <p className="mt-1 text-[13px] text-text-muted">{t("পরীক্ষা, শাখা ও বিষয় নির্বাচন করে নম্বর এন্ট্রি করুন", "Select exam, section & subject to enter marks")}</p>
+        <div className="flex items-center gap-1.5 text-meta text-text-muted"><span>{t("পরীক্ষা ও ফলাফল", "Exam & Results")}</span><span>›</span><span className="text-text-secondary">{mode === "input" ? t("মার্ক ইনপুট", "Mark Input") : t("মার্ক আপডেট", "Mark Update")}</span></div>
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{mode === "input" ? t("মার্ক ইনপুট", "Mark Input") : t("মার্ক আপডেট", "Mark Update")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("পরীক্ষা, শাখা ও বিষয় নির্বাচন করে নম্বর এন্ট্রি করুন", "Select exam, section & subject to enter marks")}</p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -94,7 +94,7 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
               const m = marks[r.studentId] ?? { marks: "", absent: false };
               return (
                 <div key={r.enrollmentId} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
-                  <div className="w-15 text-[13px] text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
+                  <div className="w-15 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
                   <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
                   <div className="w-40 px-2">
                     <Input type="number" min={0} max={Number(full) || undefined} value={m.marks} disabled={m.absent}
