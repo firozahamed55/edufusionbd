@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Hind_Siliguri, Inter } from "next/font/google";
+import { headers } from "next/headers";
 import { getLocale, getMessages } from "next-intl/server";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -34,6 +35,7 @@ export default async function RootLayout({
 }) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html
@@ -42,7 +44,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <Providers locale={locale} messages={messages}>
+        <Providers locale={locale} messages={messages} nonce={nonce}>
           {children}
         </Providers>
       </body>

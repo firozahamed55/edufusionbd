@@ -10,10 +10,12 @@ export function Providers({
   children,
   locale,
   messages,
+  nonce,
 }: {
   children: ReactNode;
   locale: string;
   messages: AbstractIntlMessages;
+  nonce?: string;
 }) {
   const [queryClient] = useState(
     () =>
@@ -25,7 +27,7 @@ export function Providers({
   );
 
   return (
-    <ThemeProvider>
+    <ThemeProvider nonce={nonce}>
       <NextIntlClientProvider locale={locale} messages={messages}>
         <QueryClientProvider client={queryClient}>
           <ToastProvider>{children}</ToastProvider>
