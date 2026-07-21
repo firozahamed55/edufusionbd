@@ -1,29 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import { UserPlus, Search, ChevronDown, MoreVertical } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { UserPlus, Search, MoreVertical } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState } from "@/shared/ui";
+import { Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination } from "@/shared/ui";
+import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { useTeachers } from "./logic/useTeachers";
 
 /**
  * Teacher list — LIVE from Supabase (teacher + designation + main subject +
- * class-teacher flag), RLS-scoped to the caller's institution. Search filters
- * client-side; loading / empty / error states handled. No demo data.
+ * class-teacher flag), RLS-scoped to the caller's institution. Search/filter/
+ * pagination are all server-side; loading / empty / error states handled.
  */
 export function ListScreen() {
   const { t, isBn } = useT();
-  const { data, isLoading, isError, refetch } = useTeachers();
   const [q, setQ] = useState("");
+  const [dept, setDept] = useState("");
+  const [page, setPage] = useState(1);
+  const debouncedQ = useDebouncedValue(q, 300);
 
-  const term = q.trim().toLowerCase();
-  const rows = (data ?? []).filter(
-    (r) =>
-      !term ||
-      r.name_bn.toLowerCase().includes(term) ||
-      r.name_en.toLowerCase().includes(term) ||
-      (r.email ?? "").toLowerCase().includes(term),
-  );
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, dept]);
+
+  const { data, isLoading, isError, refetch } = useTeachers(page, debouncedQ, dept);
+  const rows = data?.rows ?? [];
+  const total = data?.total ?? 0;
+  const perPage = 20;
+  const pages = Math.max(1, Math.ceil(total / perPage));
+  const departments = Array.from(new Set(rows.map((r) => r.department).filter((d): d is string => Boolean(d))));
 
   return (
     <div className="flex flex-col gap-7">
@@ -42,9 +48,12 @@ export function ListScreen() {
             {t("সকল শিক্ষক ও কর্মীর তথ্য, বিষয় ও স্ট্যাটাস", "All teachers & staff — subject and status")}
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover">
+        <Link
+          href="/admin/teacher/registration"
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover"
+        >
           <UserPlus size={16} /> {t("নতুন শিক্ষক", "New Teacher")}
-        </button>
+        </Link>
       </div>
 
       {/* Toolbar */}
@@ -60,10 +69,17 @@ export function ListScreen() {
           />
         </div>
         <div className="hidden flex-1 sm:block" />
-        <button className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-[13px] font-medium text-text-secondary hover:bg-sunken">
-          {t("বিভাগ: সব", "Department: All")}
-          <ChevronDown size={14} className="text-text-muted" />
-        </button>
+        <select
+          value={dept}
+          onChange={(e) => setDept(e.target.value)}
+          aria-label={t("বিভাগ ফিল্টার", "Filter by department")}
+          className="rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-[13px] font-medium text-text-secondary"
+        >
+          <option value="">{t("বিভাগ: সব", "Department: All")}</option>
+          {departments.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
       </div>
 
       {/* Table */}
@@ -164,6 +180,18 @@ export function ListScreen() {
           </TBody>
         </Table>
       )}
+
+      {total > 0 ? (
+        <Pagination
+          label={t(
+            `${(page - 1) * perPage + 1}–${Math.min(page * perPage, total)} দেখানো হচ্ছে · মোট ${total} জন`,
+            `Showing ${(page - 1) * perPage + 1}-${Math.min(page * perPage, total)} of ${total}`,
+          )}
+          pages={pages}
+          current={page}
+          onPageChange={setPage}
+        />
+      ) : null}
     </div>
   );
 }

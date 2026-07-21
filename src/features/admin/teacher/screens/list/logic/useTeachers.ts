@@ -5,10 +5,10 @@ import { createClient } from "@/shared/services/supabase/client";
 import { queryKeys } from "@/shared/services/queryKeys";
 import { fetchTeachers } from "./api";
 
-/** Live teacher list (RLS-scoped) via TanStack Query. */
-export function useTeachers() {
+export function useTeachers(page: number, search: string, department: string) {
   return useQuery({
-    queryKey: queryKeys.teachers.list(),
-    queryFn: () => fetchTeachers(createClient()),
+    queryKey: queryKeys.teachers.list({ page, search, department }),
+    queryFn: () => fetchTeachers(createClient(), { page, search, department }),
+    placeholderData: (prev) => prev,
   });
 }

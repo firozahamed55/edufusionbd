@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useLocale } from "next-intl";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, Search, ChevronDown, ChevronRight, ChevronUp, CalendarDays, MessageSquareText, Menu, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, CalendarDays, MessageSquareText, Menu, X, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
+import { createClient } from "@/shared/services/supabase/client";
 import {
   ADMIN_NAV_SECTIONS,
   ADMIN_NAV_FOOTER,
@@ -14,8 +14,8 @@ import {
 } from "./adminNav";
 import { ThemeToggle, LocaleToggle } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
-import { localizeDigits } from "@/shared/lib/format";
-import type { Locale } from "@/shared/i18n/config";
+import { useT } from "@/shared/i18n/useT";
+import { useSmsAccount } from "@/features/admin/sms-notice/logic/hooks";
 
 /**
  * Sticky sidebar + sticky topbar + scrolling content — the shared admin chrome.
@@ -29,12 +29,17 @@ import type { Locale } from "@/shared/i18n/config";
  */
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const locale = useLocale() as Locale;
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { locale, t: tx, tb: t, n: num } = useT();
+  const { data: smsAccount } = useSmsAccount();
 
-  const t = (i: { bn: string; en: string }) => (locale === "bn" ? i.bn : i.en);
-  const tx = (bn: string, en: string) => (locale === "bn" ? bn : en);
-  const num = (v: string | number) => localizeDigits(v, locale);
+  const signOut = async () => {
+    await createClient().auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  };
   const isActive = (i: AdminNavItem) =>
     pathname.startsWith(i.match ?? `/admin/${i.key}`);
   const isSubActive = (s: AdminSubItem) => {
@@ -42,13 +47,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
     return prefixes.some((p) => pathname.startsWith(p));
   };
 
-  // Close the mobile drawer on navigation.
-  useEffect(() => setDrawerOpen(false), [pathname]);
+  // Close the mobile drawer and profile menu on navigation.
+  useEffect(() => {
+    setDrawerOpen(false);
+    setMenuOpen(false);
+  }, [pathname]);
 
-  // Close the mobile drawer on Escape.
+  // Close the mobile drawer and profile menu on Escape.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDrawerOpen(false);
+      if (e.key === "Escape") {
+        setDrawerOpen(false);
+        setMenuOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -236,44 +247,60 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
           <div className="hidden items-center gap-1.5 rounded-full bg-success-bg px-3 py-1.5 text-[13px] font-semibold text-success-fg sm:flex">
             <MessageSquareText size={15} />
-            <span>{num("8,250")} SMS</span>
+            <span>{smsAccount ? `${num(smsAccount.balance.toLocaleString())} SMS` : "—"}</span>
           </div>
           <div className="mx-1 hidden h-7 w-px bg-border-default sm:block" />
-          <button
-            type="button"
-            aria-label={tx("অনুসন্ধান", "Search")}
-            className="grid size-9 place-items-center rounded-lg border border-border-strong text-text-secondary hover:bg-sunken"
-          >
-            <Search size={18} />
-          </button>
-          <button
-            type="button"
-            aria-label={tx("বিজ্ঞপ্তি", "Notifications")}
-            className="relative grid size-9 place-items-center rounded-lg border border-border-strong text-text-secondary hover:bg-sunken"
-          >
-            <Bell size={18} />
-            <span className="absolute right-2 top-2 size-2 rounded-full bg-danger-fg" />
-          </button>
           <ThemeToggle />
           <LocaleToggle />
           <div className="mx-1 hidden h-7 w-px bg-border-default sm:block" />
-          <button
-            type="button"
-            className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 hover:bg-sunken"
-          >
-            <span className="grid size-8 place-items-center rounded-full bg-primary text-[13px] font-semibold text-text-on-primary">
-              {tx("অ্যা", "AD")}
-            </span>
-            <span className="hidden leading-tight sm:block">
-              <span className="block text-[13px] font-semibold text-text-primary">
-                {tx("অ্যাডমিন", "Admin")}
+          <div className="relative">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((o) => !o)}
+              className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 hover:bg-sunken"
+            >
+              <span className="grid size-8 place-items-center rounded-full bg-primary text-[13px] font-semibold text-text-on-primary">
+                {tx("অ্যা", "AD")}
               </span>
-              <span className="block text-[11px] text-text-muted">
-                {tx("প্রধান শিক্ষক", "Head Teacher")}
+              <span className="hidden leading-tight sm:block">
+                <span className="block text-[13px] font-semibold text-text-primary">
+                  {tx("অ্যাডমিন", "Admin")}
+                </span>
+                <span className="block text-[11px] text-text-muted">
+                  {tx("প্রধান শিক্ষক", "Head Teacher")}
+                </span>
               </span>
-            </span>
-            <ChevronDown size={16} className="hidden text-text-muted sm:block" />
-          </button>
+              <ChevronDown size={16} className="hidden text-text-muted sm:block" />
+            </button>
+            {menuOpen ? (
+              <>
+                {/* Click-away overlay (same cheap trick as the mobile drawer). */}
+                <button
+                  type="button"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  onClick={() => setMenuOpen(false)}
+                  className="fixed inset-0 z-40 cursor-default"
+                />
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-2 w-44 rounded-lg border border-border-default bg-surface py-1 shadow-e3"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={signOut}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-danger-fg hover:bg-sunken"
+                  >
+                    <LogOut size={16} />
+                    {tx("লগ আউট", "Sign out")}
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
         </header>
 
         <main id="admin-main" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
