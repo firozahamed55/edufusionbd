@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { UserPlus, Search, MoreVertical } from "lucide-react";
+import { UserPlus, Search, MoreVertical, Download } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination, Breadcrumb } from "@/shared/ui";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useTeachers } from "./logic/useTeachers";
 
 /**
@@ -30,6 +31,16 @@ export function ListScreen() {
   const perPage = 20;
   const pages = Math.max(1, Math.ceil(total / perPage));
   const departments = Array.from(new Set(rows.map((r) => r.department).filter((d): d is string => Boolean(d))));
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleOne = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  const toggleAll = () =>
+    setSelected((s) => (s.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))));
 
   return (
     <div className="flex flex-col gap-7">
@@ -81,7 +92,36 @@ export function ListScreen() {
             <option key={d} value={d}>{d}</option>
           ))}
         </select>
+        <button
+          onClick={() => exportCsv(`teachers-${new Date().toISOString().slice(0, 10)}.csv`, rows.map((r) => ({
+            Name: r.name_en,
+            Email: r.email ?? "",
+            Designation: r.designation ?? "",
+            Department: r.department ?? "",
+            Status: r.status,
+          })))}
+          className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary hover:bg-sunken"
+        >
+          <Download size={14} /> {t("এক্সপোর্ট", "Export")}
+        </button>
       </div>
+
+      {selected.size > 0 ? (
+        <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary-subtle px-4 py-2.5 text-meta font-medium text-primary">
+          <span>{t(`${selected.size} জন নির্বাচিত`, `${selected.size} selected`)}</span>
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={() => { window.location.href = `/admin/sms-notice/send?recipients=${Array.from(selected).join(",")}`; }}
+              className="rounded-md bg-surface px-3 py-1.5 text-text-primary hover:bg-sunken"
+            >
+              {t("এসএমএস পাঠান", "Send SMS")}
+            </button>
+            <button onClick={() => setSelected(new Set())} className="rounded-md px-3 py-1.5 hover:bg-sunken">
+              {t("বাতিল", "Clear")}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Table */}
       {isError ? (
@@ -100,6 +140,14 @@ export function ListScreen() {
         <Table minWidth={720}>
           <THead>
             <TR>
+              <TH className="w-10">
+                <input
+                  type="checkbox"
+                  checked={rows.length > 0 && selected.size === rows.length}
+                  onChange={toggleAll}
+                  aria-label={t("সব নির্বাচন করুন", "Select all")}
+                />
+              </TH>
               <TH>{t("শিক্ষক", "Teacher")}</TH>
               <TH>{t("পদবি", "Designation")}</TH>
               <TH>{t("মূল বিষয়", "Main Subject")}</TH>
@@ -114,7 +162,7 @@ export function ListScreen() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TR key={i}>
-                  {Array.from({ length: 6 }).map((__, j) => (
+                  {Array.from({ length: 7 }).map((__, j) => (
                     <TD key={j}>
                       <span className="block h-5 animate-pulse rounded bg-sunken" />
                     </TD>
@@ -123,7 +171,7 @@ export function ListScreen() {
               ))
             ) : rows.length === 0 ? (
               <TableEmpty
-                colSpan={6}
+                colSpan={7}
                 title={t("কোনো শিক্ষক পাওয়া যায়নি", "No teachers found")}
               />
             ) : (
@@ -131,6 +179,14 @@ export function ListScreen() {
                 const name = isBn ? r.name_bn : r.name_en;
                 return (
                   <TR key={r.id}>
+                    <TD>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.id)}
+                        onChange={() => toggleOne(r.id)}
+                        aria-label={t("নির্বাচন করুন", "Select row")}
+                      />
+                    </TD>
                     <TD>
                       <span className="flex items-center gap-2.5">
                         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-subtle text-sm font-semibold text-primary">
