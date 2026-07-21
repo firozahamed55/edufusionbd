@@ -1,1 +1,0 @@
-export { UpdateProfileScreen } from "./UpdateProfileScreen";

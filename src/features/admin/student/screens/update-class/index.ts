@@ -1,1 +1,0 @@
-export { UpdateClassScreen } from "./UpdateClassScreen";

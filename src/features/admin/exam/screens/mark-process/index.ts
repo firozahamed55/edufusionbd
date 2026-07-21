@@ -1,1 +1,0 @@
-export { MarkProcessScreen } from "./MarkProcessScreen";

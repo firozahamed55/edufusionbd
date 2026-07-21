@@ -1,1 +1,0 @@
-export { QuickCollectionListScreen } from "./QuickCollectionListScreen";

@@ -1,1 +1,0 @@
-export { UnpaidInstituteScreen } from "./UnpaidInstituteScreen";

@@ -1,1 +1,0 @@
-export { SignatureScreen } from "./SignatureScreen";

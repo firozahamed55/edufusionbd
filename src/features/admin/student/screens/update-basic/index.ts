@@ -1,1 +1,0 @@
-export { UpdateBasicScreen } from "./UpdateBasicScreen";

@@ -1,0 +1,1157 @@
+{
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\.eslintrc.json": {
+    "mtime": 1783123052.8743882,
+    "ast_hash": "f6724fc6c4c2b8c154f5f81728ac35b1",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\next.config.mjs": {
+    "mtime": 1783723798.5480196,
+    "ast_hash": "0eba9e607994f1e29136d466a9734439",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\package.json": {
+    "mtime": 1783123038.6073465,
+    "ast_hash": "2044b6ac530e7b3ee7a8bd1b2d9c8641",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\postcss.config.mjs": {
+    "mtime": 1783123047.976594,
+    "ast_hash": "239f3ebf717465dc636818a1a619398d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\tsconfig.json": {
+    "mtime": 1783123042.1544602,
+    "ast_hash": "b1d34cf4033d678358c77ea05d8fd529",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\scripts\\admin-screens.manifest.json": {
+    "mtime": 1783123438.3199732,
+    "ast_hash": "feec25e3e8be09279b3a47c3aa562f6b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\scripts\\collect-admin-screens.workflow.js": {
+    "mtime": 1783138734.1951668,
+    "ast_hash": "2f0de51db5694dd238cefa71876b402e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\scripts\\scaffold-admin-screens.ps1": {
+    "mtime": 1783123482.6199265,
+    "ast_hash": "5002b0d7964cf3afee26f8028986f506",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\middleware.ts": {
+    "mtime": 1784381724.3270693,
+    "ast_hash": "f2bb4cbe7ef2f7d699964c7760bc071b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\layout.tsx": {
+    "mtime": 1783725380.0906713,
+    "ast_hash": "76cb8a022a6c82bd8f12a2cbaf994565",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\page.tsx": {
+    "mtime": 1784381104.9161007,
+    "ast_hash": "91dfaed787a3431897abc8d1c3ec79cc",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\providers.tsx": {
+    "mtime": 1783724022.2292275,
+    "ast_hash": "dd7c4d03b9ca4b8c0baad937fa0725e4",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\layout.tsx": {
+    "mtime": 1783123339.8047826,
+    "ast_hash": "1c1573a4e7a2405433d56cfc615f7a9a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\page.tsx": {
+    "mtime": 1783123341.0447054,
+    "ast_hash": "6487638d5670a0624823cc1f2727ca92",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\attendance\\analytics\\page.tsx": {
+    "mtime": 1784326946.2540534,
+    "ast_hash": "05da2fb7e5b9c98a997a89292e2725e2",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\attendance\\exam\\page.tsx": {
+    "mtime": 1784326946.5353022,
+    "ast_hash": "f3e709e0476965179da4c2bebdf60408",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\attendance\\report\\page.tsx": {
+    "mtime": 1784326946.7696772,
+    "ast_hash": "b5615aa878cb5854399d6d33356c2683",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\attendance\\section\\page.tsx": {
+    "mtime": 1784326947.004052,
+    "ast_hash": "e687f0dc4e858dc93b9c985e97a42865",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\attendance\\update-exam\\page.tsx": {
+    "mtime": 1784326947.223368,
+    "ast_hash": "f03c56b469adc3101547e75f1c70dbaa",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\attendance\\update-section\\page.tsx": {
+    "mtime": 1784326947.47356,
+    "ast_hash": "13d0a0bcd7410ec0448d5ff0b2cf6c4a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\certificate\\admit-card\\page.tsx": {
+    "mtime": 1784326947.70583,
+    "ast_hash": "d33dcb1b618ae91f687859543b0dcbe2",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\certificate\\admit-instruction\\page.tsx": {
+    "mtime": 1784326947.9273283,
+    "ast_hash": "81302695465010038fa23cac41488082",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\certificate\\exam-essentials\\page.tsx": {
+    "mtime": 1784326948.1617603,
+    "ast_hash": "b1df0b393c79666218272fde15436c0c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\certificate\\id-card\\page.tsx": {
+    "mtime": 1784326948.3961208,
+    "ast_hash": "9d9cf3845660d26f04701e49408ca8b9",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\certificate\\template\\page.tsx": {
+    "mtime": 1784326948.6309443,
+    "ast_hash": "e9376113186cd2d3c2642232a2717257",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\certificate\\testimonial\\page.tsx": {
+    "mtime": 1784326948.8496938,
+    "ast_hash": "11f98a49b9aae7d9770cf008d499e47a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\certificate\\transfer\\page.tsx": {
+    "mtime": 1784326949.0971956,
+    "ast_hash": "915e4ef0ca6c78a52fc49679c7de0a34",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\core\\basic-config\\page.tsx": {
+    "mtime": 1784326949.3350453,
+    "ast_hash": "ecce5bc36f3ddbb54d56e4d8f9e41109",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\core\\class\\page.tsx": {
+    "mtime": 1784326949.5689359,
+    "ast_hash": "3033287a9d8c49ade30a6ddca12185a2",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\core\\grading\\page.tsx": {
+    "mtime": 1784326949.7877128,
+    "ast_hash": "ad39cd39cee9461ca371e5da1ff242ef",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\core\\signature\\page.tsx": {
+    "mtime": 1784326950.0297728,
+    "ast_hash": "1c10e7ed984b1f29422ea7cd9c73e849",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\core\\startup\\page.tsx": {
+    "mtime": 1784326950.2721908,
+    "ast_hash": "ace6d4a332f654c0f0420db3347be693",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\core\\subject\\page.tsx": {
+    "mtime": 1784326950.5035148,
+    "ast_hash": "34f74532e12cedb7b808b3ac20edbf8b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\core\\subject-group\\page.tsx": {
+    "mtime": 1784326950.7257903,
+    "ast_hash": "1d8b82ceb88ca35ebefacb206006f63c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\core\\user-list\\page.tsx": {
+    "mtime": 1784326950.961088,
+    "ast_hash": "fec2804287db085a891e593f32af4025",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\dashboard\\page.tsx": {
+    "mtime": 1784326951.1812131,
+    "ast_hash": "8d4bcd4f3b2922a9d41c9ab60f077de3",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\comment-config\\page.tsx": {
+    "mtime": 1784326951.4160001,
+    "ast_hash": "d9ee67bfe7f8e495f03d513954775ee2",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\date-config\\page.tsx": {
+    "mtime": 1784326951.634749,
+    "ast_hash": "5452126f061879d08ee7b37e130228eb",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\mark-config\\page.tsx": {
+    "mtime": 1784326951.86913,
+    "ast_hash": "31ad771f49fdefb32ee89fa0de2a0b51",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\mark-input\\page.tsx": {
+    "mtime": 1784326952.1035497,
+    "ast_hash": "a1da15d50d404df8bcc07658d3abe220",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\mark-process\\page.tsx": {
+    "mtime": 1784326952.3345456,
+    "ast_hash": "c191de9bb25b6e1db7df3da3c55537e3",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\mark-update\\page.tsx": {
+    "mtime": 1784326952.5568187,
+    "ast_hash": "f29ee3cc3a2f823eb4c8a62f3081d265",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\marksheet-config\\page.tsx": {
+    "mtime": 1784326952.7916167,
+    "ast_hash": "800d37ad6f959a5e1ca71c9ab94f1713",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\result-process\\page.tsx": {
+    "mtime": 1784326953.0216253,
+    "ast_hash": "c96dd5fe557f88d9131a439dd1a44cad",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\result-sheet-download\\page.tsx": {
+    "mtime": 1784326953.245348,
+    "ast_hash": "d703d044554f29ca40d8f39f805894d5",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\exam\\settings\\page.tsx": {
+    "mtime": 1784326953.479733,
+    "ast_hash": "6cada05ed28354b21b9cc7db96f4bfda",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\fee\\delete-fees\\page.tsx": {
+    "mtime": 1784326953.7139573,
+    "ast_hash": "4d85db239f02a1886275879d860640f7",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\fee\\digital-collection\\page.tsx": {
+    "mtime": 1784326953.948834,
+    "ast_hash": "97b5d07c72a266fa559be952412b4882",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\fee\\fee-mapping\\page.tsx": {
+    "mtime": 1784326954.1677997,
+    "ast_hash": "f70bb1896c59a2a5da8d3f75ac983b46",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\fee\\income-statement\\page.tsx": {
+    "mtime": 1784326954.4021294,
+    "ast_hash": "52dfc86b047d0bd83b03d8138e795d16",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\fee\\quick-collection-form\\page.tsx": {
+    "mtime": 1784326954.6209197,
+    "ast_hash": "f4fcb3e6b751f41ae0066fb17dfe5435",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\fee\\quick-collection-list\\page.tsx": {
+    "mtime": 1784326954.8556335,
+    "ast_hash": "e7d799ed801ace63bdd600fdd9749561",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\fee\\unpaid-institute\\page.tsx": {
+    "mtime": 1784326955.1013694,
+    "ast_hash": "4fde3bf09ce94a63d6ac62ff10d3dbc3",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\fee\\unpaid-section\\page.tsx": {
+    "mtime": 1784326955.325171,
+    "ast_hash": "bd2de26deb6841122a2f55cb59ec0a1b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\sms-notice\\balance-purchase\\page.tsx": {
+    "mtime": 1784326955.5599089,
+    "ast_hash": "711d1bb28a1a6ad5d680e95f93a40b27",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\sms-notice\\history\\page.tsx": {
+    "mtime": 1784326955.7787094,
+    "ast_hash": "4af729424baa73597225edc358177f42",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\sms-notice\\notice-board\\page.tsx": {
+    "mtime": 1784326956.0325196,
+    "ast_hash": "475a74bc3493dfb844ee2651fe813ec9",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\sms-notice\\send\\page.tsx": {
+    "mtime": 1784326956.263866,
+    "ast_hash": "48bfbc9744ec1ef49269d6f94d8e4c1a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\sms-notice\\templates\\page.tsx": {
+    "mtime": 1784326956.482821,
+    "ast_hash": "975a75223debf319348877880a39626e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\student\\migration-merit\\page.tsx": {
+    "mtime": 1784326956.7328408,
+    "ast_hash": "4ce1d6658fb847df28bf75e19831980c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\student\\migration-nomerit\\page.tsx": {
+    "mtime": 1784326956.9516003,
+    "ast_hash": "38facda9c11bf325fa262c2a0b8f7dfa",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\student\\migration-pushback\\page.tsx": {
+    "mtime": 1784326957.187023,
+    "ast_hash": "232a54e37328df8a1d40b6b6df79564f",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\student\\registration\\page.tsx": {
+    "mtime": 1784326957.4217796,
+    "ast_hash": "0bdeb6323f8659767137eb881d6782cc",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\student\\reports-summary\\page.tsx": {
+    "mtime": 1784326957.656552,
+    "ast_hash": "dc05b36ffab787ecef4943645e61c288",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\student\\update-basic\\page.tsx": {
+    "mtime": 1784326957.8893003,
+    "ast_hash": "d55f446c7da8f1efbf13abb7dff85322",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\student\\update-class\\page.tsx": {
+    "mtime": 1784326958.1100996,
+    "ast_hash": "b2ccd1950da70e96ea134a261a8f762a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\teacher\\list\\page.tsx": {
+    "mtime": 1784326958.344435,
+    "ast_hash": "79289a0428ae09f7e8b31b9191f88ad2",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\teacher\\registration\\page.tsx": {
+    "mtime": 1784326958.5631814,
+    "ast_hash": "bc47f17065a694f54441d8056be2db3d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(admin)\\admin\\teacher\\update-profile\\page.tsx": {
+    "mtime": 1784326958.797974,
+    "ast_hash": "9b9e4b5b9c8a7f47d587349cd1493aef",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(auth)\\change-password\\page.tsx": {
+    "mtime": 1784347328.0162058,
+    "ast_hash": "b937cf7b58660da293383e6873860c43",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(auth)\\first-login-setup\\page.tsx": {
+    "mtime": 1783798802.1496127,
+    "ast_hash": "70ce35209f1f51e138936d6b84cfcf2e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(auth)\\forgot-password\\page.tsx": {
+    "mtime": 1784347256.2700436,
+    "ast_hash": "9197ff6da289a76c2bbcd0948cbaf0a7",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(auth)\\login\\page.tsx": {
+    "mtime": 1784381154.6648033,
+    "ast_hash": "661978e953bff8a286b42bda63e499d7",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(auth)\\otp\\page.tsx": {
+    "mtime": 1783798724.6533673,
+    "ast_hash": "4e66c9e83cd519d8a7c2a393c98290b5",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(auth)\\reset-password\\page.tsx": {
+    "mtime": 1784347306.6946836,
+    "ast_hash": "20e63a753cd20813df1bcec1731ed0a5",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(parent)\\parent\\layout.tsx": {
+    "mtime": 1783799282.9466324,
+    "ast_hash": "857cb1eee2b01e9a12bdac5ead1609cd",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(parent)\\parent\\page.tsx": {
+    "mtime": 1784327711.3779466,
+    "ast_hash": "eac9d9aabf54d81dee9e677f7db2d656",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(parent)\\parent\\attendance\\page.tsx": {
+    "mtime": 1783799327.6375434,
+    "ast_hash": "8dea5f1b83b8fd8a42a12b8b7ebf9541",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(parent)\\parent\\fees\\page.tsx": {
+    "mtime": 1783799366.5876205,
+    "ast_hash": "3459b2a644fed41d648b86d54f126683",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(parent)\\parent\\notices\\page.tsx": {
+    "mtime": 1783799381.558749,
+    "ast_hash": "0c6fc2021cb8e4de74d35e4bf2e01945",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(parent)\\parent\\profile\\page.tsx": {
+    "mtime": 1783799425.5620544,
+    "ast_hash": "b2462f613f4faae0613545dd9a675667",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\app\\(parent)\\parent\\results\\page.tsx": {
+    "mtime": 1783799343.0887864,
+    "ast_hash": "fd4e198758d91bdd9b10d71f085bf7ab",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\components\\AttendanceMarker.tsx": {
+    "mtime": 1783762595.9228115,
+    "ast_hash": "294be3129d75c2f041cc2540285713e8",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\components\\parts.tsx": {
+    "mtime": 1783679880.4420786,
+    "ast_hash": "aff7ca332f0f6218257d6651c8e2b147",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\logic\\api.ts": {
+    "mtime": 1783762538.4025066,
+    "ast_hash": "867e8e9d6a54fb17a4ba95b2dde55b1f",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\logic\\hooks.ts": {
+    "mtime": 1783762547.8122318,
+    "ast_hash": "0c489e2e0b0c9bc277c96e83b38c8edc",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\screens\\analytics\\AnalyticsScreen.tsx": {
+    "mtime": 1783762722.3928287,
+    "ast_hash": "3f84b78bf77e56c4f6d13f4d51624dfa",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\screens\\exam\\ExamScreen.tsx": {
+    "mtime": 1783762623.3483806,
+    "ast_hash": "d94cc8c398799209a2e534f2e5de3209",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\screens\\report\\ReportScreen.tsx": {
+    "mtime": 1783762674.2289286,
+    "ast_hash": "a4d87898a7e44ea326ab7b96a15f9646",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\screens\\section\\SectionScreen.tsx": {
+    "mtime": 1783762617.4674735,
+    "ast_hash": "3399f47fc2793f866e285040883b196c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\screens\\update-exam\\UpdateExamScreen.tsx": {
+    "mtime": 1783762638.1873686,
+    "ast_hash": "4d7051ea32712c36e34e978ed4e90ca4",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\attendance\\screens\\update-section\\UpdateSectionScreen.tsx": {
+    "mtime": 1783762632.9973133,
+    "ast_hash": "13eb78e6acb784a6f93e25b79dcaa788",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\components\\BatchCreator.tsx": {
+    "mtime": 1783794144.082224,
+    "ast_hash": "9e7edcdfd464f08bfc087753b2a0ae08",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\components\\CertRecordForm.tsx": {
+    "mtime": 1783794080.9058928,
+    "ast_hash": "e85c72f101c55d73e1a0b288aa3640b0",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\components\\SettingConfig.tsx": {
+    "mtime": 1783794164.1119912,
+    "ast_hash": "7b978fce9b9353777fc6d23ad6e221b3",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\components\\TemplateManager.tsx": {
+    "mtime": 1783794197.3650546,
+    "ast_hash": "2c16660f494baf79fb8e37f6c0601262",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\logic\\api.ts": {
+    "mtime": 1783794102.2141333,
+    "ast_hash": "6c25f178480fea86d83c9efac3dbea9d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\logic\\hooks.ts": {
+    "mtime": 1783794268.2610433,
+    "ast_hash": "47b29233fdcf35c94b4684e1f56412c1",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\screens\\admit-card\\AdmitCardScreen.tsx": {
+    "mtime": 1783794219.5313854,
+    "ast_hash": "eac5c5c9349c3c0bbe6fb74979145c4a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\screens\\admit-instruction\\AdmitInstructionScreen.tsx": {
+    "mtime": 1783794219.6407661,
+    "ast_hash": "5b07eecfde1797c76138095b97efa050",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\screens\\exam-essentials\\ExamEssentialsScreen.tsx": {
+    "mtime": 1783794219.6876373,
+    "ast_hash": "02997b3899fbf6a63c0ff57a0e8f2f5d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\screens\\id-card\\IdCardScreen.tsx": {
+    "mtime": 1783794219.5001235,
+    "ast_hash": "086484c01a0b60f6b98368714423b75e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\screens\\template\\TemplateScreen.tsx": {
+    "mtime": 1783794219.453128,
+    "ast_hash": "35f2e876b1944cc7efc5d6095e14b0fa",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\screens\\testimonial\\TestimonialScreen.tsx": {
+    "mtime": 1783794219.5626383,
+    "ast_hash": "996b7a25e7fe41acdc43c308155e30ec",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\certificate\\screens\\transfer\\TransferScreen.tsx": {
+    "mtime": 1783794219.609515,
+    "ast_hash": "f6b99d22db1021d08d5c01589d2eee22",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\components\\adminNav.ts": {
+    "mtime": 1783698373.6733968,
+    "ast_hash": "03c9c1dafb2c44b530bb6235ca9640d0",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\components\\AdminShell.tsx": {
+    "mtime": 1784347219.872431,
+    "ast_hash": "7e0969663b524953527788728c4dd4fc",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\components\\index.ts": {
+    "mtime": 1783123796.9873145,
+    "ast_hash": "4a5ccb686097e82b8c561d600ef79bbc",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\components\\InstitutionForm.tsx": {
+    "mtime": 1783794895.909755,
+    "ast_hash": "462dda7e8b9c1da4cf2dde69f225edb2",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\logic\\api.ts": {
+    "mtime": 1783794844.6234732,
+    "ast_hash": "eafcf9af0bb4409d4ca62343abaf15b1",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\logic\\hooks.ts": {
+    "mtime": 1783794859.649987,
+    "ast_hash": "8521fcbbcc8c4d5f8b7cacbbbe7d0bb9",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\screens\\basic-config\\BasicConfigScreen.tsx": {
+    "mtime": 1783795086.384745,
+    "ast_hash": "4dde00f252b22d5d737854573ddc3705",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\screens\\class\\ClassScreen.tsx": {
+    "mtime": 1783794924.8626413,
+    "ast_hash": "374ddee2ff830b0d0965fe33ee7050f1",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\screens\\grading\\GradingScreen.tsx": {
+    "mtime": 1783795045.685217,
+    "ast_hash": "27709ab1a3b7148a0eaa8750bbb4fae7",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\screens\\signature\\SignatureScreen.tsx": {
+    "mtime": 1783794982.5413437,
+    "ast_hash": "10ea93421e4ed55abb5a575b0fb509fa",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\screens\\startup\\StartupScreen.tsx": {
+    "mtime": 1783795086.337796,
+    "ast_hash": "a2f1e33016f8cda5fca20896707fc4ed",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\screens\\subject\\SubjectScreen.tsx": {
+    "mtime": 1783794957.297427,
+    "ast_hash": "59e4a136e3950ec029fb518f734a33c6",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\screens\\subject-group\\SubjectGroupScreen.tsx": {
+    "mtime": 1783795077.5630877,
+    "ast_hash": "a8d260c2d10b3fc67d91cfe0946ee99b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\core\\screens\\user-list\\UserListScreen.tsx": {
+    "mtime": 1783795004.2024128,
+    "ast_hash": "83e1e0588b0ec5c637f253fa9d65610e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\dashboard\\screens\\overview\\OverviewScreen.tsx": {
+    "mtime": 1783743295.804494,
+    "ast_hash": "2a5f6553be809922b0727b908cc92246",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\dashboard\\screens\\overview\\logic\\api.ts": {
+    "mtime": 1783743428.1762502,
+    "ast_hash": "d44d80284100e054e6918be82512986e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\dashboard\\screens\\overview\\logic\\useDashboard.ts": {
+    "mtime": 1783742673.8738842,
+    "ast_hash": "e71d7a6a75acb339edf18e5ab4fc3b85",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\components\\ConfigTab.tsx": {
+    "mtime": 1783793709.2491736,
+    "ast_hash": "560e843302aff4a86e34c5cfe9ddeb1e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\components\\ExamSettingsTab.tsx": {
+    "mtime": 1783793739.4742124,
+    "ast_hash": "e47a4ef3a5ab8f7248207d8e161cb6fc",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\components\\MarksEntry.tsx": {
+    "mtime": 1783793607.312664,
+    "ast_hash": "9a53ec811a013c26898e7ccfe23631a0",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\components\\ResultProcessor.tsx": {
+    "mtime": 1783793645.1395812,
+    "ast_hash": "d614781440313decb7112c6423c50f56",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\components\\SettingsShell.tsx": {
+    "mtime": 1783795203.777882,
+    "ast_hash": "fed24c7af50fec91c822fbf9ef74a24a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\logic\\api.ts": {
+    "mtime": 1783793547.8306816,
+    "ast_hash": "d5342ba2e9e9bb1dddaf2fcc98ed333e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\logic\\hooks.ts": {
+    "mtime": 1783793561.8528109,
+    "ast_hash": "b481ffb6aa23d659058284fe25eb7f8f",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\comment-config\\CommentConfigScreen.tsx": {
+    "mtime": 1783793772.8965635,
+    "ast_hash": "7a49ddf4fe823609415130159d61d8f6",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\date-config\\DateConfigScreen.tsx": {
+    "mtime": 1783793772.9434402,
+    "ast_hash": "fcb78adeb09d25dc10f20bc931662935",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\mark-config\\MarkConfigScreen.tsx": {
+    "mtime": 1783793772.8024862,
+    "ast_hash": "37421aa36d96790fd4e581e84cdd47c7",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\mark-input\\MarkInputScreen.tsx": {
+    "mtime": 1783793772.6150098,
+    "ast_hash": "ba2dbd88a5a93a98c99f43d747fb843c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\mark-process\\MarkProcessScreen.tsx": {
+    "mtime": 1783793772.6931124,
+    "ast_hash": "7afa3dd7dbd101ed3aadac1437d81a49",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\mark-update\\MarkUpdateScreen.tsx": {
+    "mtime": 1783793772.6462352,
+    "ast_hash": "f7ddeb79fd31d872b8822e94deea8e9b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\marksheet-config\\MarksheetConfigScreen.tsx": {
+    "mtime": 1783793772.8653007,
+    "ast_hash": "0dc40c29e813ea7e356d8ee9adbed2ff",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\result-process\\ResultProcessScreen.tsx": {
+    "mtime": 1783793772.72436,
+    "ast_hash": "cf68ac2729469b103d7e6d4898ff757b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\result-sheet-download\\ResultSheetDownloadScreen.tsx": {
+    "mtime": 1783793772.7712624,
+    "ast_hash": "04fc84da2e15f24895a79d9bfc32261d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\exam\\screens\\settings\\SettingsScreen.tsx": {
+    "mtime": 1783793772.5837228,
+    "ast_hash": "dc2a011df91f4c3585e1064726449c20",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\logic\\api.ts": {
+    "mtime": 1783762039.3903012,
+    "ast_hash": "3c2a053fa4421a520467111c4cdf8fa4",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\logic\\hooks.ts": {
+    "mtime": 1783762046.3882205,
+    "ast_hash": "609cf2cc62e944338d6501f2c1a04d8d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\screens\\delete-fees\\DeleteFeesScreen.tsx": {
+    "mtime": 1783762197.7533238,
+    "ast_hash": "375a51724de08dc590a2f1e105dba26b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\screens\\digital-collection\\DigitalCollectionScreen.tsx": {
+    "mtime": 1783761896.5567436,
+    "ast_hash": "a1ea9269daae579bf8a5ed862fb57acf",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\screens\\fee-mapping\\FeeMappingScreen.tsx": {
+    "mtime": 1783762008.0092978,
+    "ast_hash": "5f026419981dfeaa8e676cf3bcd3134c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\screens\\income-statement\\IncomeStatementScreen.tsx": {
+    "mtime": 1783761925.304492,
+    "ast_hash": "95581dcb0fcb38789a289b848151ca6e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\screens\\quick-collection-form\\QuickCollectionFormScreen.tsx": {
+    "mtime": 1783762130.1527033,
+    "ast_hash": "1d6fa424f4ae5ee64a869654fb36c8f2",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\screens\\quick-collection-list\\QuickCollectionListScreen.tsx": {
+    "mtime": 1783762071.499577,
+    "ast_hash": "f1de2f00b5e0acd108eb6d20f49cc547",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\screens\\unpaid-institute\\UnpaidInstituteScreen.tsx": {
+    "mtime": 1783762183.3522098,
+    "ast_hash": "0a5767fd8f0be9d450c9053ff03cefb9",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\fee\\screens\\unpaid-section\\UnpaidSectionScreen.tsx": {
+    "mtime": 1783761860.8733263,
+    "ast_hash": "e768f0a7b030417d431f658d30128970",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\sms-notice\\logic\\api.ts": {
+    "mtime": 1783794417.9033127,
+    "ast_hash": "48385ed055e4bbe38074bd1f110fb68c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\sms-notice\\logic\\hooks.ts": {
+    "mtime": 1783794431.1541774,
+    "ast_hash": "028592288f17f218d2677f87e2dac88c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\sms-notice\\screens\\balance-purchase\\BalancePurchaseScreen.tsx": {
+    "mtime": 1783794666.2304547,
+    "ast_hash": "74c87fc2c79ccc5b956bc3b6227e2cba",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\sms-notice\\screens\\history\\HistoryScreen.tsx": {
+    "mtime": 1783794570.381027,
+    "ast_hash": "bbb9bfeebca73057a11216ad1b6e4301",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\sms-notice\\screens\\notice-board\\NoticeBoardScreen.tsx": {
+    "mtime": 1783794629.3166454,
+    "ast_hash": "8e8e1ed1f6e8eb120592b3d9c2ef682b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\sms-notice\\screens\\send\\SendScreen.tsx": {
+    "mtime": 1783794517.8846965,
+    "ast_hash": "937ce14172442cf16a80935b5ceaae19",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\sms-notice\\screens\\templates\\TemplatesScreen.tsx": {
+    "mtime": 1783794546.3098648,
+    "ast_hash": "d7526ebc639f7d96fb5a8acac2086d81",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\components\\MigrationRunner.tsx": {
+    "mtime": 1783761166.134729,
+    "ast_hash": "87a46fb7d26aea2e8ea3b586f66356ca",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\logic\\api.ts": {
+    "mtime": 1783761702.2730777,
+    "ast_hash": "a34db1b653b34df20efe5a5fce435033",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\logic\\hooks.ts": {
+    "mtime": 1783760967.3831172,
+    "ast_hash": "0f6798d3b683bd4534a8c5da10eaa687",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\migration-merit\\MigrationMeritScreen.tsx": {
+    "mtime": 1783761172.869779,
+    "ast_hash": "cbb078ebbbd708a96f2043bb6ee16490",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\migration-nomerit\\MigrationNomeritScreen.tsx": {
+    "mtime": 1783761180.7266612,
+    "ast_hash": "b1d4d925b2d8b75399c0d42de30dde0a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\migration-pushback\\MigrationPushbackScreen.tsx": {
+    "mtime": 1783761219.9489632,
+    "ast_hash": "ae35c8e889910616e61b183ea873d08d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\registration\\RegistrationScreen.tsx": {
+    "mtime": 1783747823.8694112,
+    "ast_hash": "43d1b66e3b056d2a24def8d8192c150f",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\registration\\logic\\api.ts": {
+    "mtime": 1783759846.857209,
+    "ast_hash": "daa014d4b85fb6f150c2d2072b25f10d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\registration\\logic\\useRegisterStudent.ts": {
+    "mtime": 1783747612.6450136,
+    "ast_hash": "fb40e5756527361788efeb7ffd5dddee",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\reports-summary\\ReportsSummaryScreen.tsx": {
+    "mtime": 1783761052.8552444,
+    "ast_hash": "ec9c8e7ff8e404c9ad3f2c2f974913af",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\update-basic\\UpdateBasicScreen.tsx": {
+    "mtime": 1783761113.2780004,
+    "ast_hash": "8337d81ae2500f79e949836dca398347",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\update-class\\UpdateClassScreen.tsx": {
+    "mtime": 1783744630.3226936,
+    "ast_hash": "a8c9cc6cf0c829f65af2e510f52470d5",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\update-class\\logic\\api.ts": {
+    "mtime": 1783744566.878607,
+    "ast_hash": "866de9e98ebde7f3c3210f6f8097be8d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\student\\screens\\update-class\\logic\\useUpdateClass.ts": {
+    "mtime": 1783744597.2079337,
+    "ast_hash": "2b3ad5da73a877eeb43bda3442db6c6b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\teacher\\components\\TeacherForm.tsx": {
+    "mtime": 1783760051.4183571,
+    "ast_hash": "a311a479e537b70675652d78419bed21",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\teacher\\logic\\api.ts": {
+    "mtime": 1783759936.7782285,
+    "ast_hash": "b331934d87baa7b4ee25d75d30736194",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\teacher\\logic\\hooks.ts": {
+    "mtime": 1783759947.2604911,
+    "ast_hash": "4f4087465af6b5d3fa2b6016590e8b1c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\teacher\\screens\\list\\ListScreen.tsx": {
+    "mtime": 1783743884.906161,
+    "ast_hash": "b414d379d609a315cdbcb6ad279acef6",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\teacher\\screens\\list\\logic\\api.ts": {
+    "mtime": 1783743982.978768,
+    "ast_hash": "6fd87393f6fadcaccfdb41ab51239f8b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\teacher\\screens\\list\\logic\\useTeachers.ts": {
+    "mtime": 1783743855.5770438,
+    "ast_hash": "aad71633c0fcfc745ed5b34782dfdb09",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\teacher\\screens\\registration\\RegistrationScreen.tsx": {
+    "mtime": 1783679880.855042,
+    "ast_hash": "40c36c7756844cf75a0204c38d8edbe3",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\admin\\teacher\\screens\\update-profile\\UpdateProfileScreen.tsx": {
+    "mtime": 1783679880.858435,
+    "ast_hash": "911de8401a88529074943b082ac5359c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\auth\\components\\AuthShell.tsx": {
+    "mtime": 1783798615.8086476,
+    "ast_hash": "8e45a10d6deeaae519e1b7e977005e4f",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\auth\\components\\index.ts": {
+    "mtime": 1784381101.4699497,
+    "ast_hash": "689a618d03e2ef0a8b25ed9c35054f5b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\auth\\components\\roles.ts": {
+    "mtime": 1784381077.3798573,
+    "ast_hash": "62861b95c411daa99ac6676667551916",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\auth\\lib\\identity.ts": {
+    "mtime": 1784347166.2957146,
+    "ast_hash": "351298850081bbb917415e138490a1c4",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\parent\\data.ts": {
+    "mtime": 1783799213.485436,
+    "ast_hash": "681a2eff724519b85f9d4a84649fe677",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\parent\\state.tsx": {
+    "mtime": 1783799221.30378,
+    "ast_hash": "76165478d7040311d0a55f55b622df11",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\parent\\components\\Card.tsx": {
+    "mtime": 1783799274.6084692,
+    "ast_hash": "2b013eaff68cf645b9d67880945e52b0",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\parent\\components\\ChildSwitcher.tsx": {
+    "mtime": 1783799261.7996178,
+    "ast_hash": "8b0116051cbe31894b1fe5cc5cbef91c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\parent\\components\\index.ts": {
+    "mtime": 1783799278.8840983,
+    "ast_hash": "753adc60ef8a3f125e049ee07b5ba4e8",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\parent\\components\\parentNav.ts": {
+    "mtime": 1784327669.4703047,
+    "ast_hash": "297586922815337712fea6251ffba4a1",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\parent\\components\\ParentShell.tsx": {
+    "mtime": 1784327674.8391614,
+    "ast_hash": "83f22bb65e5b2f74d3ecf4fa2c046625",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\constants\\enums.ts": {
+    "mtime": 1783759839.5120976,
+    "ast_hash": "4d6f859a12913dd45b9cbf8f52edf03f",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\constants\\roles.ts": {
+    "mtime": 1783123211.7859774,
+    "ast_hash": "72eef32d50aed4f5bcf453e78bacda81",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\constants\\routes.ts": {
+    "mtime": 1783123214.2569952,
+    "ast_hash": "47426ec9863181b58fd4de22d99eceeb",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\design-system\\theme\\ThemeProvider.tsx": {
+    "mtime": 1783123164.7506154,
+    "ast_hash": "4b1cce70fe8b928f577e2a10b1c89b83",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\i18n\\config.ts": {
+    "mtime": 1783123150.3095486,
+    "ast_hash": "42509725e94b51519ad628f5e149da9e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\i18n\\request.ts": {
+    "mtime": 1784327099.0251265,
+    "ast_hash": "fd766b58efa62e26b28e2154a4bbc246",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\i18n\\useT.ts": {
+    "mtime": 1783698135.9000793,
+    "ast_hash": "abdc2d3d07e91485f96b241f9892c0e3",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\lib\\cn.ts": {
+    "mtime": 1783123098.6458466,
+    "ast_hash": "18bb50a6a39dd7f27f42f7b14936be9a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\queryKeys.ts": {
+    "mtime": 1783123230.2589555,
+    "ast_hash": "a288e6414d2ff3bb074071da8f728047",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\lookups\\api.ts": {
+    "mtime": 1783761799.7985246,
+    "ast_hash": "fbee193914f47137495a2a93dad09ca1",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\lookups\\hooks.ts": {
+    "mtime": 1783761806.0001135,
+    "ast_hash": "b284f6bf502a4a1382dc9a241e4b0f63",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\roster\\api.ts": {
+    "mtime": 1783793991.0681708,
+    "ast_hash": "d5c95c06c1a747c68f056211912cd314",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\roster\\hooks.ts": {
+    "mtime": 1783761687.7496464,
+    "ast_hash": "acc36c4c513083da7a88446acdf178bc",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\supabase\\client.ts": {
+    "mtime": 1783123174.7964716,
+    "ast_hash": "076ecbd9c0f9b3333ad34322bdf4e505",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\supabase\\middleware.ts": {
+    "mtime": 1783124360.6923738,
+    "ast_hash": "28c33896656eb6bd794e041df10e4a04",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\supabase\\server.ts": {
+    "mtime": 1783124356.107074,
+    "ast_hash": "664818d8641b7459ebd72e23acd889df",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\services\\supabase\\types.ts": {
+    "mtime": 1783743839.5783317,
+    "ast_hash": "db88dee6969c277aa500553cb9f0f510",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\types\\database.types.ts": {
+    "mtime": 1783742448.5107899,
+    "ast_hash": "915fe9d0c93c73fc65178fb0cef25076",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Badge.tsx": {
+    "mtime": 1783723929.955602,
+    "ast_hash": "c70f18b1f32f26f86bde000d34040b9e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Button.tsx": {
+    "mtime": 1783723166.731878,
+    "ast_hash": "717fbe7ac00e399a7ff040141ab7d77e",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Chart.tsx": {
+    "mtime": 1783723972.6773138,
+    "ast_hash": "572fae57e3b288aabd64b27dc9e87f8d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Dialog.tsx": {
+    "mtime": 1783723990.733088,
+    "ast_hash": "f88ea11eb59f6059fcee991f5e51d2ce",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Form.tsx": {
+    "mtime": 1783723271.3632667,
+    "ast_hash": "2c99b5d673c1ae05ee766f45c2915271",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\index.ts": {
+    "mtime": 1783798620.9535458,
+    "ast_hash": "6ef713cf4869f48b17547f3cf2477ddc",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\LocaleToggle.tsx": {
+    "mtime": 1783123311.611821,
+    "ast_hash": "b9437897626d180a4ba5c8d24013c36f",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\OtpInput.tsx": {
+    "mtime": 1783798578.3641891,
+    "ast_hash": "6ffdc82e21869f94233cba9310b786d5",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Pagination.tsx": {
+    "mtime": 1783698207.7200751,
+    "ast_hash": "a8b85d8db3a9c397e4099d4eea233d93",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\PasswordInput.tsx": {
+    "mtime": 1783798561.9216783,
+    "ast_hash": "930ab30e4d1393484b16b6c85dbaca43",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\StatCard.tsx": {
+    "mtime": 1783723808.942334,
+    "ast_hash": "b266f6ce2e2fc0513f06e723447eab9a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\states.tsx": {
+    "mtime": 1783724222.167019,
+    "ast_hash": "d489b135e775626bfa81002388c6fe01",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Stepper.tsx": {
+    "mtime": 1783798588.0578325,
+    "ast_hash": "3bee06b9fd16a10cf9deaa78fb5f5c14",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Table.tsx": {
+    "mtime": 1783723941.472774,
+    "ast_hash": "f8493c057584607266940469740b72ec",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\ThemeToggle.tsx": {
+    "mtime": 1783123306.4727602,
+    "ast_hash": "4fa81db9779c28a86a08864d90fb8360",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\shared\\ui\\Toast.tsx": {
+    "mtime": 1783724001.4090066,
+    "ast_hash": "c74a786e5ede31aacde693f83fbb040d",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\README.md": {
+    "mtime": 1783795437.2499988,
+    "ast_hash": "c6227e786cf82387fd459ddfbfca185a",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\docs\\component-library.md": {
+    "mtime": 1783799665.886716,
+    "ast_hash": "8698de0b1154cb98524b3bdae2caeb4b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\docs\\design-system.md": {
+    "mtime": 1783799636.6156952,
+    "ast_hash": "a5409a3dd3d7f6737e1560d23b6b9912",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\docs\\ui-ux-audit.md": {
+    "mtime": 1783798539.5930305,
+    "ast_hash": "2ad445df551afce39af7481ee43925a6",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\docs\\ui-ux-blockers.md": {
+    "mtime": 1783799712.2393756,
+    "ast_hash": "72569b4fe671d6df8a8f1929eca32d5b",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\docs\\ui-ux-run-log.md": {
+    "mtime": 1783799744.419645,
+    "ast_hash": "c5f4799aecf1dd775f6c001019700b75",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\supabase\\README.md": {
+    "mtime": 1783793235.3400874,
+    "ast_hash": "5d1839657bcea453c598689823bfcb4c",
+    "semantic_hash": ""
+  },
+  "D:\\New folder\\ea\\EduFusionBD\\edufusionbd-web\\src\\features\\auth\\components\\RoleSelect.tsx": {
+    "mtime": 1784381095.0597,
+    "ast_hash": "d9d984d7046060c38a3b74b0bc958305",
+    "semantic_hash": ""
+  }
+}

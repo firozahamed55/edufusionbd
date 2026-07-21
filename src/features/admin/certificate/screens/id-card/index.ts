@@ -1,1 +1,0 @@
-export { IdCardScreen } from "./IdCardScreen";

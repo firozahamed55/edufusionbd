@@ -1,1 +1,0 @@
-export { IncomeStatementScreen } from "./IncomeStatementScreen";

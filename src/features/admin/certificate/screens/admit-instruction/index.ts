@@ -1,1 +1,0 @@
-export { AdmitInstructionScreen } from "./AdmitInstructionScreen";

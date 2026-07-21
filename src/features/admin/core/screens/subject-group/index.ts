@@ -1,1 +1,0 @@
-export { SubjectGroupScreen } from "./SubjectGroupScreen";

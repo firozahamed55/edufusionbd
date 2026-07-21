@@ -1,4 +1,4 @@
-import { GradingScreen } from "@/features/admin/core/screens/grading";
+import { GradingScreen } from "@/features/admin/core/screens/grading/GradingScreen";
 
 export default function Page() {
   return <GradingScreen />;

@@ -1,1 +1,0 @@
-export { BasicConfigScreen } from "./BasicConfigScreen";

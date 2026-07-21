@@ -1,1 +1,0 @@
-export { UpdateExamScreen } from "./UpdateExamScreen";

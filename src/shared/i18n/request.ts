@@ -12,8 +12,6 @@ export default getRequestConfig(async () => {
   const locale =
     cookieLocale && locales.includes(cookieLocale) ? cookieLocale : defaultLocale;
 
-  return {
-    locale,
-    messages: (await import(`./messages/${locale}.json`)).default,
-  };
+  // Translation is inline via useT(t/tb/n); no message catalog is loaded.
+  return { locale, messages: {} };
 });

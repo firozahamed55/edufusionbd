@@ -1,1 +1,0 @@
-export { SectionScreen } from "./SectionScreen";

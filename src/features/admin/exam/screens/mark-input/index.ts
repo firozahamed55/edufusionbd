@@ -1,1 +1,0 @@
-export { MarkInputScreen } from "./MarkInputScreen";

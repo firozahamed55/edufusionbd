@@ -1,1 +1,0 @@
-export { TestimonialScreen } from "./TestimonialScreen";
