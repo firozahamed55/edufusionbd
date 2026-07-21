@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ChevronUp, CalendarDays, MessageSquareText, Menu, X, LogOut } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, CalendarDays, MessageSquareText, Menu, X, LogOut, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { createClient } from "@/shared/services/supabase/client";
 import {
@@ -16,6 +16,7 @@ import { ThemeToggle, LocaleToggle } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { useSmsAccount } from "@/features/admin/sms-notice/logic/hooks";
+import { CommandPalette } from "@/features/admin/core/components/CommandPalette";
 
 /**
  * Sticky sidebar + sticky topbar + scrolling content — the shared admin chrome.
@@ -34,6 +35,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { locale, t: tx, tb: t, n: num } = useT();
   const { data: smsAccount } = useSmsAccount();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setPaletteOpen(true); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const signOut = async () => {
     await createClient().auth.signOut();
@@ -250,6 +260,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <span>{smsAccount ? `${num(smsAccount.balance.toLocaleString())} SMS` : "—"}</span>
           </div>
           <div className="mx-1 hidden h-7 w-px bg-border-default sm:block" />
+          <button
+            type="button"
+            aria-label={tx("অনুসন্ধান", "Search")}
+            onClick={() => setPaletteOpen(true)}
+            className="grid size-9 place-items-center rounded-lg border border-border-strong text-text-secondary hover:bg-sunken"
+          >
+            <Search size={18} />
+          </button>
           <ThemeToggle />
           <LocaleToggle />
           <div className="mx-1 hidden h-7 w-px bg-border-default sm:block" />
@@ -305,6 +323,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
         <main id="admin-main" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
