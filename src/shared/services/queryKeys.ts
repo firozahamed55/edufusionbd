@@ -29,4 +29,7 @@ export const queryKeys = {
   fees: {
     invoices: (filters?: Filters) => ["fees", "invoices", filters ?? {}] as const,
   },
+  auditLog: {
+    list: (filters?: Filters) => ["auditLog", "list", filters ?? {}] as const,
+  },
 } as const;

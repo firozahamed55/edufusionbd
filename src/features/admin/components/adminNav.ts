@@ -223,7 +223,10 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
           },
           {
             label: { bn: "ইউজার সেটিংস", en: "User Settings" },
-            items: [{ href: "/admin/core/user-list", bn: "ইউজার তালিকা", en: "User List" }],
+            items: [
+              { href: "/admin/core/user-list", bn: "ইউজার তালিকা", en: "User List" },
+              { href: "/admin/core/audit-log", bn: "পরিবর্তনের ইতিহাস", en: "Audit Log" },
+            ],
           },
         ],
       },

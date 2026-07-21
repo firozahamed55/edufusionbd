@@ -16,27 +16,38 @@ export function Pagination({
   pages = 4,
   current = 1,
   perPage,
+  onPageChange,
 }: {
   label: string;
   pages?: number;
   current?: number;
   /** Per-page count. Accepts Bengali or ASCII digits; defaults to 10. */
   perPage?: string | number;
+  /** Called with the target page number. Omit to render a static, non-interactive footer. */
+  onPageChange?: (page: number) => void;
 }) {
   const { t, n } = useT();
   return (
     <div className="flex flex-wrap items-center gap-3 border-t border-border-default px-5 py-3.5">
       <span className="flex-1 text-[13px] text-text-muted">{label}</span>
       <div className="flex items-center gap-1.5">
-        <PageBtn aria-label={t("আগে", "Previous")}>
+        <PageBtn
+          aria-label={t("আগে", "Previous")}
+          disabled={current <= 1}
+          onClick={() => onPageChange?.(Math.max(1, current - 1))}
+        >
           <ChevronLeft size={15} />
         </PageBtn>
         {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
-          <PageBtn key={p} active={p === current}>
+          <PageBtn key={p} active={p === current} onClick={() => onPageChange?.(p)}>
             {n(p)}
           </PageBtn>
         ))}
-        <PageBtn aria-label={t("পরে", "Next")}>
+        <PageBtn
+          aria-label={t("পরে", "Next")}
+          disabled={current >= pages}
+          onClick={() => onPageChange?.(Math.min(pages, current + 1))}
+        >
           <ChevronRight size={15} />
         </PageBtn>
         <button className="ml-1 flex h-8 items-center gap-1 rounded-lg border border-border-strong bg-surface px-2.5 text-[13px] font-medium text-text-secondary hover:bg-sunken">
@@ -56,8 +67,9 @@ function PageBtn({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
   return (
     <button
+      type="button"
       className={cn(
-        "grid size-8 place-items-center rounded-lg text-[13px] font-medium transition-colors",
+        "grid size-8 place-items-center rounded-lg text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
         active
           ? "bg-primary text-text-on-primary"
           : "border border-border-strong bg-surface text-text-secondary hover:bg-sunken",
