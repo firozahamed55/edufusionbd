@@ -1,59 +1,125 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2, PenTool } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
+import { useEffect, useRef, useState } from "react";
+import { Upload } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
-import { useSignatures, useUpsertSignature, useDeleteSignature } from "../../logic/hooks";
+import { Field, Input, useToast, Breadcrumb } from "@/shared/ui";
+import { createClient } from "@/shared/services/supabase/client";
+import { uploadInstitutionAsset, getAssetSignedUrl } from "@/shared/lib/institutionAssets";
+import { useSignatures, useUpsertSignature, useInstitution } from "../../logic/hooks";
+
+const ROLES = [
+  { key: "head_teacher", bn: "প্রধান শিক্ষক", en: "Head Teacher" },
+  { key: "asst_head_teacher", bn: "সহকারী প্রধান শিক্ষক", en: "Assistant Head Teacher" },
+  { key: "exam_controller", bn: "পরীক্ষা নিয়ন্ত্রক", en: "Exam Controller" },
+  { key: "accountant", bn: "হিসাবরক্ষক", en: "Accountant" },
+] as const;
 
 export function SignatureScreen() {
   const { t } = useT();
   const toast = useToast();
+  const inst = useInstitution();
   const sigs = useSignatures();
   const upsert = useUpsertSignature();
-  const del = useDeleteSignature();
-  const [f, setF] = useState({ role_label: "", holder_name: "" });
-  const [delId, setDelId] = useState<string | null>(null);
 
-  function add() {
-    if (!f.role_label.trim()) { toast({ title: t("পদবি আবশ্যক", "Role label required"), variant: "error" }); return; }
-    upsert.mutate(f, { onSuccess: () => { toast({ title: t("স্বাক্ষর সংরক্ষিত", "Signature saved"), variant: "success" }); setF({ role_label: "", holder_name: "" }); }, onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }) });
+  const [names, setNames] = useState<Record<string, string>>({});
+  const [urls, setUrls] = useState<Record<string, string | null>>({});
+  const [uploading, setUploading] = useState<string | null>(null);
+  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const byRole = (key: string) => sigs.data?.find((s) => s.role_label === key) ?? null;
+
+  useEffect(() => {
+    if (!sigs.data) return;
+    setNames((prev) => {
+      const next = { ...prev };
+      for (const r of ROLES) if (next[r.key] === undefined) next[r.key] = byRole(r.key)?.holder_name ?? "";
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sigs.data]);
+
+  useEffect(() => {
+    (sigs.data ?? []).forEach((s) => {
+      if (!s.image_file_id) return;
+      getAssetSignedUrl(createClient(), s.image_file_id).then((url) => setUrls((p) => ({ ...p, [s.role_label]: url }))).catch(() => {});
+    });
+  }, [sigs.data]);
+
+  function saveName(roleKey: string) {
+    const existing = byRole(roleKey);
+    upsert.mutate(
+      { id: existing?.id, role_label: roleKey, holder_name: names[roleKey] ?? "" },
+      {
+        onSuccess: () => toast({ title: t("স্বাক্ষর সংরক্ষিত", "Signature saved"), variant: "success" }),
+        onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      },
+    );
   }
-  function remove() { if (!delId) return; const id = delId; setDelId(null); del.mutate(id, { onSuccess: () => toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }) }); }
 
-  const rows = sigs.data ?? [];
+  async function onImagePick(roleKey: string, file: File) {
+    if (!inst.data) return;
+    setUploading(roleKey);
+    try {
+      const existing = byRole(roleKey);
+      const fileId = await uploadInstitutionAsset(createClient(), { institutionId: inst.data.id, entity: "signature", entityId: roleKey, file });
+      await upsert.mutateAsync({ id: existing?.id, role_label: roleKey, holder_name: names[roleKey] ?? existing?.holder_name ?? "", image_file_id: fileId });
+      toast({ title: t("স্বাক্ষরের ছবি আপলোড হয়েছে", "Signature image uploaded"), variant: "success" });
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : t("আপলোড ব্যর্থ", "Upload failed"), variant: "error" });
+    } finally {
+      setUploading(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("স্বাক্ষর", "Signatures") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("স্বাক্ষর ব্যবস্থাপনা", "Signature Management")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("সনদ ও রিপোর্টে ব্যবহৃত স্বাক্ষর নির্ধারণ করুন", "Define signatures used in certificates & reports")}</p>
+        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") }, { label: t("স্বাক্ষর", "Signatures") }]} />
+        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("অনুমোদিত স্বাক্ষর", "Approved Signatures")}</h1>
+        <p className="mt-1 text-meta text-text-muted">{t("মার্কশিট, সার্টিফিকেট ও প্রশাসনে ব্যবহৃত স্বাক্ষর", "Signatures used on marksheets, certificates & administration")}</p>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[340px_1fr]">
-        <FormCard title={t("নতুন স্বাক্ষর", "New signature")}>
-          <div className="flex flex-col gap-4">
-            <Field label={t("পদবি", "Role label")} required><Input value={f.role_label} onChange={(e) => setF((p) => ({ ...p, role_label: e.target.value }))} placeholder={t("প্রধান শিক্ষক", "Head Teacher")} /></Field>
-            <Field label={t("নাম", "Holder name")}><Input value={f.holder_name} onChange={(e) => setF((p) => ({ ...p, holder_name: e.target.value }))} /></Field>
-            <Button variant="primary" onClick={add} disabled={upsert.isPending}><Plus size={16} /> {upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("যোগ করুন", "Add")}</Button>
-          </div>
-        </FormCard>
-
-        <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
-          <div className="border-b border-border-default px-5 py-4"><p className="text-base font-semibold text-text-primary">{t("স্বাক্ষর তালিকা", "Signatures")}</p></div>
-          {rows.length === 0 ? (
-            <div className="p-5"><EmptyState icon={<PenTool size={22} />} title={t("কোনো স্বাক্ষর নেই", "No signatures yet")} /></div>
-          ) : rows.map((r, i) => (
-            <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
-              <div className="flex-1"><p className="text-sm font-medium text-text-primary">{r.role_label}</p>{r.holder_name ? <p className="text-[12.5px] text-text-muted">{r.holder_name}</p> : null}</div>
-              <button onClick={() => setDelId(r.id)} aria-label={t("মুছুন", "Delete")} className="grid size-7 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        {ROLES.map((r) => {
+          const url = urls[r.key];
+          return (
+            <div key={r.key} className="flex flex-col gap-4 rounded-2xl bg-surface p-4.5 shadow-e3">
+              <p className="text-[15px] font-semibold text-text-primary">{t(r.bn, r.en)}</p>
+              <Field label={t("নাম", "Name")}>
+                <Input
+                  value={names[r.key] ?? ""}
+                  onChange={(e) => setNames((p) => ({ ...p, [r.key]: e.target.value }))}
+                  onBlur={() => saveName(r.key)}
+                />
+              </Field>
+              <div className="flex flex-col items-center gap-2.5 rounded-xl border border-dashed border-border-strong bg-sunken px-5 py-6">
+                {url ? (
+                  <img src={url} alt="" className="h-16 w-32 object-contain" />
+                ) : (
+                  <div className="grid h-16 w-32 place-items-center rounded-lg bg-border-default/40 text-text-muted"><Upload size={20} /></div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fileInputs.current[r.key]?.click()}
+                  disabled={uploading === r.key}
+                  className="flex items-center gap-1.5 text-meta font-medium text-text-secondary hover:underline disabled:opacity-60"
+                >
+                  <Upload size={14} /> {uploading === r.key ? t("আপলোড হচ্ছে…", "Uploading…") : t("স্বাক্ষরের ছবি আপলোড করুন", "Upload signature image")}
+                </button>
+                <p className="text-[11.5px] text-text-muted">{t("PNG (স্বচ্ছ ব্যাকগ্রাউন্ড) • সর্বোচ্চ ৫০০KB", "PNG (transparent) • up to 500KB")}</p>
+                <input
+                  ref={(el) => { fileInputs.current[r.key] = el; }}
+                  type="file"
+                  accept="image/png"
+                  className="hidden"
+                  onChange={(e) => { const file = e.target.files?.[0]; if (file) onImagePick(r.key, file); e.target.value = ""; }}
+                />
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
-
-      <ConfirmDialog open={!!delId} onClose={() => setDelId(null)} onConfirm={remove} tone="danger" title={t("স্বাক্ষর মুছবেন?", "Delete signature?")} confirmLabel={t("মুছুন", "Delete")} cancelLabel={t("বাতিল", "Cancel")} loading={del.isPending} />
     </div>
   );
 }

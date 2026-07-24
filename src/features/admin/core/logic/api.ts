@@ -126,9 +126,9 @@ export const upsertGradeScheme = (s: BrowserClient, payload: Record<string, unkn
 export const deleteGradeScheme = (s: BrowserClient, id: string) => call(s, "fn_delete_grade_scheme", { p_id: id });
 
 /* signatures */
-export type SignatureRow = { id: string; role_label: string; holder_name: string | null };
+export type SignatureRow = { id: string; role_label: string; holder_name: string | null; image_file_id: string | null };
 export async function fetchSignatures(s: BrowserClient): Promise<SignatureRow[]> {
-  const { data, error } = await s.from("signature").select("id, role_label, holder_name").order("created_at");
+  const { data, error } = await s.from("signature").select("id, role_label, holder_name, image_file_id").order("created_at");
   if (error) throw error;
   return (data ?? []) as unknown as SignatureRow[];
 }
