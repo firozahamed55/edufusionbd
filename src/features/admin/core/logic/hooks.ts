@@ -7,6 +7,9 @@ import * as api from "./api";
 const c = () => createClient();
 
 export const useInstitution = () => useQuery({ queryKey: ["core", "institution"], queryFn: () => api.fetchInstitution(c()) });
+export const useEducationBoards = () => useQuery({ queryKey: ["core", "boards"], queryFn: () => api.fetchEducationBoards(c()), staleTime: 60_000 });
+export const useTeacherOptions = () => useQuery({ queryKey: ["core", "teacherOptions"], queryFn: () => api.fetchTeacherOptions(c()), staleTime: 60_000 });
+export const useSetting = (key: string, scope: string) => useQuery({ queryKey: ["core", "setting", key, scope], queryFn: () => api.fetchSetting(c(), key, scope) });
 export const useClasses = () => useQuery({ queryKey: ["core", "classes"], queryFn: () => api.fetchClasses(c()) });
 export const useSubjects = () => useQuery({ queryKey: ["core", "subjects"], queryFn: () => api.fetchSubjects(c()) });
 export const useSubjectGroups = () => useQuery({ queryKey: ["core", "groups"], queryFn: () => api.fetchSubjectGroups(c()) });
@@ -21,6 +24,10 @@ function useMut<T>(fn: (v: T) => Promise<unknown>, keys: string[]) {
 }
 
 export const useUpdateInstitution = () => useMut((p: Record<string, unknown>) => api.updateInstitution(c(), p), ["institution"]);
+export const useSaveSetting = (key: string, scope: string) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (value: Record<string, unknown>) => api.saveSetting(c(), key, scope, value), onSuccess: () => qc.invalidateQueries({ queryKey: ["core", "setting", key, scope] }) });
+};
 export const useUpsertClass = () => useMut((p: Record<string, unknown>) => api.upsertClass(c(), p), ["classes"]);
 export const useDeleteClass = () => useMut((id: string) => api.deleteClass(c(), id), ["classes"]);
 export const useUpsertSubject = () => useMut((p: Record<string, unknown>) => api.upsertSubject(c(), p), ["subjects"]);

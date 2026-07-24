@@ -12,12 +12,12 @@ async function call(s: BrowserClient, fn: string, args: Record<string, unknown>)
 export type Institution = {
   id: string; name_bn: string; name_en: string; eiin: string | null; institution_type: string | null; address: string | null;
   phone: string | null; email: string | null; website: string | null; established_year: number | null;
-  board_id: string | null; head_teacher_id: string | null; logo_file_id: string | null;
+  board_id: string | null; head_teacher_id: string | null; logo_file_id: string | null; metadata: Record<string, unknown>;
 };
 export async function fetchInstitution(s: BrowserClient): Promise<Institution | null> {
   const { data, error } = await s
     .from("institution")
-    .select("id, name_bn, name_en, eiin, institution_type, address, phone, email, website, established_year, board_id, head_teacher_id, logo_file_id")
+    .select("id, name_bn, name_en, eiin, institution_type, address, phone, email, website, established_year, board_id, head_teacher_id, logo_file_id, metadata")
     .limit(1)
     .maybeSingle();
   if (error) throw error;
@@ -31,10 +31,13 @@ export async function fetchEducationBoards(s: BrowserClient): Promise<Option[]> 
   if (error) throw error;
   return ((data ?? []) as { id: string; name: string }[]).map((r) => ({ id: r.id, label: r.name }));
 }
-export async function fetchTeacherOptions(s: BrowserClient): Promise<Option[]> {
-  const { data, error } = await s.from("teacher").select("id, name_bn, name_en").is("deleted_at", null).order("name_en");
+
+export type TeacherOption = { id: string; label: string; mobile: string | null; email: string | null };
+export async function fetchTeacherOptions(s: BrowserClient): Promise<TeacherOption[]> {
+  const { data, error } = await s.from("teacher").select("id, name_bn, name_en, mobile, email").is("deleted_at", null).order("name_en");
   if (error) throw error;
-  return ((data ?? []) as { id: string; name_bn: string; name_en: string }[]).map((r) => ({ id: r.id, label: `${r.name_bn} / ${r.name_en}` }));
+  return ((data ?? []) as { id: string; name_bn: string; name_en: string; mobile: string | null; email: string | null }[])
+    .map((r) => ({ id: r.id, label: `${r.name_bn} / ${r.name_en}`, mobile: r.mobile, email: r.email }));
 }
 
 /* generic institution setting (basic_config etc.) via fn_save_setting */
