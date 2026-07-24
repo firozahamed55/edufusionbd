@@ -87,9 +87,12 @@ export const upsertClass = (s: BrowserClient, payload: Record<string, unknown>) 
 export const deleteClass = (s: BrowserClient, id: string) => call(s, "fn_delete_class", { p_id: id });
 
 /* subjects */
-export type SubjectRow = { id: string; name_bn: string; name_en: string; code: string | null; type: string; full_marks: number | null; pass_marks: number | null };
+export type SubjectRow = {
+  id: string; name_bn: string; name_en: string; code: string | null; type: string; full_marks: number | null; pass_marks: number | null;
+  min_class_level: number | null; max_class_level: number | null; status: string;
+};
 export async function fetchSubjects(s: BrowserClient): Promise<SubjectRow[]> {
-  const { data, error } = await s.from("subject").select("id, name_bn, name_en, code, type, full_marks, pass_marks").is("deleted_at", null).order("name_en");
+  const { data, error } = await s.from("subject").select("id, name_bn, name_en, code, type, full_marks, pass_marks, min_class_level, max_class_level, status").is("deleted_at", null).order("name_en");
   if (error) throw error;
   return (data ?? []) as unknown as SubjectRow[];
 }
