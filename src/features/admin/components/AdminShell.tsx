@@ -37,6 +37,22 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { data: smsAccount } = useSmsAccount();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const clockLabel = now
+    ? new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-US", {
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(now)
+    : "";
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setPaletteOpen(true); }
@@ -253,7 +269,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
           <div className="hidden items-center gap-1.5 text-meta font-medium text-text-secondary md:flex">
             <CalendarDays size={15} />
-            <span>{tx("১২ জুন, ২:৪৫ PM", "12 Jun, 2:45 PM")}</span>
+            <span>{clockLabel}</span>
           </div>
           <div className="hidden items-center gap-1.5 rounded-full bg-success-bg px-3 py-1.5 text-meta font-semibold text-success-fg sm:flex">
             <MessageSquareText size={15} />
