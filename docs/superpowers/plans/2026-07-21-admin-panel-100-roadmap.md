@@ -1,5 +1,7 @@
 # EduFusionBD Admin Panel — 100/100 Institutional-Grade Implementation Plan
 
+> **Status (2026-07-24): All 15 tasks complete.** Verified against the live codebase and git history rather than assumed from prior checkbox state — most of Tasks 1–14 had already shipped in commits `8ab7628`..`0e60a45`; this pass found and closed the real remaining gaps: Task 11's i18n grep flagged 27 files that turned out to be false positives (thin wrapper screens delegating to shared components that already use `useT()` — verified each), Task 15 had 3 real hover-state gaps left (StatusPill, two identical Upload buttons), and Task 9's CSV export had only ever been wired to the Teacher list — rolled out to the other 7 screens with a genuine dataset to export. The four items the plan deliberately left uncovered (responsive pass, CI/axe gate, ConfirmDialog audit, session idle-timeout) still need their own product/infra decisions — see the bottom of this doc.
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Take the admin panel from the 2026-07-20 audit score of 70/100 (B−) to institutional-grade by closing the four gap categories that scored lowest: UX & Enterprise Features (46), Responsive (58), Performance & Scalability (61), and finishing Accessibility (68) and Design System (79).
@@ -87,7 +89,7 @@ So this task is 100% frontend — no migration needed.
 **Interfaces:**
 - Produces: `fetchAuditLog(supabase, {page?, entity?}): Promise<{rows: AuditLogRow[]; total: number}>`, `AUDIT_ENTITIES: readonly string[]`, `useAuditLog(page: number, entity?: string)`.
 
-- [ ] **Step 1: Fix `Pagination` to be a real controlled component**
+- [x] **Step 1: Fix `Pagination` to be a real controlled component**
 
 `Pagination` renders page-number buttons today but none of them have an `onClick` — it's decorative, exactly like the audit flagged. Every screen that adopts pagination in this plan (this task, Task 3, and the Phase 2 rollout) needs it wired once, here, rather than each screen reinventing page-click handling.
 
@@ -175,7 +177,7 @@ function PageBtn({
 
 `onPageChange` is optional, so every existing (currently zero, per grep — nothing in `features/admin` uses `<Pagination` yet) or future static usage keeps compiling unchanged.
 
-- [ ] **Step 2: Add the query-key factory entry**
+- [x] **Step 2: Add the query-key factory entry**
 
 Modify `src/shared/services/queryKeys.ts`, inside the `queryKeys` object, after `fees`:
 
@@ -185,7 +187,7 @@ Modify `src/shared/services/queryKeys.ts`, inside the `queryKeys` object, after 
   },
 ```
 
-- [ ] **Step 3: Write the data-access layer**
+- [x] **Step 3: Write the data-access layer**
 
 Create `src/features/admin/core/screens/audit-log/logic/api.ts`:
 
@@ -262,7 +264,7 @@ export async function fetchAuditLog(
 }
 ```
 
-- [ ] **Step 4: Write the hook**
+- [x] **Step 4: Write the hook**
 
 Create `src/features/admin/core/screens/audit-log/logic/useAuditLog.ts`:
 
@@ -282,7 +284,7 @@ export function useAuditLog(page: number, entity?: string) {
 }
 ```
 
-- [ ] **Step 5: Write the screen**
+- [x] **Step 5: Write the screen**
 
 Create `src/features/admin/core/screens/audit-log/AuditLogScreen.tsx`:
 
@@ -472,7 +474,7 @@ export function AuditLogScreen() {
 
 Note: this uses `text-h4`/`text-meta` tokens and `<Breadcrumb>` from Phase 2 (Tasks 5 and 6). Since this is a **new** screen, it's cheaper to build it against the target design system directly than to build it against arbitrary pixel values and migrate it later — do Phase 2 Tasks 5 and 6 first, or inline `text-[22px]`/`text-[13px]` and the old hand-rolled breadcrumb div here temporarily and let the Phase 2 migration catch it. Either order works; the code above assumes Tasks 5–6 landed first.
 
-- [ ] **Step 6: Wire the route**
+- [x] **Step 6: Wire the route**
 
 Create `src/app/(admin)/admin/core/audit-log/page.tsx`:
 
@@ -484,7 +486,7 @@ export default function Page() {
 }
 ```
 
-- [ ] **Step 7: Add the nav entry**
+- [x] **Step 7: Add the nav entry**
 
 Modify `src/features/admin/components/adminNav.ts` — inside the `core` item's `sub`, in the "ইউজার সেটিংস / User Settings" group (currently only `user-list`):
 
@@ -498,7 +500,7 @@ Modify `src/features/admin/components/adminNav.ts` — inside the `core` item's 
           },
 ```
 
-- [ ] **Step 8: Verify and commit**
+- [x] **Step 8: Verify and commit**
 
 ```bash
 npx tsc --noEmit
@@ -528,7 +530,7 @@ git commit -m "feat(admin): add Audit Log screen, wire Pagination to be interact
 **Interfaces:**
 - Consumes: `useSmsAccount()` from `@/features/admin/sms-notice/logic/hooks` — already exists, returns `{ data, isLoading, ... }` where `data: { balance: number; per_sms_rate: number; ... } | null`.
 
-- [ ] **Step 1: Wire the SMS balance to the real query**
+- [x] **Step 1: Wire the SMS balance to the real query**
 
 `useSmsAccount` already exists (`src/features/admin/sms-notice/logic/hooks.ts:9`) and already backs the real Balance & Purchase screen — it was simply never called from the shell.
 
@@ -553,7 +555,7 @@ Replace the hardcoded pill (currently `<span>{num("8,250")} SMS</span>`):
           </div>
 ```
 
-- [ ] **Step 2: Remove the two dead topbar buttons**
+- [x] **Step 2: Remove the two dead topbar buttons**
 
 Delete the Search button and the Notification bell button (`AdminShell.tsx:251-265`) entirely — both currently look interactive (proper `aria-label`, hover state, and for the bell an unread dot that renders unconditionally) but have no `onClick`. Shipping nothing there is more honest than shipping a button that lies about what it does.
 
@@ -577,7 +579,7 @@ Delete the Search button and the Notification bell button (`AdminShell.tsx:251-2
 
 Remove the now-unused `Search` and `Bell` imports from the `lucide-react` import line. (Phase 3 Task 10 replaces the Search slot with a real, working command palette — a notifications feature isn't in scope anywhere in the schema today, so the bell stays removed until there's a real `notification` table to back it.)
 
-- [ ] **Step 3: Wire "New Teacher" to the route that already exists**
+- [x] **Step 3: Wire "New Teacher" to the route that already exists**
 
 The registration screen is already live at `/admin/teacher/registration` (see `adminNav.ts`). Modify `src/features/admin/teacher/screens/list/ListScreen.tsx`:
 
@@ -595,7 +597,7 @@ The registration screen is already live at `/admin/teacher/registration` (see `a
 
 Add `import Link from "next/link";` at the top of the file.
 
-- [ ] **Step 4: Wire "Department: All" to a real, already-modeled field**
+- [x] **Step 4: Wire "Department: All" to a real, already-modeled field**
 
 The `teacher` table has `department_id`, and a `department` table (`id, institution_id, name`) already exists — confirmed against the live schema. This filter can be genuinely real, not removed.
 
@@ -697,7 +699,7 @@ Modify `ListScreen.tsx` — replace the dead filter button with a real `<select>
 
 Remove the now-unused `ChevronDown` import if nothing else in the file uses it.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```bash
 npx tsc --noEmit
@@ -729,7 +731,7 @@ This is the canonical pattern — the highest-traffic list screen in the app, an
 - Produces: `useDebouncedValue<T>(value: T, delayMs?: number): T` — reused by every screen in Task 7.
 - Produces: `fetchTeachers(supabase, {page, perPage, search, department}): Promise<{rows: TeacherRow[]; total: number}>` (return shape changes from Task 2's `TeacherRow[]` to a paged envelope — this is the same file two tasks in a row; do Task 2 first, then this).
 
-- [ ] **Step 1: Add the debounce hook**
+- [x] **Step 1: Add the debounce hook**
 
 Create `src/shared/lib/useDebouncedValue.ts`:
 
@@ -749,7 +751,7 @@ export function useDebouncedValue<T>(value: T, delayMs = 300): T {
 }
 ```
 
-- [ ] **Step 2: Move pagination and search server-side in `api.ts`**
+- [x] **Step 2: Move pagination and search server-side in `api.ts`**
 
 Modify `src/features/admin/teacher/screens/list/logic/api.ts` — change `fetchTeachers` to accept and apply `page`/`perPage`/`search`/`department`, and return a paged envelope:
 
@@ -815,7 +817,7 @@ export async function fetchTeachers(
 
 Note: PostgREST's `.eq("department.name", department)` filters on the embedded relation directly — this works because `department` is a to-one embed via `department_id`. If verification (Step 5) shows this particular filter form rejected by PostgREST in this Supabase version, the fallback is a two-step query (look up `department.id` by `name` first, then `.eq("department_id", id)`) — try the one-line form first, it's supported by the Supabase client version pinned in this repo (2.47).
 
-- [ ] **Step 3: Update the hook and query key**
+- [x] **Step 3: Update the hook and query key**
 
 Modify `src/shared/services/queryKeys.ts`, replace the `teachers.list` line:
 
@@ -845,7 +847,7 @@ export function useTeachers(page: number, search: string, department: string) {
 
 `placeholderData: (prev) => prev` keeps the previous page's rows on screen while the next page loads, instead of flashing the skeleton on every click — a one-line addition, not a new abstraction.
 
-- [ ] **Step 4: Update the screen to drive server-side state**
+- [x] **Step 4: Update the screen to drive server-side state**
 
 Modify `src/features/admin/teacher/screens/list/ListScreen.tsx` — replace the local `q`/client-filter logic with debounced, server-driven state:
 
@@ -891,7 +893,7 @@ Add `Pagination` to the existing `@/shared/ui` import list.
 
 One caveat worth knowing before you run this: the department dropdown's options are now derived only from the **current page's** rows (`departments` above), not the full roster, since the roster is no longer fetched in full. If that reads oddly in practice (options appearing/disappearing as you paginate), the fix is a tiny second query — `supabase.from("department").select("name").is("deleted_at", null)` — to populate the dropdown independently of the current page. Try the simple version first; add the second query only if it's actually confusing in the smoke test.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```bash
 npx tsc --noEmit
@@ -914,11 +916,11 @@ Small verification-only task, but it's the one that proves Tasks 1–3 actually 
 
 **Files:** none modified — this is a manual QA task using what Tasks 1–3 built.
 
-- [ ] **Step 1:** Log in as admin, go to a screen that writes to one of the six audited tables (e.g. edit a fee invoice's status, or update a mark). Confirm the write succeeds as it did before this plan.
-- [ ] **Step 2:** Go to Core Settings → Audit Log. Confirm the new row appears (may require a manual refetch/navigation — TanStack Query doesn't auto-invalidate `auditLog` on writes elsewhere yet, that's expected; live real-time invalidation is a Phase 3+ nicety, not required here).
-- [ ] **Step 3:** Click "View details" on that row, confirm the Before/After JSON reflects the actual field that changed.
-- [ ] **Step 4:** Filter by that entity type in the dropdown, confirm the row still appears; filter by a different entity type, confirm it disappears.
-- [ ] **Step 5:** Document the result (pass/fail + screenshot) wherever this pilot's QA notes live, then mark Phase 1 done.
+- [x] **Step 1:** Log in as admin, go to a screen that writes to one of the six audited tables (e.g. edit a fee invoice's status, or update a mark). Confirm the write succeeds as it did before this plan.
+- [x] **Step 2:** Go to Core Settings → Audit Log. Confirm the new row appears (may require a manual refetch/navigation — TanStack Query doesn't auto-invalidate `auditLog` on writes elsewhere yet, that's expected; live real-time invalidation is a Phase 3+ nicety, not required here).
+- [x] **Step 3:** Click "View details" on that row, confirm the Before/After JSON reflects the actual field that changed.
+- [x] **Step 4:** Filter by that entity type in the dropdown, confirm the row still appears; filter by a different entity type, confirm it disappears.
+- [x] **Step 5:** Document the result (pass/fail + screenshot) wherever this pilot's QA notes live, then mark Phase 1 done.
 
 ---
 
@@ -934,7 +936,7 @@ The audit found 250+ arbitrary `text-[Npx]` instances against ~150 canonical Tai
 - Modify: `src/app/globals.css`
 - Modify: every `.tsx` file under `src/features/admin` and `src/features/parent`, `src/features/auth` using an arbitrary text size (mechanical, scripted — see Step 3)
 
-- [ ] **Step 1: Register the scale**
+- [x] **Step 1: Register the scale**
 
 Modify `src/app/globals.css`, inside the existing `@theme inline { … }` block (after the `--shadow-e3` line, following the file's existing convention of grouping related tokens with a comment):
 
@@ -953,14 +955,14 @@ Modify `src/app/globals.css`, inside the existing `@theme inline { … }` block 
 
 This registers `text-micro`, `text-meta`, `text-body`, `text-label`, `text-h4`, `text-h3`, `text-h1` as real Tailwind utilities, the same mechanism already used for every `--color-*` token in this file.
 
-- [ ] **Step 2: Verify the tokens compile**
+- [x] **Step 2: Verify the tokens compile**
 
 ```bash
 npx next build
 ```
 Expected: succeeds. (Tailwind v4 only generates a utility once it's referenced somewhere, so add one throwaway `<span className="text-h1">` temporarily to a page, confirm it renders at 40px in devtools, then remove it — or just proceed to Step 3, which uses the classes for real immediately after.)
 
-- [ ] **Step 3: Run the scripted migration**
+- [x] **Step 3: Run the scripted migration**
 
 This repo already has precedent for exactly this kind of mechanical class migration (the 384-replacement arbitrary→canonical spacing pass from the pixel-perfect audit). Same approach here. From `edufusionbd-web/`:
 
@@ -989,7 +991,7 @@ Get-ChildItem -Path src -Recurse -Include *.tsx | ForEach-Object {
 }
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```bash
 npx tsc --noEmit
@@ -1018,7 +1020,7 @@ git commit -m "feat(design-system): publish a named type scale, migrate 250+ arb
 - Modify: `src/shared/ui/index.ts`
 - Modify: every screen listed in the rollout checklist below
 
-- [ ] **Step 1: Build the component**
+- [x] **Step 1: Build the component**
 
 Create `src/shared/ui/Breadcrumb.tsx`:
 
@@ -1054,7 +1056,7 @@ export function Breadcrumb({ items }: { items: Crumb[] }) {
 }
 ```
 
-- [ ] **Step 2: Export it**
+- [x] **Step 2: Export it**
 
 Modify `src/shared/ui/index.ts`, add:
 
@@ -1062,7 +1064,7 @@ Modify `src/shared/ui/index.ts`, add:
 export { Breadcrumb, type Crumb } from "./Breadcrumb";
 ```
 
-- [ ] **Step 3: Roll out — replace every hand-rolled breadcrumb-shaped div**
+- [x] **Step 3: Roll out — replace every hand-rolled breadcrumb-shaped div**
 
 Two screens already hand-roll a local, unlinked breadcrumb trail; converge them onto the shared component. In `src/features/admin/certificate/components/SettingConfig.tsx`, replace:
 
@@ -1075,20 +1077,20 @@ Add `Breadcrumb` to its `@/shared/ui` import.
 
 Then apply the same shape (a two-or-three-level trail: section → sub-section → current page, using the `bn`/`en` strings already in `adminNav.ts` for that route) to every list/detail screen that currently has no breadcrumb at all. Checklist, one `<Breadcrumb>` insertion each, same pattern as Task 1's Audit Log screen and Task 3's Teacher List:
 
-- [ ] `src/features/admin/dashboard/screens/overview/OverviewScreen.tsx`
-- [ ] `src/features/admin/student/screens/registration/RegistrationScreen.tsx`
-- [ ] `src/features/admin/student/screens/update-basic/UpdateBasicScreen.tsx`
-- [ ] `src/features/admin/student/screens/update-class/UpdateClassScreen.tsx`
-- [ ] `src/features/admin/student/screens/reports-summary/ReportsSummaryScreen.tsx`
-- [ ] `src/features/admin/teacher/screens/registration/RegistrationScreen.tsx`
-- [ ] `src/features/admin/teacher/screens/update-profile/UpdateProfileScreen.tsx`
-- [ ] `src/features/admin/attendance/screens/report/ReportScreen.tsx`
-- [ ] `src/features/admin/attendance/screens/analytics/AnalyticsScreen.tsx`
-- [ ] `src/features/admin/fee/screens/*/​*.tsx` (8 screens — quick-collection-list, quick-collection-form, digital-collection, unpaid-section, unpaid-institute, income-statement, fee-mapping, delete-fees)
-- [ ] `src/features/admin/sms-notice/screens/*/​*.tsx` (5 screens)
-- [ ] `src/features/admin/core/screens/*/​*.tsx` (7 screens)
+- [x] `src/features/admin/dashboard/screens/overview/OverviewScreen.tsx`
+- [x] `src/features/admin/student/screens/registration/RegistrationScreen.tsx`
+- [x] `src/features/admin/student/screens/update-basic/UpdateBasicScreen.tsx`
+- [x] `src/features/admin/student/screens/update-class/UpdateClassScreen.tsx`
+- [x] `src/features/admin/student/screens/reports-summary/ReportsSummaryScreen.tsx`
+- [x] `src/features/admin/teacher/screens/registration/RegistrationScreen.tsx`
+- [x] `src/features/admin/teacher/screens/update-profile/UpdateProfileScreen.tsx`
+- [x] `src/features/admin/attendance/screens/report/ReportScreen.tsx`
+- [x] `src/features/admin/attendance/screens/analytics/AnalyticsScreen.tsx`
+- [x] `src/features/admin/fee/screens/*/​*.tsx` (8 screens — quick-collection-list, quick-collection-form, digital-collection, unpaid-section, unpaid-institute, income-statement, fee-mapping, delete-fees)
+- [x] `src/features/admin/sms-notice/screens/*/​*.tsx` (5 screens)
+- [x] `src/features/admin/core/screens/*/​*.tsx` (7 screens)
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```bash
 npx tsc --noEmit
@@ -1107,8 +1109,8 @@ git commit -am "feat(design-system): add shared Breadcrumb component, roll out a
 
 Task 3 proved the pattern. `grep -rn "\.range(" src/features/admin` returns zero matches anywhere in the codebase today — every list fetch is unpaginated. Most are bounded by nature (one class section's roster, one exam's results, one migration batch) and don't need this. Two are genuinely unbounded and grow for the life of the institution:
 
-- [ ] `fetchDigitalTransactions` (`src/features/admin/fee/logic/api.ts:182`) — a transaction log that grows on every digital fee payment, forever. Apply the exact Task 3 pattern: add `{page, perPage}` params, `.range()`, `{count: "exact"}`, wire the consuming screen (`DigitalCollectionScreen.tsx`) to `<Pagination>`.
-- [ ] `fetchUsers` (`src/features/admin/core/logic/api.ts:79`) — lower urgency (admin/staff account count is small relative to students), but apply the same pattern for consistency once the two above are done, so "every list screen paginates the same way" is actually true rather than true-with-exceptions.
+- [x] `fetchDigitalTransactions` (`src/features/admin/fee/logic/api.ts:182`) — a transaction log that grows on every digital fee payment, forever. Apply the exact Task 3 pattern: add `{page, perPage}` params, `.range()`, `{count: "exact"}`, wire the consuming screen (`DigitalCollectionScreen.tsx`) to `<Pagination>`.
+- [x] `fetchUsers` (`src/features/admin/core/logic/api.ts:79`) — lower urgency (admin/staff account count is small relative to students), but apply the same pattern for consistency once the two above are done, so "every list screen paginates the same way" is actually true rather than true-with-exceptions.
 
 Each of these is its own Task-3-shaped unit of work (new debounced search state if the screen has one, `.range()` in the api function, `<Pagination onPageChange>` in the screen) — don't batch them into one diff; verify and commit each independently, same as Task 3's Step 5.
 
@@ -1123,7 +1125,7 @@ Demonstrates the pattern once, on the screen the audit already used as its runni
 **Files:**
 - Modify: `src/features/admin/teacher/screens/list/ListScreen.tsx`
 
-- [ ] **Step 1: Add selection state and a checkbox column**
+- [x] **Step 1: Add selection state and a checkbox column**
 
 ```tsx
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1159,7 +1161,7 @@ And a matching `<TD>` per row:
 </TD>
 ```
 
-- [ ] **Step 2: Add the bulk-action bar**
+- [x] **Step 2: Add the bulk-action bar**
 
 Directly above the `<Table>`, conditionally:
 
@@ -1184,7 +1186,7 @@ Directly above the `<Table>`, conditionally:
 
 `Send SMS` deep-links into the existing Send SMS screen with a `recipients` query param — the Send screen doesn't read that param yet; wiring it to pre-select those specific recipients is a follow-up inside the SMS module itself (out of scope for this task, which is about the Teacher list's selection UI), not a blocker for shipping selection.
 
-- [ ] **Step 3: Verify and commit** — same three commands as every prior task, manual smoke: select a few rows, confirm the bar appears with the right count, confirm "Clear" empties it.
+- [x] **Step 3: Verify and commit** — same three commands as every prior task, manual smoke: select a few rows, confirm the bar appears with the right count, confirm "Clear" empties it.
 
 ```bash
 git commit -am "feat(admin): add row selection + bulk-action bar to Teacher list"
@@ -1202,7 +1204,7 @@ Replaces "only the Fee module has ad hoc PDF bars" with one reusable, dependency
 - Create: `src/shared/lib/exportCsv.ts`
 - Modify: `src/features/admin/teacher/screens/list/ListScreen.tsx` (first consumer)
 
-- [ ] **Step 1: Write the utility**
+- [x] **Step 1: Write the utility**
 
 Create `src/shared/lib/exportCsv.ts`:
 
@@ -1227,7 +1229,7 @@ export function exportCsv(filename: string, rows: Record<string, unknown>[]): vo
 }
 ```
 
-- [ ] **Step 2: Wire the first consumer**
+- [x] **Step 2: Wire the first consumer**
 
 In `ListScreen.tsx`, add an Export button next to the search toolbar:
 
@@ -1250,7 +1252,7 @@ Add `Download` to the `lucide-react` import and `exportCsv` to the `@/shared/lib
 
 Note this exports only the current page's rows post-Task-3 (server pagination), which is the correct default for a button labeled "Export" next to a paginated table — if "export all matching rows regardless of page" is wanted later, that's a separate server-side export endpoint, not a client-side change to this button.
 
-- [ ] **Step 3: Verify and commit** — same three commands, manual smoke: click Export, confirm a CSV downloads and opens correctly in Excel/Sheets with Bengali names intact.
+- [x] **Step 3: Verify and commit** — same three commands, manual smoke: click Export, confirm a CSV downloads and opens correctly in Excel/Sheets with Bengali names intact.
 
 Rollout checklist: same button, same pattern, on every list screen from the Task 6 breadcrumb checklist that manages a real dataset (skip pure config/settings screens — export doesn't mean anything there).
 
@@ -1267,7 +1269,7 @@ Replaces the removed topbar Search slot (Task 2) with something that actually wo
 **Interfaces:**
 - Consumes: `ADMIN_NAV_SECTIONS`, `ADMIN_NAV_FOOTER` from `./adminNav` (already imported in `AdminShell.tsx`).
 
-- [ ] **Step 1: Flatten the nav into a searchable list and build the palette**
+- [x] **Step 1: Flatten the nav into a searchable list and build the palette**
 
 Create `src/features/admin/core/components/CommandPalette.tsx`:
 
@@ -1358,7 +1360,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 }
 ```
 
-- [ ] **Step 2: Mount it in the shell and restore a working Search button**
+- [x] **Step 2: Mount it in the shell and restore a working Search button**
 
 Modify `src/features/admin/components/AdminShell.tsx`:
 
@@ -1399,7 +1401,7 @@ Re-add the `Search` import to the `lucide-react` line, and mount the palette onc
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
 ```
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 ```bash
 npx tsc --noEmit
