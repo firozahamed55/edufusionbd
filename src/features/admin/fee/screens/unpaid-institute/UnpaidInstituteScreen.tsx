@@ -1,9 +1,10 @@
 "use client";
 
-import { FileDown, Wallet } from "lucide-react";
+import { Download, FileDown, Wallet } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useUnpaidByInstitute } from "../../logic/hooks";
 
 /** Fee · Dues (by Institute) — live class/section-wise dues summary. */
@@ -23,6 +24,22 @@ export function UnpaidInstituteScreen() {
       <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface p-5 shadow-e3">
         <span className="text-meta text-text-muted">{t("শিক্ষাবর্ষ", "Academic Year")}: <b className="text-text-secondary tnum">{n(2026)}</b></span>
         <div className="flex-1" />
+        <button
+          onClick={() => d && exportCsv(
+            `dues-by-institute-${new Date().toISOString().slice(0, 10)}.csv`,
+            d.rows.map((r) => ({
+              Class: r.cls_en,
+              Section: r.sec_name ?? "",
+              TotalStudents: r.total_students,
+              DueStudents: r.due_students,
+              DueAmount: r.due_amount,
+            })),
+          )}
+          disabled={!d}
+          className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-sunken disabled:opacity-60"
+        >
+          <Download size={16} /> {t("এক্সপোর্ট", "Export")}
+        </button>
         <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60" disabled>
           <FileDown size={16} /> {t("PDF ডাউনলোড", "Download PDF")}
         </button>

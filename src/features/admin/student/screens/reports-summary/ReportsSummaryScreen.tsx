@@ -5,6 +5,7 @@ import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { RELIGION, STUDENT_STATUS } from "@/shared/constants/enums";
 import { Skeleton, ErrorState, EmptyState, Breadcrumb } from "@/shared/ui";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useStudentReport } from "../../logic/hooks";
 
 /**
@@ -41,7 +42,20 @@ export function ReportsSummaryScreen() {
           <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary")}</h1>
           <p className="mt-1 text-meta text-text-muted">{t("ভর্তিভুক্তি, লিঙ্গ ও শ্রেণিভিত্তিক পরিসংখ্যান", "Enrollment, gender & class-wise statistics")}</p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60" disabled>
+        <button
+          onClick={() => report.data && exportCsv(
+            `student-summary-${new Date().toISOString().slice(0, 10)}.csv`,
+            report.data.by_class.map((c) => ({
+              Class: c.name_en,
+              Sections: c.sections,
+              Boys: c.boys,
+              Girls: c.girls,
+              Total: c.total,
+            })),
+          )}
+          disabled={!report.data}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        >
           <Download size={16} /> {t("এক্সপোর্ট", "Export")}
         </button>
       </div>

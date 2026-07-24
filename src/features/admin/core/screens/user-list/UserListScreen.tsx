@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Users } from "lucide-react";
+import { Download, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Skeleton, EmptyState, ErrorState, Breadcrumb, Pagination } from "@/shared/ui";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useUsers } from "../../logic/hooks";
 
 const statusTone: Record<string, string> = { active: "bg-success-bg text-success-fg", suspended: "bg-danger-bg text-danger-fg", invited: "bg-warning-bg text-warning-fg" };
@@ -35,7 +36,23 @@ export function UserListScreen() {
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
           <div className="min-w-160">
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-4"><p className="flex-1 text-base font-semibold text-text-primary">{t("ব্যবহারকারী তালিকা", "Users")}</p></div>
+            <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
+              <p className="flex-1 text-base font-semibold text-text-primary">{t("ব্যবহারকারী তালিকা", "Users")}</p>
+              <button
+                onClick={() => exportCsv(
+                  `users-${new Date().toISOString().slice(0, 10)}.csv`,
+                  rows.map((r) => ({
+                    Name: r.full_name ?? "",
+                    Phone: r.phone ?? "",
+                    Roles: r.roles ?? "",
+                    Status: r.status,
+                  })),
+                )}
+                className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-meta font-medium text-text-secondary hover:bg-sunken"
+              >
+                <Download size={14} /> {t("এক্সপোর্ট", "Export")}
+              </button>
+            </div>
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
               <div className="flex-1">{t("নাম", "Name")}</div>
               <div className="w-40">{t("ফোন", "Phone")}</div>

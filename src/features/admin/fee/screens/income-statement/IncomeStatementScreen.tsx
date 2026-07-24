@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Download, Search } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Input, Button, Skeleton, ErrorState, Breadcrumb } from "@/shared/ui";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useIncomeStatement } from "../../logic/hooks";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -33,6 +34,21 @@ export function IncomeStatementScreen() {
         <Field label={t("শুরুর তারিখ", "From")} required className="w-50"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
         <Field label={t("শেষ তারিখ", "To")} required className="w-50"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
         <Button variant="primary" className="h-10.5 px-6" onClick={() => setRange({ from, to })}><Search size={16} /> {t("অনুসন্ধান", "Search")}</Button>
+        {d ? (
+          <button
+            onClick={() => exportCsv(
+              `income-statement-${range.from}-to-${range.to}.csv`,
+              [
+                ...d.income.map((r) => ({ Section: "Income", Head: r.head, Debit: "", Credit: r.amount })),
+                ...d.expense.map((r) => ({ Section: "Expenditure", Head: r.head, Debit: r.amount, Credit: "" })),
+                { Section: "Net", Head: "Excess of income over expenditure", Debit: "", Credit: d.total_income - d.total_expense },
+              ],
+            )}
+            className="flex h-10.5 items-center gap-2 rounded-lg border border-border-strong bg-surface px-6 text-sm font-semibold text-text-secondary hover:bg-sunken"
+          >
+            <Download size={16} /> {t("এক্সপোর্ট", "Export")}
+          </button>
+        ) : null}
       </div>
 
       {q.isLoading ? (

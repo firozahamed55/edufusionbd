@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { FileDown, Wallet } from "lucide-react";
+import { Download, FileDown, Wallet } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Select, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useUnpaidBySection } from "../../logic/hooks";
@@ -31,6 +32,22 @@ export function UnpaidSectionScreen() {
           <Select value={sectionId} placeholder={sections.isLoading ? t("লোড হচ্ছে…", "Loading…") : t("নির্বাচন করুন", "Select")} options={opt(sections.data)} onChange={(e) => setSectionId(e.target.value)} />
         </Field>
         <div className="flex-1" />
+        <button
+          onClick={() => exportCsv(
+            `dues-by-section-${new Date().toISOString().slice(0, 10)}.csv`,
+            (q.data ?? []).map((r) => ({
+              StudentId: r.code ?? "",
+              Roll: r.roll ?? "",
+              Name: r.name_en,
+              Detail: r.detail ?? "",
+              Due: r.due,
+            })),
+          )}
+          disabled={!sectionId || (q.data ?? []).length === 0}
+          className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-sunken disabled:opacity-60"
+        >
+          <Download size={16} /> {t("এক্সপোর্ট", "Export")}
+        </button>
         <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60" disabled>
           <FileDown size={16} /> {t("PDF ডাউনলোড", "Download PDF")}
         </button>

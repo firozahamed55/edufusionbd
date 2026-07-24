@@ -1,9 +1,10 @@
 "use client";
 
-import { History as HistoryIcon } from "lucide-react";
+import { Download, History as HistoryIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useCampaigns } from "../../logic/hooks";
 
 const typeLabel: Record<string, { bn: string; en: string }> = {
@@ -19,11 +20,30 @@ export function HistoryScreen() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header>
-        <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("ইতিহাস", "History") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS ইতিহাস", "SMS History")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("পাঠানো ক্যাম্পেইনসমূহের রেকর্ড", "Record of sent campaigns")}</p>
-      </header>
+      <div className="flex flex-wrap items-start gap-3">
+        <header className="flex-1">
+          <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("ইতিহাস", "History") }]} />
+          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS ইতিহাস", "SMS History")}</h1>
+          <p className="mt-1 text-meta text-text-muted">{t("পাঠানো ক্যাম্পেইনসমূহের রেকর্ড", "Record of sent campaigns")}</p>
+        </header>
+        <button
+          onClick={() => exportCsv(
+            `sms-history-${new Date().toISOString().slice(0, 10)}.csv`,
+            rows.map((r) => ({
+              Date: r.sent_at ?? "",
+              RecipientType: r.recipient_type ?? "",
+              RecipientGroup: r.recipient_group ?? "",
+              Message: r.body ?? "",
+              Count: r.recipient_count ?? 0,
+              Cost: Math.round(r.est_cost ?? 0),
+            })),
+          )}
+          disabled={rows.length === 0}
+          className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-sunken disabled:opacity-60"
+        >
+          <Download size={16} /> {t("এক্সপোর্ট", "Export")}
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("মোট ক্যাম্পেইন", "Campaigns")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(rows.length)}</p></div>
