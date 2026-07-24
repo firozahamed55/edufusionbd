@@ -40,7 +40,7 @@ export function StatusPill({
       type="button"
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
-        active ? solidTone[tone] : tintTone[tone],
+        active ? solidTone[tone] : cn(tintTone[tone], "hover:brightness-95"),
       )}
     >
       <span className={cn("size-1.5 rounded-full", active ? "bg-white" : "bg-current")} />

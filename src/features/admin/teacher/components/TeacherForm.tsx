@@ -381,7 +381,7 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
                     <FileText size={16} />
                   </span>
                   <span className="min-w-0 flex-1 truncate text-meta text-text-secondary">{doc}</span>
-                  <button className="flex shrink-0 items-center gap-1 text-meta font-semibold text-primary">
+                  <button className="flex shrink-0 items-center gap-1 text-meta font-semibold text-primary hover:underline">
                     <Upload size={14} /> {t("আপলোড", "Upload")}
                   </button>
                 </div>

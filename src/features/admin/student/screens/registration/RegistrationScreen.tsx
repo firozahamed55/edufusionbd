@@ -272,7 +272,7 @@ export function RegistrationScreen() {
                 <div key={doc} className="flex items-center gap-3 rounded-[10px] border border-border-default bg-surface px-3 py-2.5">
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken text-text-secondary"><FileText size={16} /></span>
                   <span className="min-w-0 flex-1 truncate text-meta text-text-secondary">{doc}</span>
-                  <button className="flex shrink-0 items-center gap-1 text-meta font-semibold text-primary"><Upload size={14} /> {t("আপলোড", "Upload")}</button>
+                  <button className="flex shrink-0 items-center gap-1 text-meta font-semibold text-primary hover:underline"><Upload size={14} /> {t("আপলোড", "Upload")}</button>
                 </div>
               ))}
             </div>
