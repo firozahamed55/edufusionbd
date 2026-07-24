@@ -180,9 +180,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           E
         </div>
         <div className="leading-tight">
-          <p className="text-body font-semibold">
-            {tx("এডুফিউশনবিডি", "EduFusionBD")}
-          </p>
+          <p className="text-body font-semibold font-latin">EduFusionBD</p>
           <p className="text-micro text-text-muted">{tx("অ্যাডমিন", "Admin")}</p>
         </div>
       </div>

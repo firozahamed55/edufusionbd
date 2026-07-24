@@ -188,7 +188,7 @@ body {
   font-family: var(--font-bn);
   /*
     LAYOUT PARITY (bn ↔ en): switching locale swaps the body font between
-    Hind Siliguri (bn) and Inter (en). Left alone, Inter's larger x-height makes
+    Noto Sans Bengali (bn) and Inter (en). Left alone, Inter's larger x-height makes
     English text render visibly bigger at the same px — breaking spacing and the
     type scale. `font-size-adjust` pins BOTH faces to one x-height ratio, so a
     given font-size looks the same physical size in either language. Result:
@@ -201,6 +201,19 @@ body {
   text-rendering: optimizeLegibility;
   /* Contextual shaping + ligatures → clean Bengali conjuncts and numerals. */
   font-feature-settings: "calt" 1, "liga" 1;
+}
+
+/* font-size-adjust reached Baseline "newly available" only in mid-2024, so any
+   browser not updated since — common on shared/institutional school hardware —
+   silently ignores it and Bengali conjuncts/matras render visibly larger than
+   Latin at the same declared size. Static ratio from measured font ink metrics,
+   not per-glyph like font-size-adjust — a coarser but universally-supported
+   backstop. ponytail: approximate fallback ratio, revisit if a real device
+   report shows bn still reading oversized in an old browser. */
+@supports not (font-size-adjust: 0.5) {
+  :lang(bn) {
+    font-size: 0.94em;
+  }
 }
 
 :lang(en),
