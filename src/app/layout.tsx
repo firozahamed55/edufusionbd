@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Hind_Siliguri, Inter } from "next/font/google";
+import { Noto_Sans_Bengali, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { getLocale, getMessages } from "next-intl/server";
 import { Providers } from "./providers";
 import "./globals.css";
 
-/* Type system: Hind Siliguri (Bangla — the plain, highly legible workhorse face
-   used across most Bangladeshi web/UI; familiar and unfussy) + Inter (Latin).
-   Loading them here is what makes the type render correctly across the app —
-   without this the UI falls back to system fonts and every screen reads "off".
-   The bn↔en apparent-size match is handled by `font-size-adjust` in globals.css
-   so switching locale never changes layout, spacing, or the typographic scale. */
-const hindSiliguri = Hind_Siliguri({
+/* Type system: Noto Sans Bengali (clearer, less-confusable digit shapes than
+   Hind Siliguri at small UI sizes — the numerals are the reason for this pick)
+   + Inter (Latin). Loading them here is what makes the type render correctly
+   across the app — without this the UI falls back to system fonts and every
+   screen reads "off". The bn↔en apparent-size match is handled by
+   `font-size-adjust` in globals.css so switching locale never changes layout,
+   spacing, or the typographic scale. */
+const notoSansBengali = Noto_Sans_Bengali({
   weight: ["400", "500", "600", "700"],
-  subsets: ["bengali", "latin"],
+  subsets: ["bengali"],
   variable: "--font-bn",
   display: "swap",
 });
@@ -40,7 +41,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${hindSiliguri.variable} ${inter.variable}`}
+      className={`${notoSansBengali.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
       <body>
