@@ -17,6 +17,8 @@ export const useGradeSchemes = () => useQuery({ queryKey: ["core", "schemes"], q
 export const useSignatures = () => useQuery({ queryKey: ["core", "signatures"], queryFn: () => api.fetchSignatures(c()) });
 export const useUsers = (page: number) =>
   useQuery({ queryKey: ["core", "users", "list", page], queryFn: () => api.fetchUsers(c(), { page }), placeholderData: (prev) => prev });
+export const useClassSections = (classId: string | null) =>
+  useQuery({ queryKey: ["core", "classSections", classId], queryFn: () => api.fetchClassSections(c(), classId as string), enabled: !!classId });
 
 function useMut<T>(fn: (v: T) => Promise<unknown>, keys: string[]) {
   const qc = useQueryClient();
@@ -38,3 +40,5 @@ export const useUpsertScheme = () => useMut((p: Record<string, unknown>) => api.
 export const useDeleteScheme = () => useMut((id: string) => api.deleteGradeScheme(c(), id), ["schemes"]);
 export const useUpsertSignature = () => useMut((p: Record<string, unknown>) => api.upsertSignature(c(), p), ["signatures"]);
 export const useDeleteSignature = () => useMut((id: string) => api.deleteSignature(c(), id), ["signatures"]);
+export const useUpsertClassSection = () => useMut((p: Record<string, unknown>) => api.upsertClassSection(c(), p), ["classSections", "classes"]);
+export const useDeleteClassSection = () => useMut((id: string) => api.deleteClassSection(c(), id), ["classSections", "classes"]);

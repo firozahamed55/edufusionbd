@@ -40,6 +40,27 @@ export async function fetchTeacherOptions(s: BrowserClient): Promise<TeacherOpti
     .map((r) => ({ id: r.id, label: `${r.name_bn} / ${r.name_en}`, mobile: r.mobile, email: r.email }));
 }
 
+/* class sections (Class Config master-detail) */
+export type ClassSectionRow = { id: string; sectionName: string; capacity: number | null; enrolled: number; classTeacherName: string | null };
+export async function fetchClassSections(s: BrowserClient, classId: string): Promise<ClassSectionRow[]> {
+  const { data, error } = await s
+    .from("class_section")
+    .select("id, capacity, section:section_id(name), teacher:class_teacher_id(name_bn, name_en), enrollments:student_enrollment(count)")
+    .eq("class_id", classId)
+    .is("deleted_at", null);
+  if (error) throw error;
+  type Raw = {
+    id: string; capacity: number | null; section: { name: string } | null;
+    teacher: { name_bn: string; name_en: string } | null; enrollments: { count: number }[] | null;
+  };
+  return ((data ?? []) as unknown as Raw[]).map((r) => ({
+    id: r.id, sectionName: r.section?.name ?? "—", capacity: r.capacity,
+    enrolled: r.enrollments?.[0]?.count ?? 0, classTeacherName: r.teacher ? `${r.teacher.name_bn}` : null,
+  }));
+}
+export const upsertClassSection = (s: BrowserClient, payload: Record<string, unknown>) => call(s, "fn_upsert_class_section", { payload });
+export const deleteClassSection = (s: BrowserClient, id: string) => call(s, "fn_delete_class_section", { p_id: id });
+
 /* generic institution setting (basic_config etc.) via fn_save_setting */
 export async function fetchSetting(s: BrowserClient, key: string, scope: string): Promise<Record<string, unknown>> {
   const { data, error } = await s.from("setting").select("value").eq("key", key).eq("scope", scope).maybeSingle();
@@ -51,11 +72,16 @@ export async function saveSetting(s: BrowserClient, key: string, scope: string, 
 }
 
 /* classes */
-export type ClassRow = { id: string; name_bn: string; name_en: string; numeric_level: number | null };
+export type ClassRow = { id: string; name_bn: string; name_en: string; numeric_level: number | null; sectionCount: number };
 export async function fetchClasses(s: BrowserClient): Promise<ClassRow[]> {
-  const { data, error } = await s.from("class").select("id, name_bn, name_en, numeric_level").is("deleted_at", null).order("numeric_level", { nullsFirst: false });
+  const { data, error } = await s
+    .from("class")
+    .select("id, name_bn, name_en, numeric_level, sections:class_section(count)")
+    .is("deleted_at", null)
+    .order("numeric_level", { nullsFirst: false });
   if (error) throw error;
-  return (data ?? []) as unknown as ClassRow[];
+  type Raw = { id: string; name_bn: string; name_en: string; numeric_level: number | null; sections: { count: number }[] | null };
+  return ((data ?? []) as unknown as Raw[]).map((r) => ({ id: r.id, name_bn: r.name_bn, name_en: r.name_en, numeric_level: r.numeric_level, sectionCount: r.sections?.[0]?.count ?? 0 }));
 }
 export const upsertClass = (s: BrowserClient, payload: Record<string, unknown>) => call(s, "fn_upsert_class", { payload });
 export const deleteClass = (s: BrowserClient, id: string) => call(s, "fn_delete_class", { p_id: id });
