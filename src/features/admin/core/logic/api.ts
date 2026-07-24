@@ -2,21 +2,50 @@
 import type { BrowserClient } from "@/shared/services/supabase/types";
 
 type RpcFn = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-const rpc = (s: BrowserClient) => s.rpc as unknown as RpcFn;
 async function call(s: BrowserClient, fn: string, args: Record<string, unknown>): Promise<string> {
-  const { data, error } = await rpc(s)(fn, args);
+  const { data, error } = await (s as unknown as { rpc: RpcFn }).rpc(fn, args);
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
 
 /* institution */
-export type Institution = { name_bn: string; name_en: string; eiin: string | null; institution_type: string | null; address: string | null; phone: string | null; email: string | null; website: string | null; established_year: number | null };
+export type Institution = {
+  id: string; name_bn: string; name_en: string; eiin: string | null; institution_type: string | null; address: string | null;
+  phone: string | null; email: string | null; website: string | null; established_year: number | null;
+  board_id: string | null; head_teacher_id: string | null; logo_file_id: string | null;
+};
 export async function fetchInstitution(s: BrowserClient): Promise<Institution | null> {
-  const { data, error } = await s.from("institution").select("name_bn, name_en, eiin, institution_type, address, phone, email, website, established_year").limit(1).maybeSingle();
+  const { data, error } = await s
+    .from("institution")
+    .select("id, name_bn, name_en, eiin, institution_type, address, phone, email, website, established_year, board_id, head_teacher_id, logo_file_id")
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
   return (data as Institution | null) ?? null;
 }
 export const updateInstitution = (s: BrowserClient, payload: Record<string, unknown>) => call(s, "fn_update_institution", { payload });
+
+export type Option = { id: string; label: string };
+export async function fetchEducationBoards(s: BrowserClient): Promise<Option[]> {
+  const { data, error } = await s.from("education_board").select("id, name").order("name");
+  if (error) throw error;
+  return ((data ?? []) as { id: string; name: string }[]).map((r) => ({ id: r.id, label: r.name }));
+}
+export async function fetchTeacherOptions(s: BrowserClient): Promise<Option[]> {
+  const { data, error } = await s.from("teacher").select("id, name_bn, name_en").is("deleted_at", null).order("name_en");
+  if (error) throw error;
+  return ((data ?? []) as { id: string; name_bn: string; name_en: string }[]).map((r) => ({ id: r.id, label: `${r.name_bn} / ${r.name_en}` }));
+}
+
+/* generic institution setting (basic_config etc.) via fn_save_setting */
+export async function fetchSetting(s: BrowserClient, key: string, scope: string): Promise<Record<string, unknown>> {
+  const { data, error } = await s.from("setting").select("value").eq("key", key).eq("scope", scope).maybeSingle();
+  if (error) throw error;
+  return ((data as { value: Record<string, unknown> } | null)?.value ?? {}) as Record<string, unknown>;
+}
+export async function saveSetting(s: BrowserClient, key: string, scope: string, value: Record<string, unknown>): Promise<void> {
+  await call(s, "fn_save_setting", { p_key: key, p_scope: scope, p_value: value });
+}
 
 /* classes */
 export type ClassRow = { id: string; name_bn: string; name_en: string; numeric_level: number | null };

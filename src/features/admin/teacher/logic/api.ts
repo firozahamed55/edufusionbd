@@ -55,7 +55,7 @@ export async function registerTeacher(
   supabase: BrowserClient,
   payload: TeacherWritePayload,
 ): Promise<string> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_register_teacher", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
@@ -66,7 +66,7 @@ export async function updateTeacher(
   supabase: BrowserClient,
   payload: TeacherWritePayload & { id: string },
 ): Promise<string> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_update_teacher", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";

@@ -16,7 +16,7 @@ export async function fetchExams(supabase: BrowserClient): Promise<ExamRow[]> {
 
 export type ExamPayload = { id?: string; name: string; type?: string; grade_scheme_id?: string; start_date?: string; end_date?: string; status?: string };
 export async function upsertExam(supabase: BrowserClient, payload: ExamPayload): Promise<string> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_upsert_exam", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
@@ -58,14 +58,14 @@ export type SaveMarksPayload = {
   entries: { student_id: string; marks_obtained: string; is_absent: boolean }[];
 };
 export async function saveMarks(supabase: BrowserClient, payload: SaveMarksPayload): Promise<number> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_save_marks", { payload });
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
 }
 
 export async function processExamResult(supabase: BrowserClient, examId: string): Promise<void> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { error } = await rpc("fn_process_exam_result", { p_exam_id: examId });
   if (error) throw new Error(error.message);
 }
@@ -100,7 +100,7 @@ export async function fetchExamConfig(supabase: BrowserClient, kind: "mark" | "c
 }
 
 export async function saveExamConfig(supabase: BrowserClient, kind: "mark" | "comment" | "marksheet" | "date", config: Record<string, unknown>): Promise<void> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { error } = await rpc("fn_save_exam_config", { p_kind: kind, payload: config });
   if (error) throw new Error(error.message);
 }

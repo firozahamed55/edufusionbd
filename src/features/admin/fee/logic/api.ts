@@ -49,13 +49,13 @@ export type FeeMappingPayload = {
   amount: string; frequency: string; is_active: boolean;
 };
 export async function upsertFeeMapping(supabase: BrowserClient, payload: FeeMappingPayload): Promise<string> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_upsert_fee_mapping", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
 export async function deleteFeeMapping(supabase: BrowserClient, id: string): Promise<void> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { error } = await rpc("fn_delete_fee_mapping", { p_id: id });
   if (error) throw new Error(error.message);
 }
@@ -163,14 +163,14 @@ export async function findStudentIdByCode(supabase: BrowserClient, code: string)
 
 export type CollectPayload = { fee_invoice_id: string; amount: string; method: string; account_id?: string; txn_ref?: string; paid_by?: string; paid_at?: string };
 export async function collectFee(supabase: BrowserClient, payload: CollectPayload): Promise<string> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_collect_fee", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
 
 export async function deleteFeeInvoices(supabase: BrowserClient, ids: string[]): Promise<number> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_delete_fee_invoice", { payload: { ids } });
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
@@ -223,7 +223,7 @@ export type UnpaidInstitute = {
   total_students: number; due_students: number; total_due: number;
 };
 export async function fetchUnpaidByInstitute(supabase: BrowserClient): Promise<UnpaidInstitute> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_unpaid_by_institute", {});
   if (error) throw new Error(error.message);
   return data as UnpaidInstitute;
@@ -234,7 +234,7 @@ export type IncomeStatement = {
   expense: { head: string; amount: number }[]; total_expense: number;
 };
 export async function fetchIncomeStatement(supabase: BrowserClient, from: string, to: string): Promise<IncomeStatement> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_fee_income_statement", { p_from: from, p_to: to });
   if (error) throw new Error(error.message);
   return data as IncomeStatement;

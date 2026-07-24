@@ -37,7 +37,7 @@ export type MarkAttendancePayload = {
   entries: { student_id: string; status: string }[];
 };
 export async function markAttendance(supabase: BrowserClient, payload: MarkAttendancePayload): Promise<number> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_mark_attendance", { payload });
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
@@ -59,7 +59,7 @@ export async function fetchAttendanceSummary(
   from: string,
   to: string,
 ): Promise<AttendanceSummary> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_attendance_summary", { p_class_section_id: classSectionId, p_from: from, p_to: to });
   if (error) throw new Error(error.message);
   return data as AttendanceSummary;

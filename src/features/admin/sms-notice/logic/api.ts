@@ -3,7 +3,7 @@
 import type { BrowserClient } from "@/shared/services/supabase/types";
 
 type RpcFn = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-const rpcOf = (s: BrowserClient) => s.rpc as unknown as RpcFn;
+const rpcOf = (s: BrowserClient): RpcFn => (fn, args) => (s as unknown as { rpc: RpcFn }).rpc(fn, args);
 const num = (v: unknown) => Number(v ?? 0);
 
 export type SmsAccount = { balance: number; per_sms_rate: number; masking_enabled: boolean; last_recharge_amount: number | null; last_recharge_at: string | null };

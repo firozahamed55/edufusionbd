@@ -75,7 +75,7 @@ export async function updateStudentBasic(
   supabase: BrowserClient,
   payload: StudentBasicPayload,
 ): Promise<string> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_update_student_basic", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
@@ -106,7 +106,7 @@ export async function fetchStudentReport(
   supabase: BrowserClient,
   yearId?: string | null,
 ): Promise<StudentReport> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_student_report_summary", {
     p_academic_year_id: yearId ?? null,
   });
@@ -135,7 +135,7 @@ export async function runMigration(
   supabase: BrowserClient,
   payload: RunMigrationPayload,
 ): Promise<string> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_run_migration", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
@@ -145,7 +145,7 @@ export async function pushbackMigration(
   supabase: BrowserClient,
   batchId: string,
 ): Promise<number> {
-  const rpc = supabase.rpc as unknown as RpcFn;
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
   const { data, error } = await rpc("fn_pushback_migration", { p_batch_id: batchId });
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;

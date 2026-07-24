@@ -3,7 +3,7 @@
 import type { BrowserClient } from "@/shared/services/supabase/types";
 
 type RpcFn = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-const rpcOf = (s: BrowserClient) => s.rpc as unknown as RpcFn;
+const rpcOf = (s: BrowserClient): RpcFn => (fn, args) => (s as unknown as { rpc: RpcFn }).rpc(fn, args);
 
 /* ---- templates ---- */
 export type TemplateRow = { id: string; type: string; is_default: boolean; format_config: Record<string, unknown> };
