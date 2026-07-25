@@ -5,19 +5,22 @@ import { Search, User, Receipt } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { PAYMENT_METHOD } from "@/shared/constants/enums";
+import type { PaymentMethod } from "@/shared/lib/validation";
 import { createClient } from "@/shared/services/supabase/client";
-import { Field, Input, Select, Button, Skeleton, EmptyState, ErrorState, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Select, Button, Skeleton, EmptyState, ErrorState, useToast, PageHeader } from "@/shared/ui";
 import { useStudentProfile, useStudentInvoices, useCollectFee, useAccounts } from "../../logic/hooks";
 import { findStudentIdByCode } from "../../logic/api";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /** Fee · Quick Collection (form) — look up a student, collect against their invoices. */
 export function QuickCollectionFormScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const [code, setCode] = useState("");
   const [studentId, setStudentId] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-  const [method, setMethod] = useState("cash");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [accountId, setAccountId] = useState("");
   const [amounts, setAmounts] = useState<Record<string, string>>({});
 
@@ -39,7 +42,7 @@ export function QuickCollectionFormScreen() {
       if (!id) { toast({ title: t("শিক্ষার্থী পাওয়া যায়নি", "Student not found"), variant: "error" }); return; }
       setStudentId(id);
     } catch (e) {
-      toast({ title: e instanceof Error ? e.message : t("অনুসন্ধান ব্যর্থ", "Search failed"), variant: "error" });
+      toast({ title: msg(e, { bn: "অনুসন্ধান ব্যর্থ", en: "Search failed" }), variant: "error" });
     } finally { setSearching(false); }
   }
 
@@ -48,7 +51,7 @@ export function QuickCollectionFormScreen() {
     const amt = raw && raw.trim() ? raw : String(due);
     collect.mutate({ fee_invoice_id: invoiceId, amount: amt, method, account_id: accountId || undefined }, {
       onSuccess: () => { toast({ title: t("ফি আদায় সম্পন্ন হয়েছে", "Fee collected"), variant: "success" }); setAmounts((p) => ({ ...p, [invoiceId]: "" })); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("আদায় ব্যর্থ", "Collection failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "আদায় ব্যর্থ", en: "Collection failed" }), variant: "error" }),
     });
   }
 
@@ -58,10 +61,10 @@ export function QuickCollectionFormScreen() {
 
   return (
     <div className="flex flex-col gap-6 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("দ্রুত ফি আদায়", "Fast fee collection") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("কুইক কালেকশন", "Quick Collection")}</h1>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("দ্রুত ফি আদায়", "Fast fee collection") }]}
+        title={t("কুইক কালেকশন", "Quick Collection")}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
         <div className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-e3">
@@ -97,7 +100,7 @@ export function QuickCollectionFormScreen() {
         <>
           <div className="grid grid-cols-1 gap-4 rounded-2xl bg-surface p-5 shadow-e3 sm:grid-cols-2">
             <Field label={t("পেমেন্ট মাধ্যম", "Payment method")} required>
-              <Select value={method} onChange={(e) => setMethod(e.target.value)} options={PAYMENT_METHOD.map((m) => ({ value: m.value, label: isBn ? m.bn : m.en }))} />
+              <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} options={PAYMENT_METHOD.map((m) => ({ value: m.value, label: isBn ? m.bn : m.en }))} />
             </Field>
             <Field label={t("অ্যাকাউন্ট", "Account")}>
               <Select value={accountId} placeholder={t("নির্বাচন (ঐচ্ছিক)", "Select (optional)")} options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.name }))} onChange={(e) => setAccountId(e.target.value)} />
@@ -106,7 +109,7 @@ export function QuickCollectionFormScreen() {
 
           <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
             <div className="min-w-200">
-              <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+              <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
                 <div className="w-40">{t("ফি হেড", "Fee heads")}</div>
                 <div className="flex-1">{t("সময়কাল", "Period")}</div>
                 <div className="w-25 text-right">{t("মোট", "Total")}</div>

@@ -9,10 +9,12 @@ import { Field, Select, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/s
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /** Fee · Quick Collection (list) — pick a section, choose a student to collect. */
 export function QuickCollectionListScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const [sectionId, setSectionId] = useState("");
   const sections = useClassSectionsLookup();
   const students = useSectionStudents(sectionId || null);
@@ -43,7 +45,7 @@ export function QuickCollectionListScreen() {
       ) : students.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : students.isError ? (
-        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={students.error instanceof Error ? students.error.message : undefined} />
+        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(students.error)} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("এই শাখায় কোনো শিক্ষার্থী নেই", "No students in this section")} />
       ) : (
@@ -52,7 +54,7 @@ export function QuickCollectionListScreen() {
             <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student list")}</p>
             <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n(rows.length)}</span>
           </div>
-          <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-[12.5px] font-semibold text-text-muted">
+          <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-meta font-semibold text-text-muted">
             <div className="w-37.5">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
             <div className="w-20">{t("রোল", "Roll")}</div>
             <div className="flex-1">{t("নাম", "Name")}</div>

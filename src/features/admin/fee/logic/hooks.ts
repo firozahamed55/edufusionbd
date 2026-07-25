@@ -22,7 +22,8 @@ export const useUnpaidBySection = (sectionId: string | null) =>
 
 export const useUnpaidByInstitute = () => useQuery({ queryKey: ["fee", "unpaid-institute"], queryFn: () => api.fetchUnpaidByInstitute(c()) });
 
-export const useAppliedFees = () => useQuery({ queryKey: ["fee", "applied"], queryFn: () => api.fetchAppliedFees(c()) });
+export const useAppliedFees = (page: number) =>
+  useQuery({ queryKey: ["fee", "applied", page], queryFn: () => api.fetchAppliedFees(c(), { page }), placeholderData: (prev) => prev });
 
 export const useDigitalTransactions = (page: number) =>
   useQuery({ queryKey: ["fee", "digital", "list", page], queryFn: () => api.fetchDigitalTransactions(c(), { page }), placeholderData: (prev) => prev });

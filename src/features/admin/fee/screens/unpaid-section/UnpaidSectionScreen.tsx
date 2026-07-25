@@ -4,15 +4,17 @@ import { useState } from "react";
 import { Download, FileDown, Wallet } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { Field, Select, Skeleton, EmptyState, ErrorState, PageHeader } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useUnpaidBySection } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /** Fee · Dues (by Section) — live per-student outstanding dues for a section. */
 export function UnpaidSectionScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const [sectionId, setSectionId] = useState("");
   const sections = useClassSectionsLookup();
   const q = useUnpaidBySection(sectionId || null);
@@ -21,11 +23,11 @@ export function UnpaidSectionScreen() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header>
-        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("বকেয়া তথ্য", "Dues") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বকেয়া তথ্য", "Dues")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("সেকশন অনুযায়ী বকেয়া শিক্ষার্থী তালিকা", "Section-wise unpaid students")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("বকেয়া তথ্য", "Dues") }]}
+        title={t("বকেয়া তথ্য", "Dues")}
+        subtitle={t("সেকশন অনুযায়ী বকেয়া শিক্ষার্থী তালিকা", "Section-wise unpaid students")}
+      />
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
         <Field label={t("শ্রেণি ও শাখা", "Class & Section")} required className="w-75 max-w-full">
@@ -58,7 +60,7 @@ export function UnpaidSectionScreen() {
       ) : q.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : q.isError ? (
-        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={q.error instanceof Error ? q.error.message : undefined} />
+        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(q.error)} />
       ) : (q.data ?? []).length === 0 ? (
         <EmptyState icon={<Wallet size={22} />} title={t("এই শাখায় কোনো বকেয়া নেই", "No dues in this section")} />
       ) : (
@@ -68,7 +70,7 @@ export function UnpaidSectionScreen() {
               <p className="flex-1 text-base font-semibold text-text-primary">{t("বকেয়া শিক্ষার্থী তালিকা", "Unpaid student list")}</p>
               <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n((q.data ?? []).length)}</span>
             </div>
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-30">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
               <div className="w-15">{t("রোল", "Roll")}</div>
               <div className="w-37.5">{t("নাম", "Name")}</div>
@@ -80,7 +82,7 @@ export function UnpaidSectionScreen() {
                 <div className="w-30 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
                 <div className="w-15 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
                 <div className="w-37.5 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                <div className="flex-1 text-[12.5px] leading-relaxed text-text-muted">{r.detail || "—"}</div>
+                <div className="flex-1 text-meta leading-relaxed text-text-muted">{r.detail || "—"}</div>
                 <div className="w-25 text-right text-sm font-bold text-text-primary tnum">৳{n(r.due)}</div>
               </div>
             ))}

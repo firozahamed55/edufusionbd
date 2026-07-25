@@ -4,39 +4,56 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, Trash2, Receipt } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Checkbox, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
+import { Checkbox, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast, PageHeader, Pagination } from "@/shared/ui";
 import { useAppliedFees, useDeleteFeeInvoices } from "../../logic/hooks";
+import { APPLIED_FEE_PAGE_SIZE } from "../../logic/api";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /** Fee · Delete Fees — live applied-fee invoices, multi-select destructive delete. */
 export function DeleteFeesScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
-  const q = useAppliedFees();
+  const [page, setPage] = useState(1);
+  const q = useAppliedFees(page);
   const del = useDeleteFeeInvoices();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState(false);
 
-  const rows = q.data ?? [];
-  const selectedTotal = useMemo(() => (q.data ?? []).filter((r) => selected.has(r.id)).reduce((s, r) => s + r.due, 0), [q.data, selected]);
-  const allSelected = rows.length > 0 && selected.size === rows.length;
-  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
+  const rows = useMemo(() => q.data?.rows ?? [], [q.data]);
+  const total = q.data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / APPLIED_FEE_PAGE_SIZE));
+  // Selection is intentionally NOT cleared on page change: the operator may want
+  // to void invoices spanning pages, and `fn_delete_fee_invoice` takes a list.
+  // `selectedTotal` therefore sums only what is visible — the count is authoritative.
+  const selectedTotal = useMemo(() => rows.filter((r) => selected.has(r.id)).reduce((s, r) => s + r.due, 0), [rows, selected]);
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const toggleAll = () =>
+    setSelected((p) => {
+      const nx = new Set(p);
+      for (const r of rows) {
+        if (allSelected) nx.delete(r.id);
+        else nx.add(r.id);
+      }
+      return nx;
+    });
   const toggleOne = (id: string) => setSelected((p) => { const nx = new Set(p); if (nx.has(id)) nx.delete(id); else nx.add(id); return nx; });
 
   function doDelete() {
     setConfirm(false);
     del.mutate([...selected], {
       onSuccess: (count) => { toast({ title: t(`${count} টি ফি মুছে ফেলা হয়েছে`, `${count} fees deleted`), variant: "success" }); setSelected(new Set()); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("মুছে ফেলা ব্যর্থ", "Delete failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "মুছে ফেলা ব্যর্থ", en: "Delete failed" }), variant: "error" }),
     });
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <header>
-        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ফি মুছুন", "Delete Fees") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ফি মুছুন", "Delete Fees")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("ভুলবশত আরোপিত ফি অপসারণ", "Remove mistakenly applied fees")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ফি মুছুন", "Delete Fees") }]}
+        title={t("ফি মুছুন", "Delete Fees")}
+        subtitle={t("ভুলবশত আরোপিত ফি অপসারণ", "Remove mistakenly applied fees")}
+      />
 
       <div className="flex items-start gap-3 rounded-xl border border-danger-fg/40 bg-danger-bg p-4 text-danger-fg">
         <AlertTriangle size={20} className="mt-0.5 shrink-0" />
@@ -46,7 +63,7 @@ export function DeleteFeesScreen() {
       {q.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
-        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={q.error instanceof Error ? q.error.message : undefined} />
+        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(q.error)} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Receipt size={22} />} title={t("কোনো আরোপিত ফি নেই", "No applied fees")} />
       ) : (
@@ -54,9 +71,9 @@ export function DeleteFeesScreen() {
           <div className="min-w-205">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("আরোপিত ফি তালিকা", "Applied fees")}</p>
-              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
+              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(total)}</span>
             </div>
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="flex w-6 items-center"><Checkbox checked={allSelected} onChange={toggleAll} aria-label={t("সব নির্বাচন", "Select all")} /></div>
               <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
               <div className="w-30">{t("আইডি", "ID")}</div>
@@ -89,6 +106,18 @@ export function DeleteFeesScreen() {
           </div>
         </div>
       )}
+
+      {total > 0 ? (
+        <Pagination
+          label={t(
+            `${(page - 1) * APPLIED_FEE_PAGE_SIZE + 1}–${Math.min(page * APPLIED_FEE_PAGE_SIZE, total)} দেখানো হচ্ছে · মোট ${total}`,
+            `Showing ${(page - 1) * APPLIED_FEE_PAGE_SIZE + 1}-${Math.min(page * APPLIED_FEE_PAGE_SIZE, total)} of ${total}`,
+          )}
+          pages={pages}
+          current={page}
+          onPageChange={setPage}
+        />
+      ) : null}
 
       <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} onConfirm={doDelete} tone="danger"
         title={t("নির্বাচিত ফি মুছবেন?", "Delete selected fees?")}

@@ -4,15 +4,17 @@ import { useState } from "react";
 import { Download, Search } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Button, Skeleton, ErrorState, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Button, Skeleton, ErrorState, PageHeader } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { useIncomeStatement } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /** Fee · Income Statement — live income/expenditure over a date range. */
 export function IncomeStatementScreen() {
   const { t, n } = useT();
+  const msg = useErrorMessage();
   const today = new Date();
   const monthAgo = new Date(today.getTime() - 30 * 864e5);
   const [from, setFrom] = useState(iso(monthAgo));
@@ -24,11 +26,11 @@ export function IncomeStatementScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("আয় বিবরণী", "Income Statement") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("আয় বিবরণী", "Income Statement")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("আয়-ব্যায়ের সমন্বিত বিবরণী", "Combined income & expenditure")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("আয় বিবরণী", "Income Statement") }]}
+        title={t("আয় বিবরণী", "Income Statement")}
+        subtitle={t("আয়-ব্যায়ের সমন্বিত বিবরণী", "Combined income & expenditure")}
+      />
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
         <Field label={t("শুরুর তারিখ", "From")} required className="w-50"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
@@ -54,7 +56,7 @@ export function IncomeStatementScreen() {
       {q.isLoading ? (
         <div className="flex flex-col gap-4">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div>
       ) : q.isError ? (
-        <ErrorState title={t("বিবরণী লোড করা যায়নি", "Could not load statement")} description={q.error instanceof Error ? q.error.message : undefined} />
+        <ErrorState title={t("বিবরণী লোড করা যায়নি", "Could not load statement")} description={msg(q.error)} />
       ) : d ? (
         <>
           <Ledger title={t("আয়ের তালিকা", "Income")} totalLabel={t("মোট আয়", "Total income")} credit={`৳${n(d.total_income)}`}>
@@ -80,7 +82,7 @@ function Ledger({ title, totalLabel, credit, children }: { title: string; totalL
   return (
     <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
       <div className="border-b border-border-default px-5 py-4"><p className="text-base font-semibold text-text-primary">{title}</p></div>
-      <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+      <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
         <div className="flex-1">{title.includes("আয়") || title.toLowerCase().includes("income") ? "খাত / Head" : "খাত / Head"}</div>
         <div className="w-40 text-right">{"ডেবিট / Debit"}</div>
         <div className="w-40 text-right">{"ক্রেডিট / Credit"}</div>

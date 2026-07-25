@@ -4,9 +4,10 @@ import { useState } from "react";
 import { CreditCard, Download } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState, Breadcrumb, Pagination } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, PageHeader, Pagination } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { useDigitalTransactions, useDigitalTransactionStats } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /** Fee · Digital Collection — live online-payment transactions + computed KPIs. */
 const statusMeta: Record<string, { bn: string; en: string; cls: string }> = {
@@ -25,6 +26,7 @@ const PER_PAGE = 25;
 
 export function DigitalCollectionScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const [page, setPage] = useState(1);
   const q = useDigitalTransactions(page);
   const stats = useDigitalTransactionStats();
@@ -43,11 +45,11 @@ export function DigitalCollectionScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ডিজিটাল ফি কালেকশন", "Digital Collection") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ডিজিটাল ফি কালেকশন", "Digital Collection")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("অনলাইন পেমেন্ট সংগ্রহ ও লেনদেন", "Online payments & transactions")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ডিজিটাল ফি কালেকশন", "Digital Collection") }]}
+        title={t("ডিজিটাল ফি কালেকশন", "Digital Collection")}
+        subtitle={t("অনলাইন পেমেন্ট সংগ্রহ ও লেনদেন", "Online payments & transactions")}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {q.isLoading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-[18px]" />) :
@@ -62,7 +64,7 @@ export function DigitalCollectionScreen() {
       {q.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
-        <ErrorState title={t("লেনদেন লোড করা যায়নি", "Could not load transactions")} description={q.error instanceof Error ? q.error.message : undefined} />
+        <ErrorState title={t("লেনদেন লোড করা যায়নি", "Could not load transactions")} description={msg(q.error)} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<CreditCard size={22} />} title={t("কোনো ডিজিটাল লেনদেন নেই", "No digital transactions")} description={t("অনলাইন পেমেন্ট এলে এখানে দেখা যাবে।", "Online payments appear here.")} />
       ) : (
@@ -88,7 +90,7 @@ export function DigitalCollectionScreen() {
                 <Download size={14} /> {t("এক্সপোর্ট", "Export")}
               </button>
             </div>
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-40">{t("তারিখ ও সময়", "Date & time")}</div>
               <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
               <div className="w-22.5 text-right">{t("পরিমাণ", "Amount")}</div>

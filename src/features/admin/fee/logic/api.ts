@@ -1,6 +1,8 @@
 // Supabase data access for the Fee module. RLS-scoped; writes go through the
 // transaction-safe fn_collect_fee / fn_*_fee_mapping / fn_delete_fee_invoice RPCs.
+import { z } from "zod";
 import type { BrowserClient } from "@/shared/services/supabase/types";
+import { amountString, paymentMethod, shortText, uuid } from "@/shared/lib/validation";
 
 type RpcFn = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 const num = (v: unknown): number => Number(v ?? 0);
@@ -44,13 +46,25 @@ export async function fetchFeeMappings(supabase: BrowserClient): Promise<FeeMapp
   }));
 }
 
-export type FeeMappingPayload = {
-  id?: string; class_id: string; fee_head_id: string; student_category_id?: string;
-  amount: string; frequency: string; is_active: boolean;
-};
+/** Same amount trap as `collectPayloadSchema` — this one sets the amount every
+ *  future invoice inherits, so a bad cast here is wrong for a whole class. */
+export const feeMappingSchema = z
+  .object({
+    id: uuid.optional(),
+    class_id: uuid,
+    fee_head_id: uuid,
+    student_category_id: uuid.optional(),
+    amount: amountString,
+    frequency: z.string().min(1),
+    is_active: z.boolean(),
+  })
+  .strict();
+
+export type FeeMappingPayload = z.input<typeof feeMappingSchema>;
+
 export async function upsertFeeMapping(supabase: BrowserClient, payload: FeeMappingPayload): Promise<string> {
   const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_upsert_fee_mapping", { payload });
+  const { data, error } = await rpc("fn_upsert_fee_mapping", { payload: feeMappingSchema.parse(payload) });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
@@ -83,10 +97,25 @@ export async function fetchStudentInvoices(supabase: BrowserClient, studentId: s
 }
 
 export type UnpaidStudent = { studentId: string; code: string | null; roll: number | null; name_bn: string; name_en: string; detail: string; due: number };
+
+/**
+ * Unpaid students in ONE section.
+ *
+ * This used to select every unpaid invoice in the institution and then filter by
+ * section in JS. That was not merely slow — it was WRONG at scale: PostgREST caps
+ * a response at `db-max-rows`, so once the institution had more unpaid invoices
+ * than the cap, students in the requested section could fall outside the returned
+ * page and the screen would report them as having nothing due. A fee-collection
+ * screen that under-reports debt is a silent revenue leak.
+ *
+ * The filter is now pushed into the query with `!inner` joins, so Postgres does
+ * the selection and the transfer is bounded by the section's size.
+ */
 export async function fetchUnpaidBySection(supabase: BrowserClient, classSectionId: string): Promise<UnpaidStudent[]> {
   const { data, error } = await supabase
     .from("fee_invoice")
-    .select("id, period, due_amount, student:student_id(id, student_code, name_bn, name_en, enr:current_enrollment_id(class_section_id, roll_no)), lines:fee_invoice_line(amount, head:fee_head_id(name))")
+    .select("id, period, due_amount, student:student_id!inner(id, student_code, name_bn, name_en, enr:current_enrollment_id!inner(class_section_id, roll_no)), lines:fee_invoice_line(amount, head:fee_head_id(name))")
+    .eq("student.enr.class_section_id", classSectionId)
     .gt("due_amount", 0).is("deleted_at", null);
   if (error) throw error;
   type Raw = {
@@ -94,7 +123,7 @@ export async function fetchUnpaidBySection(supabase: BrowserClient, classSection
     student: { id: string; student_code: string | null; name_bn: string; name_en: string; enr: { class_section_id: string; roll_no: number | null } | null } | null;
     lines: { amount: number; head: { name: string } | null }[] | null;
   };
-  const rows = ((data ?? []) as unknown as Raw[]).filter((r) => r.student?.enr?.class_section_id === classSectionId);
+  const rows = (data ?? []) as unknown as Raw[];
   const byStudent = new Map<string, UnpaidStudent>();
   for (const r of rows) {
     const sid = r.student?.id ?? "";
@@ -115,22 +144,42 @@ export async function fetchUnpaidBySection(supabase: BrowserClient, classSection
 }
 
 export type AppliedFee = { id: string; period: string | null; due: number; status: string; code: string | null; name_bn: string; name_en: string; heads: string };
-export async function fetchAppliedFees(supabase: BrowserClient): Promise<AppliedFee[]> {
-  const { data, error } = await supabase
+
+export const APPLIED_FEE_PAGE_SIZE = 25;
+
+/**
+ * Every invoice in the institution, newest first — the Delete Fees screen.
+ *
+ * Paginated because `fee_invoice` grows as students × fee heads × periods: one
+ * 800-student school generates thousands of rows per year, and this screen exists
+ * to find ONE mistaken invoice among them. Matches `fetchDigitalTransactions`'
+ * `{ rows, total }` shape so both feed the same `Pagination` footer.
+ */
+export async function fetchAppliedFees(
+  supabase: BrowserClient,
+  { page = 1, perPage = APPLIED_FEE_PAGE_SIZE }: { page?: number; perPage?: number } = {},
+): Promise<{ rows: AppliedFee[]; total: number }> {
+  const from = (page - 1) * perPage;
+  const { data, error, count } = await supabase
     .from("fee_invoice")
-    .select("id, period, due_amount, status, student:student_id(student_code, name_bn, name_en), lines:fee_invoice_line(head:fee_head_id(name))")
-    .is("deleted_at", null).order("created_at", { ascending: false });
+    .select(
+      "id, period, due_amount, status, student:student_id(student_code, name_bn, name_en), lines:fee_invoice_line(head:fee_head_id(name))",
+      { count: "exact" },
+    )
+    .is("deleted_at", null).order("created_at", { ascending: false })
+    .range(from, from + perPage - 1);
   if (error) throw error;
   type Raw = {
     id: string; period: string | null; due_amount: number; status: string;
     student: { student_code: string | null; name_bn: string; name_en: string } | null;
     lines: { head: { name: string } | null }[] | null;
   };
-  return ((data ?? []) as unknown as Raw[]).map((r) => ({
+  const rows = ((data ?? []) as unknown as Raw[]).map((r) => ({
     id: r.id, period: r.period, due: num(r.due_amount), status: r.status,
     code: r.student?.student_code ?? null, name_bn: r.student?.name_bn ?? "", name_en: r.student?.name_en ?? "",
     heads: (r.lines ?? []).map((l) => l.head?.name).filter(Boolean).join(", "),
   }));
+  return { rows, total: count ?? 0 };
 }
 
 export type StudentProfile = { id: string; code: string | null; name_bn: string; name_en: string; roll: number | null; section: string; father: string | null; mobile: string | null; category: string | null };
@@ -161,17 +210,46 @@ export async function findStudentIdByCode(supabase: BrowserClient, code: string)
   return (data as { id: string } | null)?.id ?? null;
 }
 
-export type CollectPayload = { fee_invoice_id: string; amount: string; method: string; account_id?: string; txn_ref?: string; paid_by?: string; paid_at?: string };
+/**
+ * The money boundary. Every field here reaches `fn_collect_fee` as jsonb and is
+ * cast in SQL, so a shape error becomes a Postgres cast failure mid-transaction
+ * rather than a form error. `.strict()` matters as much as the field rules: it
+ * catches a renamed key (`invoice_id` for `fee_invoice_id`) which would otherwise
+ * be silently dropped by `payload->>` and post a payment against nothing.
+ */
+export const collectPayloadSchema = z
+  .object({
+    fee_invoice_id: uuid,
+    amount: amountString,
+    method: paymentMethod,
+    account_id: uuid.optional(),
+    txn_ref: shortText(64).optional(),
+    paid_by: shortText(120).optional(),
+    paid_at: z.string().optional(),
+  })
+  .strict();
+
+export type CollectPayload = z.input<typeof collectPayloadSchema>;
+
 export async function collectFee(supabase: BrowserClient, payload: CollectPayload): Promise<string> {
   const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_collect_fee", { payload });
+  const { data, error } = await rpc("fn_collect_fee", { payload: collectPayloadSchema.parse(payload) });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
 
+/**
+ * Bulk void. `min(1)` is the one that earns its keep: `fn_delete_fee_invoice`
+ * loops the array, so an empty list is a no-op that reports success — the screen
+ * would show "3 invoices deleted" having deleted nothing.
+ */
+const deleteInvoiceIdsSchema = z.array(uuid).min(1).max(500);
+
 export async function deleteFeeInvoices(supabase: BrowserClient, ids: string[]): Promise<number> {
   const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_delete_fee_invoice", { payload: { ids } });
+  const { data, error } = await rpc("fn_delete_fee_invoice", {
+    payload: { ids: deleteInvoiceIdsSchema.parse(ids) },
+  });
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
 }
@@ -204,17 +282,26 @@ export async function fetchDigitalTransactions(
 
 export type DigitalTxnStats = { total: number; successCount: number; successTotal: number; pendingCount: number };
 
-/** Institution-wide KPI totals — narrow columns, no join, independent of the paginated table above. */
+/**
+ * Institution-wide KPI totals, aggregated in Postgres.
+ *
+ * Previously this selected `status, amount` for EVERY transaction and reduced in
+ * JS. Beyond the unbounded transfer, it was quietly incorrect: PostgREST truncates
+ * at `db-max-rows`, so past that point the tiles showed a total for a partial
+ * table with no indication anything was missing — the worst failure mode a
+ * financial summary has. `fn_digital_transaction_stats` computes it in one round
+ * trip over rows that never leave the database.
+ */
 export async function fetchDigitalTransactionStats(supabase: BrowserClient): Promise<DigitalTxnStats> {
-  const { data, error } = await supabase.from("digital_transaction").select("status, amount");
-  if (error) throw error;
-  const rows = (data ?? []) as unknown as { status: string; amount: number }[];
-  const success = rows.filter((r) => r.status === "success");
+  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
+  const { data, error } = await rpc("fn_digital_transaction_stats", {});
+  if (error) throw new Error(error.message);
+  const r = (data ?? {}) as Partial<DigitalTxnStats>;
   return {
-    total: rows.length,
-    successCount: success.length,
-    successTotal: success.reduce((s, r) => s + num(r.amount), 0),
-    pendingCount: rows.filter((r) => r.status === "pending").length,
+    total: num(r.total),
+    successCount: num(r.successCount),
+    successTotal: num(r.successTotal),
+    pendingCount: num(r.pendingCount),
   };
 }
 

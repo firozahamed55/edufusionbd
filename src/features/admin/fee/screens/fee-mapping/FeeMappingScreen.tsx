@@ -4,10 +4,11 @@ import { useState } from "react";
 import { Plus, List, CheckCircle2, PauseCircle, Tag, Trash2, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast, PageHeader } from "@/shared/ui";
 import { useClasses, useStudentCategories } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useFeeMappings, useFeeHeads, useUpsertFeeMapping, useDeleteFeeMapping } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const FREQUENCIES = [
   { value: "monthly", bn: "মাসিক", en: "Monthly" },
@@ -22,6 +23,7 @@ const EMPTY = { class_id: "", fee_head_id: "", student_category_id: "", amount: 
 
 export function FeeMappingScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const mappings = useFeeMappings();
   const classes = useClasses();
@@ -40,27 +42,27 @@ export function FeeMappingScreen() {
     if (!f.class_id || !f.fee_head_id || !f.amount) { toast({ title: t("শ্রেণি, ফি হেড ও পরিমাণ আবশ্যক", "Class, head & amount required"), variant: "error" }); return; }
     upsert.mutate(f, {
       onSuccess: () => { toast({ title: t("ম্যাপিং যোগ হয়েছে", "Mapping added"), variant: "success" }); setF({ ...EMPTY }); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
   function toggle(id: string, is_active: boolean) {
-    upsert.mutate({ id, class_id: "", fee_head_id: "", amount: "", frequency: "", is_active }, { onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }) });
+    upsert.mutate({ id, class_id: "", fee_head_id: "", amount: "", frequency: "", is_active }, { onError: (e: unknown) => toast({ title: msg(e), variant: "error" }) });
   }
   function remove() {
     if (!delId) return; const id = delId; setDelId(null);
     del.mutate(id, {
       onSuccess: () => toast({ title: t("ম্যাপিং মুছে ফেলা হয়েছে", "Mapping deleted"), variant: "success" }),
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("মুছে ফেলা ব্যর্থ", "Delete failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "মুছে ফেলা ব্যর্থ", en: "Delete failed" }), variant: "error" }),
     });
   }
 
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ফি ম্যাপিং", "Fee Mapping") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ফি ম্যাপিং", "Fee Mapping")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("শ্রেণি-ভিত্তিক ফি কাঠামো নির্ধারণ", "Define class-wise fee structure")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ফি ম্যাপিং", "Fee Mapping") }]}
+        title={t("ফি ম্যাপিং", "Fee Mapping")}
+        subtitle={t("শ্রেণি-ভিত্তিক ফি কাঠামো নির্ধারণ", "Define class-wise fee structure")}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SoftStat tone="primary" icon={List} value={n(rows.length)} label={t("মোট ম্যাপিং", "Total mappings")} />
@@ -99,7 +101,7 @@ export function FeeMappingScreen() {
               <div className="p-5"><EmptyState icon={<Tag size={22} />} title={t("কোনো ম্যাপিং নেই", "No mappings yet")} /></div>
             ) : (
               <>
-                <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+                <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
                   <div className="flex-1">{t("শ্রেণি", "Class")}</div>
                   <div className="w-27.5">{t("ফি হেড", "Head")}</div>
                   <div className="w-20 text-right">{t("পরিমাণ", "Amount")}</div>
@@ -141,7 +143,7 @@ function SoftStat({ tone, icon: Icon, value, label }: { tone: keyof typeof softT
   return (
     <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e3">
       <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", softTone[tone])}><Icon size={22} /></span>
-      <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-[12.5px] text-text-muted">{label}</p></div>
+      <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-meta text-text-muted">{label}</p></div>
     </div>
   );
 }
