@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+# A newer push to the same branch cancels the older run — PR feedback stays fast
+# and we don't burn minutes verifying superseded commits.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install (locked)
+        run: npm ci
+
+      # Order matters: the cheap, fast gates fail first.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # --max-warnings 0 — the boundaries layering rule is an error, and the
+      # codebase is warning-free today. Keep it that way.
+      - name: Lint (incl. architecture boundaries)
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build-time only; these are the *publishable* client keys, not secrets
+          # in the security sense — but they still live in repo secrets so a fork
+          # PR never builds against the real project.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+  audit:
+    name: dependency audit (production)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Gate on what actually ships. `--omit=dev` is deliberate: the residual
+      # advisories in this tree are all in the ESLint toolchain (build-time,
+      # never served), and the only "fix" — forcing brace-expansion v5 — breaks
+      # minimatch@3 and silently disarms ESLint's file globbing. See the
+      # "//overrides" note in package.json.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      # Visibility without blocking: dev-dependency advisories are reported in
+      # the log so they can't rot unnoticed, but they don't fail the build.
+      - name: Report dev-dependency advisories (non-blocking)
+        if: always()
+        run: npm audit --audit-level=high || true
