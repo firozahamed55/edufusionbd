@@ -8,6 +8,7 @@ import { Field, Select, Button, Skeleton, EmptyState, ErrorState, useToast, Brea
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useExams, useExamResults, useProcessExam } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const resultTone = (r: string | null) => (r === "pass" ? "bg-success-bg text-success-fg" : r === "fail" ? "bg-danger-bg text-danger-fg" : "bg-sunken text-text-secondary");
 
@@ -18,6 +19,7 @@ const resultTone = (r: string | null) => (r === "pass" ? "bg-success-bg text-suc
  */
 export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const [examId, setExamId] = useState("");
   const [sectionId, setSectionId] = useState("");
@@ -33,7 +35,7 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
     if (!examId) { toast({ title: t("পরীক্ষা নির্বাচন করুন", "Select an exam"), variant: "error" }); return; }
     process.mutate(examId, {
       onSuccess: () => toast({ title: t("ফলাফল প্রক্রিয়াকরণ সম্পন্ন হয়েছে", "Results processed"), variant: "success" }),
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("প্রক্রিয়াকরণ ব্যর্থ", "Processing failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "প্রক্রিয়াকরণ ব্যর্থ", en: "Processing failed" }), variant: "error" }),
     });
   }
 
@@ -83,7 +85,7 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
               <p className="flex-1 text-base font-semibold text-text-primary">{t("ফলাফল তালিকা", "Results")}</p>
               <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
             </div>
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-20">{t("মেধাক্রম", "Merit")}</div>
               <div className="w-32.5">{t("আইডি", "ID")}</div>
               <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>

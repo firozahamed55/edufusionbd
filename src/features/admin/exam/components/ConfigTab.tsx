@@ -6,6 +6,7 @@ import { useT } from "@/shared/i18n/useT";
 import { ExamToggle, type SettingsTabId } from "./SettingsShell";
 import { SettingsShell } from "./SettingsShell";
 import { useExamConfig, useSaveExamConfig } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 type Bilingual = { bn: string; en: string };
 export type ConfigField = { key: string; label: Bilingual; type: "text" | "number" | "toggle"; placeholder?: Bilingual };
@@ -21,6 +22,7 @@ export function ConfigTab({ kind, active, cardTitle, fields }: {
   fields: ConfigField[];
 }) {
   const { t } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const config = useExamConfig(kind);
   const save = useSaveExamConfig(kind);
@@ -33,7 +35,7 @@ export function ConfigTab({ kind, active, cardTitle, fields }: {
   function onSave() {
     save.mutate(form, {
       onSuccess: () => toast({ title: t("কনফিগারেশন সংরক্ষিত হয়েছে", "Configuration saved"), variant: "success" }),
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
 

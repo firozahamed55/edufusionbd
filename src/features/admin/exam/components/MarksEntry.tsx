@@ -9,10 +9,12 @@ import { useClassSectionsLookup, useSubjects } from "@/shared/services/lookups/h
 import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useExams, useSectionClassId, useExistingMarks, useSaveMarks } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /** Live mark entry/update — pick exam + section + subject, enter marks, save. */
 export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const [examId, setExamId] = useState("");
   const [sectionId, setSectionId] = useState("");
@@ -47,7 +49,7 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
         entries: rows.map((r) => ({ student_id: r.studentId, marks_obtained: marks[r.studentId]?.absent ? "" : (marks[r.studentId]?.marks ?? ""), is_absent: marks[r.studentId]?.absent ?? false })) },
       {
         onSuccess: (count) => toast({ title: t(`${count} জনের নম্বর সংরক্ষিত হয়েছে`, `Saved marks for ${count}`), variant: "success" }),
-        onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+        onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       },
     );
   }
@@ -89,7 +91,7 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
           <div className="min-w-160">
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-15">{t("রোল", "Roll")}</div>
               <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
               <div className="w-40 text-center">{t("প্রাপ্ত নম্বর", "Marks obtained")} ({n(full)})</div>

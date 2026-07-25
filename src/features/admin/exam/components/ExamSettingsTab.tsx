@@ -6,6 +6,7 @@ import { FormCard, Field, Input, Select, useToast } from "@/shared/ui";
 import { useT } from "@/shared/i18n/useT";
 import { SettingsShell } from "./SettingsShell";
 import { useExams, useGradeSchemes, useUpsertExam } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const TYPES = [
   { value: "semester", bn: "সেমিস্টার", en: "Semester" },
@@ -23,6 +24,7 @@ const EMPTY = { id: "", name: "", type: "term", grade_scheme_id: "", start_date:
 /** Exam-start tab — create, list and edit exams (live via fn_upsert_exam). */
 export function ExamSettingsTab() {
   const { t, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const exams = useExams();
   const schemes = useGradeSchemes();
@@ -34,7 +36,7 @@ export function ExamSettingsTab() {
     if (!f.name.trim()) { toast({ title: t("পরীক্ষার নাম আবশ্যক", "Exam name is required"), variant: "error" }); return; }
     upsert.mutate(f, {
       onSuccess: () => { toast({ title: f.id ? t("পরীক্ষা হালনাগাদ হয়েছে", "Exam updated") : t("পরীক্ষা তৈরি হয়েছে", "Exam created"), variant: "success" }); setF({ ...EMPTY }); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
 
@@ -59,7 +61,7 @@ export function ExamSettingsTab() {
           <p className="text-meta text-text-muted">{t("এখনও কোনো পরীক্ষা নেই।", "No exams yet.")}</p>
         ) : (
           <div className="flex flex-col">
-            <div className="flex items-center gap-3 border-b border-border-default pb-2 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 border-b border-border-default pb-2 text-meta font-semibold text-text-muted">
               <div className="flex-1">{t("নাম", "Name")}</div>
               <div className="w-28">{t("ধরন", "Type")}</div>
               <div className="w-28">{t("স্ট্যাটাস", "Status")}</div>
