@@ -67,7 +67,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
         <p className="text-xs text-white/50">
           {t(
-            "© ২০২৬ এডুফিউশনবিডি · বাংলাদেশের স্কুলের জন্য তৈরি",
+            "© ২০২৬ EduFusionBD · বাংলাদেশের স্কুলের জন্য তৈরি",
             "© 2026 EduFusionBD · Built for schools in Bangladesh",
           )}
         </p>
