@@ -10,6 +10,7 @@ import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { StatusPill, SummaryDot, Toggle, type AttTone } from "./parts";
 import { useExams, useSectionAttendance, useMarkAttendance } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -31,6 +32,7 @@ const EXAM: StatusDef[] = [
 export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
   const isExam = context === "exam";
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const STATUSES = isExam ? EXAM : DAILY;
 
@@ -74,7 +76,7 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
       { class_section_id: sectionId, att_date: date, context, exam_id: isExam ? examId : undefined, sms, entries: rows.map((r) => ({ student_id: r.studentId, status: statuses[r.studentId] ?? "present" })) },
       {
         onSuccess: (count) => toast({ title: t(`${count} জনের উপস্থিতি সংরক্ষিত হয়েছে`, `Attendance saved for ${count}`), variant: "success" }),
-        onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+        onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       },
     );
   }
@@ -110,7 +112,7 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
       ) : students.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : students.isError ? (
-        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={students.error instanceof Error ? students.error.message : undefined} />
+        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(students.error)} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("এই শাখায় কোনো শিক্ষার্থী নেই", "No students in this section")} />
       ) : (

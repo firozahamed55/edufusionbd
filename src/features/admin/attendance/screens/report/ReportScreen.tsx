@@ -4,10 +4,11 @@ import { useState } from "react";
 import { Search, Percent, CheckCircle2, AlertTriangle, Hash, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, PageHeader } from "@/shared/ui";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useAttendanceSummary } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const rateTone = (r: number) => (r >= 90 ? "text-success-fg" : r >= 75 ? "text-warning-fg" : "text-danger-fg");
@@ -15,6 +16,7 @@ const rateTone = (r: number) => (r >= 90 ? "text-success-fg" : r >= 75 ? "text-w
 /** Attendance · Report — live per-student monthly attendance summary. */
 export function ReportScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const today = new Date();
   const [sectionId, setSectionId] = useState("");
   const [from, setFrom] = useState(iso(new Date(today.getTime() - 30 * 864e5)));
@@ -28,11 +30,11 @@ export function ReportScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <Breadcrumb items={[{ label: t("একাডেমিক", "Academic") }, { label: t("উপস্থিতি রিপোর্ট", "Attendance Report") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("উপস্থিতি রিপোর্ট", "Attendance Report")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("শ্রেণি ও তারিখ অনুযায়ী উপস্থিতির সারসংক্ষেপ", "Attendance summary by class and date range")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("একাডেমিক", "Academic") }, { label: t("উপস্থিতি রিপোর্ট", "Attendance Report") }]}
+        title={t("উপস্থিতি রিপোর্ট", "Attendance Report")}
+        subtitle={t("শ্রেণি ও তারিখ অনুযায়ী উপস্থিতির সারসংক্ষেপ", "Attendance summary by class and date range")}
+      />
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
         <Field label={t("শ্রেণি ও শাখা", "Class & section")} required className="w-65 max-w-full">
@@ -48,7 +50,7 @@ export function ReportScreen() {
       ) : q.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
-        <ErrorState title={t("রিপোর্ট লোড করা যায়নি", "Could not load report")} description={q.error instanceof Error ? q.error.message : undefined} />
+        <ErrorState title={t("রিপোর্ট লোড করা যায়নি", "Could not load report")} description={msg(q.error)} />
       ) : d ? (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -63,7 +65,7 @@ export function ReportScreen() {
               <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student list")}</p>
               <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(d.students.length)}</span>
             </div>
-            <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-meta font-semibold text-text-muted">
               <div className="w-35">{t("আইডি", "ID")}</div>
               <div className="w-17.5">{t("রোল", "Roll")}</div>
               <div className="flex-1">{t("নাম", "Name")}</div>
@@ -93,7 +95,7 @@ function SoftStat({ tone, icon: Icon, value, label }: { tone: keyof typeof softT
   return (
     <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e3">
       <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", softTone[tone])}><Icon size={22} /></span>
-      <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-[12.5px] text-text-muted">{label}</p></div>
+      <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-meta text-text-muted">{label}</p></div>
     </div>
   );
 }

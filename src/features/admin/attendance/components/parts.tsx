@@ -39,7 +39,7 @@ export function StatusPill({
     <button
       type="button"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-meta font-semibold transition-colors",
         active ? solidTone[tone] : cn(tintTone[tone], "hover:brightness-95"),
       )}
     >

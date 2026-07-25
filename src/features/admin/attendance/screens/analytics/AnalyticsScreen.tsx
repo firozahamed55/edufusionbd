@@ -4,16 +4,18 @@ import { useState } from "react";
 import { Search, Percent, CheckCircle2, AlertTriangle, Hash, Send, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, PageHeader } from "@/shared/ui";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useAttendanceSummary } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /** Attendance · Analytics — live status split, KPIs and at-risk students. */
 export function AnalyticsScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const today = new Date();
   const [sectionId, setSectionId] = useState("");
   const [from, setFrom] = useState(iso(new Date(today.getTime() - 30 * 864e5)));
@@ -36,11 +38,11 @@ export function AnalyticsScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <Breadcrumb items={[{ label: t("একাডেমিক", "Academic") }, { label: t("উপস্থিতি বিশ্লেষণ", "Attendance Analytics") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("উপস্থিতি বিশ্লেষণ", "Attendance Analytics")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("উপস্থিতির প্রবণতা ও ঝুঁকি বিশ্লেষণ", "Attendance trends & risk analysis")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("একাডেমিক", "Academic") }, { label: t("উপস্থিতি বিশ্লেষণ", "Attendance Analytics") }]}
+        title={t("উপস্থিতি বিশ্লেষণ", "Attendance Analytics")}
+        subtitle={t("উপস্থিতির প্রবণতা ও ঝুঁকি বিশ্লেষণ", "Attendance trends & risk analysis")}
+      />
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
         <Field label={t("শ্রেণি ও শাখা", "Class & Section")} className="w-65 max-w-full">
@@ -54,7 +56,7 @@ export function AnalyticsScreen() {
       {q.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}</div>
       ) : q.isError ? (
-        <ErrorState title={t("বিশ্লেষণ লোড করা যায়নি", "Could not load analytics")} description={q.error instanceof Error ? q.error.message : undefined} />
+        <ErrorState title={t("বিশ্লেষণ লোড করা যায়নি", "Could not load analytics")} description={msg(q.error)} />
       ) : d ? (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -87,7 +89,7 @@ export function AnalyticsScreen() {
                 <p className="text-base font-semibold text-text-primary">{t("ঝুঁকিপূর্ণ শিক্ষার্থী", "At-risk students")}</p>
                 <span className="rounded-full bg-danger-bg px-2.5 py-1 text-micro font-semibold text-danger-fg">{t("<৭৫% উপস্থিতি", "<75% attendance")}</span>
               </div>
-              <div className="mt-3 flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+              <div className="mt-3 flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
                 <div className="w-32.5">{t("আইডি", "ID")}</div>
                 <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
                 <div className="w-15">{t("রোল", "Roll")}</div>
@@ -122,7 +124,7 @@ function SoftStat({ tone, icon: Icon, value, label }: { tone: keyof typeof softT
   return (
     <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e3">
       <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", softTone[tone])}><Icon size={22} /></span>
-      <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-[12.5px] text-text-muted">{label}</p></div>
+      <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-meta text-text-muted">{label}</p></div>
     </div>
   );
 }
