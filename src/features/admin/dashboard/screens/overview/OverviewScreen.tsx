@@ -250,7 +250,7 @@ function Kpi({
         </span>
       </div>
       <p className="text-3xl font-bold tnum">{value}</p>
-      <div className="flex items-center gap-1.5 text-[12.5px]">
+      <div className="flex items-center gap-1.5 text-meta">
         <TrendingUp size={13} />
         <span className="font-semibold">{delta}</span>
         <span className="opacity-90">{period}</span>
@@ -281,7 +281,7 @@ function CardHead({ title, subtitle, pill }: { title: string; subtitle?: string;
     <div className="flex items-center">
       <div className="flex-1">
         <h3 className="text-base font-semibold text-text-primary">{title}</h3>
-        {subtitle ? <p className="mt-0.5 text-[12.5px] text-text-muted">{subtitle}</p> : null}
+        {subtitle ? <p className="mt-0.5 text-meta text-text-muted">{subtitle}</p> : null}
       </div>
       <span className="rounded-full border border-border-default bg-sunken px-3 py-1.5 text-xs font-medium text-text-secondary">
         {pill}
