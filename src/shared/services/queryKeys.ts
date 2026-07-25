@@ -4,9 +4,22 @@
  */
 type Filters = Record<string, unknown> | undefined;
 
+/**
+ * NOTE — this module must never gain a `"use client"` directive, and neither must
+ * anything it imports.
+ *
+ * Server Components prefetch queries using these keys (see
+ * shared/services/prefetch.ts). A Server Component that imports a value from a
+ * `"use client"` module gets a client-reference stub, not the value: the import
+ * resolves to `undefined` at runtime with no error. That produced a dehydrated
+ * cache entry keyed `undefined`, which the client hook could never match — so the
+ * prefetch ran, cost a query, and was thrown away in silence. Keys therefore live
+ * here, in a server-safe module, not next to the hooks that consume them.
+ */
 export const queryKeys = {
   dashboard: {
     kpis: (institutionId: string) => ["dashboard", "kpis", institutionId] as const,
+    overview: ["dashboard", "overview"] as const,
   },
   students: {
     all: ["students"] as const,
