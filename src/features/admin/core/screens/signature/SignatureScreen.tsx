@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, useToast, PageHeader } from "@/shared/ui";
 import { createClient } from "@/shared/services/supabase/client";
 import { uploadInstitutionAsset, getAssetSignedUrl } from "@/shared/lib/institutionAssets";
 import { useSignatures, useUpsertSignature, useInstitution } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const ROLES = [
   { key: "head_teacher", bn: "প্রধান শিক্ষক", en: "Head Teacher" },
@@ -17,6 +18,7 @@ const ROLES = [
 
 export function SignatureScreen() {
   const { t } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const inst = useInstitution();
   const sigs = useSignatures();
@@ -52,7 +54,7 @@ export function SignatureScreen() {
       { id: existing?.id, role_label: roleKey, holder_name: names[roleKey] ?? "" },
       {
         onSuccess: () => toast({ title: t("স্বাক্ষর সংরক্ষিত", "Signature saved"), variant: "success" }),
-        onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+        onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       },
     );
   }
@@ -66,7 +68,7 @@ export function SignatureScreen() {
       await upsert.mutateAsync({ id: existing?.id, role_label: roleKey, holder_name: names[roleKey] ?? existing?.holder_name ?? "", image_file_id: fileId });
       toast({ title: t("স্বাক্ষরের ছবি আপলোড হয়েছে", "Signature image uploaded"), variant: "success" });
     } catch (e) {
-      toast({ title: e instanceof Error ? e.message : t("আপলোড ব্যর্থ", "Upload failed"), variant: "error" });
+      toast({ title: msg(e, { bn: "আপলোড ব্যর্থ", en: "Upload failed" }), variant: "error" });
     } finally {
       setUploading(null);
     }
@@ -74,18 +76,18 @@ export function SignatureScreen() {
 
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") }, { label: t("স্বাক্ষর", "Signatures") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("অনুমোদিত স্বাক্ষর", "Approved Signatures")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("মার্কশিট, সার্টিফিকেট ও প্রশাসনে ব্যবহৃত স্বাক্ষর", "Signatures used on marksheets, certificates & administration")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") }, { label: t("স্বাক্ষর", "Signatures") }]}
+        title={t("অনুমোদিত স্বাক্ষর", "Approved Signatures")}
+        subtitle={t("মার্কশিট, সার্টিফিকেট ও প্রশাসনে ব্যবহৃত স্বাক্ষর", "Signatures used on marksheets, certificates & administration")}
+      />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {ROLES.map((r) => {
           const url = urls[r.key];
           return (
             <div key={r.key} className="flex flex-col gap-4 rounded-2xl bg-surface p-4.5 shadow-e3">
-              <p className="text-[15px] font-semibold text-text-primary">{t(r.bn, r.en)}</p>
+              <p className="text-body font-semibold text-text-primary">{t(r.bn, r.en)}</p>
               <Field label={t("নাম", "Name")}>
                 <Input
                   value={names[r.key] ?? ""}
@@ -95,7 +97,16 @@ export function SignatureScreen() {
               </Field>
               <div className="flex flex-col items-center gap-2.5 rounded-xl border border-dashed border-border-strong bg-sunken px-5 py-6">
                 {url ? (
-                  <img src={url} alt="" className="h-16 w-32 object-contain" />
+                  // Deliberately a raw <img>, not next/image: this is a 1-hour
+                  // signed URL into the PRIVATE institution-assets bucket.
+                  // Routing it through the Next image optimizer would cache a
+                  // tenant's private asset behind a public /_next/image URL.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={url}
+                    alt={t(`${r.bn} স্বাক্ষর`, `${r.en} signature`)}
+                    className="h-16 w-32 object-contain"
+                  />
                 ) : (
                   <div className="grid h-16 w-32 place-items-center rounded-lg bg-border-default/40 text-text-muted"><Upload size={20} /></div>
                 )}

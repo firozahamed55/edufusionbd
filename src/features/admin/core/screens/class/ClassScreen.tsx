@@ -4,17 +4,19 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2, GraduationCap, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Select, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
+import { FormCard, Field, Input, Select, Button, EmptyState, ConfirmDialog, useToast, PageHeader } from "@/shared/ui";
 import {
   useClasses, useUpsertClass, useDeleteClass,
   useClassSections, useUpsertClassSection, useDeleteClassSection, useTeacherOptions,
 } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const EMPTY_CLASS = { id: "", name_bn: "", name_en: "", numeric_level: "" };
 const EMPTY_SECTION = { id: "", section_name: "", capacity: "", class_teacher_id: "" };
 
 export function ClassScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const classes = useClasses();
   const teachers = useTeacherOptions();
@@ -45,7 +47,7 @@ export function ClassScreen() {
     if (!cf.name_bn && !cf.name_en) { toast({ title: t("নাম আবশ্যক", "Name required"), variant: "error" }); return; }
     upsertClass.mutate(cf, {
       onSuccess: (id) => { toast({ title: t("শ্রেণি সংরক্ষিত", "Class saved"), variant: "success" }); if (!cf.id) setSelectedId(id as string); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
   function newClass() { setSelectedId(null); setCf({ ...EMPTY_CLASS }); }
@@ -53,7 +55,7 @@ export function ClassScreen() {
     if (!delClassId) return; const id = delClassId; setDelClassId(null);
     deleteClass.mutate(id, {
       onSuccess: () => { toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }); if (selectedId === id) setSelectedId(null); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e), variant: "error" }),
     });
   }
 
@@ -64,7 +66,7 @@ export function ClassScreen() {
       { id: sf.id || undefined, class_id: selectedId, section_name: sf.section_name || undefined, capacity: sf.capacity, class_teacher_id: sf.class_teacher_id },
       {
         onSuccess: () => { toast({ title: t("শাখা সংরক্ষিত", "Section saved"), variant: "success" }); setSf({ ...EMPTY_SECTION }); },
-        onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+        onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       },
     );
   }
@@ -72,25 +74,26 @@ export function ClassScreen() {
     if (!delSectionId) return; const id = delSectionId; setDelSectionId(null);
     deleteSection.mutate(id, {
       onSuccess: () => toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }),
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e), variant: "error" }),
     });
   }
 
   return (
     <div className="flex flex-col gap-5 pb-6">
       <div className="flex flex-wrap items-start gap-3">
-        <header className="flex-1">
-          <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") }, { label: t("ক্লাস কনফিগ", "Class Config") }]} />
-          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ক্লাস ও শাখা কনফিগারেশন", "Class & Section Configuration")}</h1>
-          <p className="mt-1 text-meta text-text-muted">{t("শ্রেণি ও শাখা তৈরি, ধারণক্ষমতা ও শ্রেণি শিক্ষক নির্ধারণ", "Create classes & sections, set capacity and class teachers")}</p>
-        </header>
+        <PageHeader
+          crumbs={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") }, { label: t("ক্লাস কনফিগ", "Class Config") }]}
+          title={t("ক্লাস ও শাখা কনফিগারেশন", "Class & Section Configuration")}
+          subtitle={t("শ্রেণি ও শাখা তৈরি, ধারণক্ষমতা ও শ্রেণি শিক্ষক নির্ধারণ", "Create classes & sections, set capacity and class teachers")}
+          className="flex-1"
+        />
         <Button variant="primary" onClick={newClass}><Plus size={16} /> {t("নতুন শ্রেণি", "New class")}</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
         <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
           <div className="flex items-center gap-2 bg-sunken px-4.5 py-3.5">
-            <p className="text-[15px] font-semibold text-text-primary">{t("শ্রেণিসমূহ", "Classes")}</p>
+            <p className="text-body font-semibold text-text-primary">{t("শ্রেণিসমূহ", "Classes")}</p>
             <div className="flex-1" />
             <span className="text-meta text-text-muted">{t(`${n(rows.length)}টি`, `${n(rows.length)}`)}</span>
           </div>
@@ -138,7 +141,7 @@ export function ClassScreen() {
               </div>
 
               <div className="overflow-hidden rounded-xl border border-border-default">
-                <div className="flex items-center gap-3 bg-sunken px-4 py-2.5 text-[12.5px] font-semibold text-text-muted">
+                <div className="flex items-center gap-3 bg-sunken px-4 py-2.5 text-meta font-semibold text-text-muted">
                   <div className="flex-1">{t("শাখা", "Section")}</div>
                   <div className="w-25">{t("ধারণক্ষমতা", "Capacity")}</div>
                   <div className="w-20">{t("ভর্তি", "Enrolled")}</div>

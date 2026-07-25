@@ -4,14 +4,16 @@ import { useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, BookOpen, Search } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Select, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader } from "@/shared/ui";
 import { useSubjects, useUpsertSubject, useDeleteSubject, useClasses } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const EMPTY = { id: "", name_bn: "", name_en: "", code: "", type: "compulsory", full_marks: "100", pass_marks: "33", min_class_level: "", max_class_level: "", status: "active" };
 const TYPES = [{ value: "compulsory", bn: "আবশ্যিক", en: "Compulsory" }, { value: "optional", bn: "ঐচ্ছিক", en: "Optional" }];
 
 export function SubjectScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const subjects = useSubjects();
   const classes = useClasses();
@@ -45,10 +47,10 @@ export function SubjectScreen() {
     if (!f.name_bn && !f.name_en) { toast({ title: t("নাম আবশ্যক", "Name required"), variant: "error" }); return; }
     upsert.mutate(f, {
       onSuccess: () => { toast({ title: t("বিষয় সংরক্ষিত", "Subject saved"), variant: "success" }); setOpen(false); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
-  function remove() { if (!delId) return; const id = delId; setDelId(null); del.mutate(id, { onSuccess: () => toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }) }); }
+  function remove() { if (!delId) return; const id = delId; setDelId(null); del.mutate(id, { onSuccess: () => toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: msg(e), variant: "error" }) }); }
 
   const rows = (subjects.data ?? []).filter((r) => {
     if (typeFilter && r.type !== typeFilter) return false;
@@ -62,11 +64,12 @@ export function SubjectScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <div className="flex flex-wrap items-start gap-3">
-        <header className="flex-1">
-          <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("বিষয় তালিকা", "Subject List") }]} />
-          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বিষয় তালিকা", "Subject List")}</h1>
-          <p className="mt-1 text-meta text-text-muted">{t("সকল বিষয়, পূর্ণমান, পাস নম্বর ও ধরন ব্যবস্থাপনা", "Manage all subjects, full marks, pass marks & type")}</p>
-        </header>
+        <PageHeader
+          crumbs={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("বিষয় তালিকা", "Subject List") }]}
+          title={t("বিষয় তালিকা", "Subject List")}
+          subtitle={t("সকল বিষয়, পূর্ণমান, পাস নম্বর ও ধরন ব্যবস্থাপনা", "Manage all subjects, full marks, pass marks & type")}
+          className="flex-1"
+        />
         <Button variant="primary" onClick={openNew}><Plus size={16} /> {t("নতুন বিষয়", "New subject")}</Button>
       </div>
 
@@ -89,7 +92,7 @@ export function SubjectScreen() {
           <div className="p-5"><EmptyState icon={<BookOpen size={22} />} title={t("কোনো বিষয় নেই", "No subjects yet")} /></div>
         ) : (
           <>
-            <div className="flex items-center gap-3 bg-sunken px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 bg-sunken px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-22.5">{t("কোড", "Code")}</div>
               <div className="flex-1">{t("বিষয়", "Subject")}</div>
               <div className="w-32.5">{t("ধরন", "Type")}</div>
@@ -101,7 +104,7 @@ export function SubjectScreen() {
             </div>
             {rows.map((r, i) => (
               <div key={r.id} className={cn("flex items-center gap-3 border-t border-border-default px-5 py-3", i % 2 === 1 && "bg-sunken")}>
-                <div className="w-22.5"><span className="rounded-md bg-sunken px-2 py-0.5 font-latin text-[12.5px] font-semibold text-text-secondary">{r.code ?? "—"}</span></div>
+                <div className="w-22.5"><span className="rounded-md bg-sunken px-2 py-0.5 font-latin text-meta font-semibold text-text-secondary">{r.code ?? "—"}</span></div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-text-primary">{isBn ? r.name_bn : r.name_en}</p>
                   <p className="text-[12px] text-text-muted">{r.name_bn} — {r.name_en}</p>

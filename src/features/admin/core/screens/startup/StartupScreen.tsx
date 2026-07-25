@@ -7,6 +7,7 @@ import { FormCard, Field, Input, Textarea, Select, Skeleton, SaveBar, UnsavedDot
 import { createClient } from "@/shared/services/supabase/client";
 import { uploadInstitutionAsset, getAssetSignedUrl } from "@/shared/lib/institutionAssets";
 import { useInstitution, useUpdateInstitution, useEducationBoards, useTeacherOptions } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const INSTITUTION_TYPES = [
   ["school", "স্কুল", "School"], ["college", "কলেজ", "College"], ["madrasha", "মাদ্রাসা", "Madrasha"], ["coaching", "কোচিং সেন্টার", "Coaching Center"],
@@ -15,6 +16,7 @@ const MPO_STATUSES = [["mpo", "MPO ভুক্ত", "MPO enlisted"], ["non_mpo"
 
 export function StartupScreen() {
   const { t, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const inst = useInstitution();
   const boards = useEducationBoards();
@@ -57,7 +59,7 @@ export function StartupScreen() {
       },
       {
         onSuccess: () => { toast({ title: t("সংরক্ষিত হয়েছে", "Saved"), variant: "success" }); setDirty(false); },
-        onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+        onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       },
     );
   }
@@ -83,7 +85,7 @@ export function StartupScreen() {
       await update.mutateAsync({ logo_file_id: fileId });
       toast({ title: t("লোগো আপলোড হয়েছে", "Logo uploaded"), variant: "success" });
     } catch (e) {
-      toast({ title: e instanceof Error ? e.message : t("আপলোড ব্যর্থ", "Upload failed"), variant: "error" });
+      toast({ title: msg(e, { bn: "আপলোড ব্যর্থ", en: "Upload failed" }), variant: "error" });
     } finally {
       setLogoUploading(false);
     }
@@ -155,7 +157,15 @@ export function StartupScreen() {
             <FormCard title={t("প্রতিষ্ঠানের লোগো", "Institution Logo")} className="items-center text-center">
               <div className="flex w-full flex-col items-center gap-2.5 rounded-xl border border-dashed border-border-strong bg-sunken px-5 py-6">
                 {logoUrl ? (
-                  <img src={logoUrl} alt="" className="size-18 rounded-2xl object-cover" />
+                  // Deliberately a raw <img>, not next/image — see
+                  // SignatureScreen: signed URL into a private bucket, must not
+                  // be cached by the public image optimizer.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={logoUrl}
+                    alt={t("প্রতিষ্ঠানের লোগো", "Institution logo")}
+                    className="size-18 rounded-2xl object-cover"
+                  />
                 ) : (
                   <div className="grid size-18 place-items-center rounded-2xl bg-primary text-xl font-bold text-text-on-primary">
                     {(f.name_en || "?").slice(0, 3).toUpperCase()}
@@ -176,7 +186,7 @@ export function StartupScreen() {
 
             <div className="flex gap-2 rounded-lg bg-primary-subtle px-3.5 py-3 text-primary">
               <Info size={16} className="mt-0.5 shrink-0" />
-              <p className="text-[12.5px] leading-relaxed">{t("স্টার্টআপ তথ্য মার্কশিট, সার্টিফিকেট ও রিপোর্টের হেডারে ব্যবহৃত হবে।", "Startup info is used in the header of marksheets, certificates & reports.")}</p>
+              <p className="text-meta leading-relaxed">{t("স্টার্টআপ তথ্য মার্কশিট, সার্টিফিকেট ও রিপোর্টের হেডারে ব্যবহৃত হবে।", "Startup info is used in the header of marksheets, certificates & reports.")}</p>
             </div>
           </div>
         </div>

@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { Plus, Trash2, Pencil, Layers } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Button, EmptyState, ConfirmDialog, Modal, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Button, EmptyState, ConfirmDialog, Modal, useToast, PageHeader } from "@/shared/ui";
 import { useSubjectGroups, useSubjects, useUpsertGroup, useDeleteGroup } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 export function SubjectGroupScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const groups = useSubjectGroups();
   const subjects = useSubjects();
@@ -27,10 +29,10 @@ export function SubjectGroupScreen() {
     if (!name.trim()) { toast({ title: t("গ্রুপের নাম আবশ্যক", "Group name required"), variant: "error" }); return; }
     upsert.mutate({ id: id || undefined, name, subject_ids: [...picked] }, {
       onSuccess: () => { toast({ title: t("গ্রুপ সংরক্ষিত", "Group saved"), variant: "success" }); setOpen(false); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
-  function remove() { if (!delId) return; const d = delId; setDelId(null); del.mutate(d, { onSuccess: () => toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }) }); }
+  function remove() { if (!delId) return; const d = delId; setDelId(null); del.mutate(d, { onSuccess: () => toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: msg(e), variant: "error" }) }); }
 
   const subs = subjects.data ?? [];
   const rows = groups.data ?? [];
@@ -38,11 +40,12 @@ export function SubjectGroupScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <div className="flex flex-wrap items-start gap-3">
-        <header className="flex-1">
-          <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("বিষয় গ্রুপ", "Subject Group") }]} />
-          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বিষয় গ্রুপ", "Subject Group")}</h1>
-          <p className="mt-1 text-meta text-text-muted">{t("বিভাগভিত্তিক বিষয় গ্রুপ ও ঐচ্ছিক বিষয় ব্যবস্থাপনা", "Manage department-wise subject groups & electives")}</p>
-        </header>
+        <PageHeader
+          crumbs={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("বিষয় গ্রুপ", "Subject Group") }]}
+          title={t("বিষয় গ্রুপ", "Subject Group")}
+          subtitle={t("বিভাগভিত্তিক বিষয় গ্রুপ ও ঐচ্ছিক বিষয় ব্যবস্থাপনা", "Manage department-wise subject groups & electives")}
+          className="flex-1"
+        />
         <Button variant="primary" onClick={openNew}><Plus size={16} /> {t("নতুন গ্রুপ", "New group")}</Button>
       </div>
 
@@ -63,10 +66,10 @@ export function SubjectGroupScreen() {
               </div>
               {g.subject_ids.length > 0 ? (
                 <>
-                  <p className="text-[12.5px] font-semibold text-text-secondary">{t(`বিষয়সমূহ (${n(g.subject_ids.length)})`, `Subjects (${n(g.subject_ids.length)})`)}</p>
+                  <p className="text-meta font-semibold text-text-secondary">{t(`বিষয়সমূহ (${n(g.subject_ids.length)})`, `Subjects (${n(g.subject_ids.length)})`)}</p>
                   <div className="flex flex-wrap gap-2">
                     {subs.filter((s) => g.subject_ids.includes(s.id)).map((s) => (
-                      <span key={s.id} className="rounded-full bg-sunken px-2.5 py-1.5 text-[12.5px] font-medium text-text-secondary">{isBn ? s.name_bn : s.name_en}</span>
+                      <span key={s.id} className="rounded-full bg-sunken px-2.5 py-1.5 text-meta font-medium text-text-secondary">{isBn ? s.name_bn : s.name_en}</span>
                     ))}
                   </div>
                 </>

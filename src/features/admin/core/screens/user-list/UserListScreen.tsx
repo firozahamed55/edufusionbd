@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Download, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState, Breadcrumb, Pagination } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, PageHeader, Pagination } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { useUsers } from "../../logic/hooks";
 
@@ -21,11 +21,11 @@ export function UserListScreen() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header>
-        <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("ব্যবহারকারী", "Users") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("ব্যবহারকারী ব্যবস্থাপনা", "User Management")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের ব্যবহারকারী ও তাদের ভূমিকা", "Institution users and their roles")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("ব্যবহারকারী", "Users") }]}
+        title={t("ব্যবহারকারী ব্যবস্থাপনা", "User Management")}
+        subtitle={t("প্রতিষ্ঠানের ব্যবহারকারী ও তাদের ভূমিকা", "Institution users and their roles")}
+      />
 
       {q.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
@@ -53,7 +53,7 @@ export function UserListScreen() {
                 <Download size={14} /> {t("এক্সপোর্ট", "Export")}
               </button>
             </div>
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="flex-1">{t("নাম", "Name")}</div>
               <div className="w-40">{t("ফোন", "Phone")}</div>
               <div className="w-48">{t("ভূমিকা", "Roles")}</div>
@@ -82,7 +82,7 @@ export function UserListScreen() {
           onPageChange={setPage}
         />
       ) : null}
-      <p className="text-[12.5px] text-text-muted">{t("* নতুন ব্যবহারকারী তৈরি Supabase Auth-এর মাধ্যমে হয় (আমন্ত্রণ প্রবাহ পরবর্তী ধাপে যুক্ত হবে)।", isBn ? "" : "* New users are provisioned via Supabase Auth (invite flow added later).")}</p>
+      <p className="text-meta text-text-muted">{t("* নতুন ব্যবহারকারী তৈরি Supabase Auth-এর মাধ্যমে হয় (আমন্ত্রণ প্রবাহ পরবর্তী ধাপে যুক্ত হবে)।", isBn ? "" : "* New users are provisioned via Supabase Auth (invite flow added later).")}</p>
     </div>
   );
 }

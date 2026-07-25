@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, Award, X } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader } from "@/shared/ui";
 import { useGradeSchemes, useUpsertScheme, useDeleteScheme } from "../../logic/hooks";
 import type { GradeScale } from "../../logic/api";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const DEFAULT_SCALES: GradeScale[] = [
   { grade_letter: "A+", gpa_point: 5, min_marks: 80, max_marks: 100 },
@@ -32,6 +33,7 @@ function gradeTone(letter: string): "success" | "info" | "warning" | "danger" {
 
 export function GradingScreen() {
   const { t, n } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const schemes = useGradeSchemes();
   const upsert = useUpsertScheme();
@@ -64,25 +66,26 @@ export function GradingScreen() {
     if (!name.trim()) { toast({ title: t("স্কিমের নাম আবশ্যক", "Scheme name required"), variant: "error" }); return; }
     upsert.mutate({ id: id || undefined, name, is_default: isDefault, scales }, {
       onSuccess: (savedId) => { toast({ title: t("গ্রেডিং স্কিম সংরক্ষিত", "Grading scheme saved"), variant: "success" }); setOpen(false); if (!id) setActiveId(savedId as string); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
   function remove() {
     if (!delId) return; const target = delId; setDelId(null);
     del.mutate(target, {
       onSuccess: () => { toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }); if (activeId === target) setActiveId(null); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e), variant: "error" }),
     });
   }
 
   return (
     <div className="flex flex-col gap-5 pb-6">
       <div className="flex flex-wrap items-start gap-3">
-        <header className="flex-1">
-          <Breadcrumb items={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("গ্রেডিং স্কিম", "Grading Scheme") }]} />
-          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("গ্রেডিং স্কিম", "Grading Scheme")}</h1>
-          <p className="mt-1 text-meta text-text-muted">{t("GPA ৫.০ ভিত্তিক গ্রেড, নম্বর সীমা ও গ্রেড পয়েন্ট", "GPA-5 based grades, mark ranges & grade points")}</p>
-        </header>
+        <PageHeader
+          crumbs={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("গ্রেডিং স্কিম", "Grading Scheme") }]}
+          title={t("গ্রেডিং স্কিম", "Grading Scheme")}
+          subtitle={t("GPA ৫.০ ভিত্তিক গ্রেড, নম্বর সীমা ও গ্রেড পয়েন্ট", "GPA-5 based grades, mark ranges & grade points")}
+          className="flex-1"
+        />
         <Button variant="primary" onClick={openNew}><Plus size={16} /> {t("নতুন স্কিম", "New scheme")}</Button>
       </div>
 
@@ -97,15 +100,15 @@ export function GradingScreen() {
             <div className="flex-1" />
             {active ? (
               <div className="flex items-center gap-2 rounded-lg bg-primary-subtle px-3 py-2 text-primary">
-                <span className="text-[13px]">ⓘ</span>
-                <span className="text-[12.5px] font-medium">{t(`পাস নম্বর: ${n(Number.isFinite(passMark) ? passMark : 0)} • সর্বোচ্চ GP: ${n(maxGp.toFixed(2))}`, `Pass mark: ${n(Number.isFinite(passMark) ? passMark : 0)} • Max GP: ${n(maxGp.toFixed(2))}`)}</span>
+                <span className="text-meta">ⓘ</span>
+                <span className="text-meta font-medium">{t(`পাস নম্বর: ${n(Number.isFinite(passMark) ? passMark : 0)} • সর্বোচ্চ GP: ${n(maxGp.toFixed(2))}`, `Pass mark: ${n(Number.isFinite(passMark) ? passMark : 0)} • Max GP: ${n(maxGp.toFixed(2))}`)}</span>
               </div>
             ) : null}
           </div>
 
           {active ? (
             <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
-              <div className="flex items-center gap-3 bg-sunken px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+              <div className="flex items-center gap-3 bg-sunken px-5 py-3 text-meta font-semibold text-text-muted">
                 <div className="w-30">{t("গ্রেড", "Grade")}</div>
                 <div className="flex-1">{t("নম্বর সীমা", "Mark range")}</div>
                 <div className="w-50">{t("গ্রেড পয়েন্ট (GP)", "Grade Point (GP)")}</div>
