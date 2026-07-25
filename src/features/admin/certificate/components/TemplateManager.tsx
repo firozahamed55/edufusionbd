@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Plus, Trash2, LayoutTemplate } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Select, Input, Button, EmptyState, ConfirmDialog, useToast, PageHeader } from "@/shared/ui";
 import { useTemplates, useUpsertTemplate, useDeleteTemplate } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const TYPES = [
   { value: "marksheet", bn: "মার্কশিট", en: "Marksheet" },
@@ -19,6 +20,7 @@ const typeLabel = (v: string, isBn: boolean) => TYPES.find((x) => x.value === v)
 /** Certificate template manager — CRUD certificate_template (live). */
 export function TemplateManager() {
   const { t, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const templates = useTemplates();
   const upsert = useUpsertTemplate();
@@ -30,22 +32,22 @@ export function TemplateManager() {
     upsert.mutate(
       { type: f.type, is_default: f.is_default, format_config: { header_text: f.header_text, footer_text: f.footer_text } },
       { onSuccess: () => { toast({ title: t("টেমপ্লেট সংরক্ষিত হয়েছে", "Template saved"), variant: "success" }); setF({ type: "id", header_text: "", footer_text: "", is_default: false }); },
-        onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }) },
+        onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }) },
     );
   }
   function remove() {
     if (!delId) return; const id = delId; setDelId(null);
-    del.mutate(id, { onSuccess: () => toast({ title: t("টেমপ্লেট মুছে ফেলা হয়েছে", "Template deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("মুছে ফেলা ব্যর্থ", "Delete failed"), variant: "error" }) });
+    del.mutate(id, { onSuccess: () => toast({ title: t("টেমপ্লেট মুছে ফেলা হয়েছে", "Template deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: msg(e, { bn: "মুছে ফেলা ব্যর্থ", en: "Delete failed" }), variant: "error" }) });
   }
 
   const rows = templates.data ?? [];
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: t("টেমপ্লেট", "Templates") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("সার্টিফিকেট টেমপ্লেট", "Certificate Templates")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("বিভিন্ন সনদের টেমপ্লেট কাঠামো নির্ধারণ করুন", "Define template formats for each certificate type")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: t("টেমপ্লেট", "Templates") }]}
+        title={t("সার্টিফিকেট টেমপ্লেট", "Certificate Templates")}
+        subtitle={t("বিভিন্ন সনদের টেমপ্লেট কাঠামো নির্ধারণ করুন", "Define template formats for each certificate type")}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
         <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3">
@@ -65,7 +67,7 @@ export function TemplateManager() {
             <div className="p-5"><EmptyState icon={<LayoutTemplate size={22} />} title={t("কোনো টেমপ্লেট নেই", "No templates yet")} /></div>
           ) : (
             <>
-              <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+              <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
                 <div className="flex-1">{t("ধরন", "Type")}</div><div className="w-24 text-center">{t("ডিফল্ট", "Default")}</div><div className="w-14 text-right">{t("অ্যাকশন", "Action")}</div>
               </div>
               {rows.map((r, i) => (

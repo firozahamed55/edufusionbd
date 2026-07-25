@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { Save } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Textarea, Button, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Textarea, Button, useToast, PageHeader } from "@/shared/ui";
 import { useSetting, useSaveSetting } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 type Bilingual = { bn: string; en: string };
 export type SettingField = { key: string; label: Bilingual; type: "text" | "textarea" | "toggle" };
@@ -14,6 +15,7 @@ export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, 
   settingKey: string; scope: string; breadcrumb: Bilingual; title: Bilingual; subtitle: Bilingual; cardTitle: Bilingual; fields: SettingField[];
 }) {
   const { t } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const config = useSetting(settingKey, scope);
   const save = useSaveSetting(settingKey, scope);
@@ -24,17 +26,17 @@ export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, 
   function onSave() {
     save.mutate(form, {
       onSuccess: () => toast({ title: t("সংরক্ষিত হয়েছে", "Saved"), variant: "success" }),
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
 
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: t(breadcrumb.bn, breadcrumb.en) }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t(title.bn, title.en)}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t(subtitle.bn, subtitle.en)}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: t(breadcrumb.bn, breadcrumb.en) }]}
+        title={t(title.bn, title.en)}
+        subtitle={t(subtitle.bn, subtitle.en)}
+      />
 
       <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
         <h2 className="text-base font-semibold text-text-primary">{t(cardTitle.bn, cardTitle.en)}</h2>

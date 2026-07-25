@@ -6,13 +6,15 @@ import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { createClient } from "@/shared/services/supabase/client";
 import { findStudentByCode, type StudentLite } from "@/shared/services/roster/api";
-import { Field, Input, Select, Textarea, Button, EmptyState, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, EmptyState, useToast, PageHeader } from "@/shared/ui";
 import { useCreateTestimonial, useCreateTransfer, useTestimonials, useTransfers } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /** Certificate record creator (testimonial | transfer) — live via fn_create_*. */
 export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
   const isT = kind === "testimonial";
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const [code, setCode] = useState("");
   const [student, setStudent] = useState<StudentLite | null>(null);
@@ -32,14 +34,14 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
       const st = await findStudentByCode(createClient(), code.trim());
       if (!st) { toast({ title: t("শিক্ষার্থী পাওয়া যায়নি", "Student not found"), variant: "error" }); return; }
       setStudent(st);
-    } catch (e) { toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }); }
+    } catch (e) { toast({ title: msg(e), variant: "error" }); }
   }
 
   function generate() {
     if (!student) { toast({ title: t("শিক্ষার্থী নির্বাচন করুন", "Select a student"), variant: "error" }); return; }
     const base = { student_id: student.id, ...f };
     const onDone = () => { toast({ title: t("সনদ তৈরি হয়েছে", "Certificate created"), variant: "success" }); setF({ language: "bn" }); setStudent(null); setCode(""); };
-    const onErr = (e: unknown) => toast({ title: e instanceof Error ? e.message : t("তৈরি ব্যর্থ", "Failed"), variant: "error" });
+    const onErr = (e: unknown) => toast({ title: msg(e, { bn: "তৈরি ব্যর্থ", en: "Failed" }), variant: "error" });
     if (isT) createT.mutate(base, { onSuccess: onDone, onError: onErr });
     else createTr.mutate(base, { onSuccess: onDone, onError: onErr });
   }
@@ -48,11 +50,11 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
 
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: title }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("শিক্ষার্থী খুঁজে সনদের তথ্য দিন ও তৈরি করুন", "Look up a student, fill the details and generate")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: title }]}
+        title={title}
+        subtitle={t("শিক্ষার্থী খুঁজে সনদের তথ্য দিন ও তৈরি করুন", "Look up a student, fill the details and generate")}
+      />
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
         <Field label={t("শিক্ষার্থী আইডি", "Student ID")} required className="w-60 max-w-full">
@@ -98,7 +100,7 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
           <div className="p-5"><EmptyState icon={<FileText size={22} />} title={t("এখনও কোনো সনদ নেই", "No certificates yet")} /></div>
         ) : (
           <>
-            <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-meta font-semibold text-text-muted">
               <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
               <div className="w-40">{t("সনদ নম্বর", "Cert no.")}</div>
               <div className="w-24">{t("সেশন", "Session")}</div>

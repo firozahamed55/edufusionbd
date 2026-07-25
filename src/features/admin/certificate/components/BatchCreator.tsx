@@ -4,15 +4,17 @@ import { useState } from "react";
 import { Wand2, IdCard, Layers } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Button, EmptyState, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Select, Button, EmptyState, useToast, PageHeader } from "@/shared/ui";
 import { useClasses, useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useCreateIdBatch, useCreateAdmitBatch, useIdCardBatches, useAdmitBatches, useExamOptions } from "../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /** ID-card / Admit-card batch creator — live via fn_create_*_batch. */
 export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
   const isId = kind === "id";
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const [f, setF] = useState<Record<string, string>>({});
   const up = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -36,7 +38,7 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
       ? { class_id: f.class_id, section_id: f.section_id, roll_from: f.roll_from, roll_to: f.roll_to, template: f.template, class_color: f.class_color, valid_till: f.valid_till, includes: { photo: true, blood: true, qr: true } }
       : { exam_id: f.exam_id, class_id: f.class_id, section_id: f.section_id, roll_from: f.roll_from, roll_to: f.roll_to, center: f.center, issue_date: f.issue_date, includes: { seat: true, subjects: true } };
     const onDone = () => { toast({ title: t("ব্যাচ তৈরি হয়েছে", "Batch created"), variant: "success" }); setF({}); };
-    const onErr = (e: unknown) => toast({ title: e instanceof Error ? e.message : t("তৈরি ব্যর্থ", "Failed"), variant: "error" });
+    const onErr = (e: unknown) => toast({ title: msg(e, { bn: "তৈরি ব্যর্থ", en: "Failed" }), variant: "error" });
     if (isId) createId.mutate(payload, { onSuccess: onDone, onError: onErr });
     else createAdmit.mutate(payload, { onSuccess: onDone, onError: onErr });
   }
@@ -44,11 +46,11 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
   const title = isId ? t("আইডি কার্ড", "ID Card") : t("প্রবেশপত্র", "Admit Card");
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: title }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
-        <p className="mt-1 text-meta text-text-muted">{isId ? t("শিক্ষার্থীর পরিচয়পত্র ব্যাচ তৈরি করুন", "Create a student ID-card batch") : t("পরীক্ষার প্রবেশপত্র ব্যাচ তৈরি করুন", "Create an exam admit-card batch")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("সার্টিফিকেট", "Certificate"), href: "/admin/certificate/template" }, { label: title }]}
+        title={title}
+        subtitle={isId ? t("শিক্ষার্থীর পরিচয়পত্র ব্যাচ তৈরি করুন", "Create a student ID-card batch") : t("পরীক্ষার প্রবেশপত্র ব্যাচ তৈরি করুন", "Create an exam admit-card batch")}
+      />
 
       <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
         <h2 className="text-base font-semibold text-text-primary">{t("কনফিগারেশন", "Configuration")}</h2>
@@ -83,7 +85,7 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
           <div className="p-5"><EmptyState icon={isId ? <IdCard size={22} /> : <Layers size={22} />} title={t("এখনও কোনো ব্যাচ নেই", "No batches yet")} /></div>
         ) : (
           <>
-            <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-meta font-semibold text-text-muted">
               <div className="flex-1">{t("শ্রেণি ও শাখা", "Class & section")}</div>
               <div className="w-40">{t("রোল পরিসর", "Roll range")}</div>
             </div>
