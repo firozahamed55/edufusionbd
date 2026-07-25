@@ -82,7 +82,7 @@ export function UpdateClassScreen() {
               {t("মোট পাওয়া গেছে:", "Total found:")} {n(rows.length)}
             </span>
           </div>
-          <div className="flex items-center gap-3 px-5 pt-4 text-[12.5px] font-semibold text-text-muted">
+          <div className="flex items-center gap-3 px-5 pt-4 text-meta font-semibold text-text-muted">
             <div className="w-30">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
             <div className="w-15">{t("রোল", "Roll")}</div>
             <div className="w-42.5">{t("নাম", "Name")}</div>

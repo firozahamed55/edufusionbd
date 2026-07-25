@@ -12,6 +12,7 @@ import { useClassSectionsLookup, useStudentCategories } from "@/shared/services/
 import type { Option } from "@/shared/services/lookups/api";
 import { useSectionStudents, useStudentBasic, useUpdateStudentBasic } from "../../logic/hooks";
 import type { StudentBasicPayload } from "../../logic/api";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /**
  * Student · Update Basic Info — live section list → edit modal.
@@ -21,6 +22,7 @@ import type { StudentBasicPayload } from "../../logic/api";
 
 export function UpdateBasicScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const [sectionId, setSectionId] = useState<string>("");
   const [query, setQuery] = useState({ id: "", roll: "", name: "" });
   const [editId, setEditId] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export function UpdateBasicScreen() {
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}
         </div>
       ) : students.isError ? (
-        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={students.error instanceof Error ? students.error.message : undefined} />
+        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(students.error)} />
       ) : (students.data ?? []).length === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("এই শাখায় কোনো শিক্ষার্থী নেই", "No students in this section")} />
       ) : (
@@ -83,7 +85,7 @@ export function UpdateBasicScreen() {
             <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student List")}</p>
             <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n(rows.length)}</span>
           </div>
-          <div className="flex items-center gap-3 px-5 pt-4 text-[12.5px] font-semibold text-text-muted">
+          <div className="flex items-center gap-3 px-5 pt-4 text-meta font-semibold text-text-muted">
             <div className="w-37.5">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
             <div className="w-20">{t("রোল", "Roll")}</div>
             <div className="flex-1">{t("নাম", "Name")}</div>
@@ -132,6 +134,7 @@ function ColFilter({ className, placeholder, value, onChange }: { className?: st
 
 function EditModal({ studentId, onClose }: { studentId: string; onClose: () => void }) {
   const { t, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const detail = useStudentBasic(studentId);
   const categories = useStudentCategories();
@@ -163,7 +166,7 @@ function EditModal({ studentId, onClose }: { studentId: string; onClose: () => v
     };
     update.mutate(payload, {
       onSuccess: () => { toast({ title: t("তথ্য হালনাগাদ হয়েছে", "Info updated"), variant: "success" }); onClose(); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
 

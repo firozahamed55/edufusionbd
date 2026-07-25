@@ -9,6 +9,7 @@ import { useClassSectionsLookup, useAcademicYears } from "@/shared/services/look
 import type { Option } from "@/shared/services/lookups/api";
 import { useSectionStudents, useRunMigration } from "../logic/hooks";
 import type { RunMigrationPayload } from "../logic/api";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /**
  * Shared migration runner for both "with merit" and "no-merit" flows — the two
@@ -19,6 +20,7 @@ import type { RunMigrationPayload } from "../logic/api";
 export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
   const isMerit = type === "merit";
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
 
   const [sourceId, setSourceId] = useState("");
@@ -67,7 +69,7 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
         toast({ title: t(`${chosen.length} জন শিক্ষার্থী উন্নীত হয়েছে`, `${chosen.length} students promoted`), variant: "success" });
         setSelected(new Set());
       },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("মাইগ্রেশন ব্যর্থ", "Migration failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "মাইগ্রেশন ব্যর্থ", en: "Migration failed" }), variant: "error" }),
     });
   }
 
@@ -102,7 +104,7 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
       ) : students.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : students.isError ? (
-        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={students.error instanceof Error ? students.error.message : undefined} />
+        <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(students.error)} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("এই শাখায় কোনো শিক্ষার্থী নেই", "No students in this section")} />
       ) : (
@@ -112,7 +114,7 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
             {selected.size > 0 ? <span className="text-meta font-semibold text-text-secondary">{n(selected.size)} {t("নির্বাচিত", "selected")}</span> : null}
             <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n(rows.length)}</span>
           </div>
-          <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-[12.5px] font-semibold text-text-muted">
+          <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-meta font-semibold text-text-muted">
             <div className="flex w-10 items-center">
               <Checkbox checked={allSelected} ref={(el) => { if (el) el.indeterminate = someSelected; }} onChange={toggleAll} aria-label={t("সব নির্বাচন করুন", "Select all")} />
             </div>

@@ -6,6 +6,7 @@ import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Button, FormCard, Field, Select, SaveBar, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast } from "@/shared/ui";
 import { useMigrationBatches, useMigrationBatchStudents, usePushbackMigration } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /**
  * Student · Migration Pushback — reverse a completed migration batch (also serves
@@ -14,6 +15,7 @@ import { useMigrationBatches, useMigrationBatchStudents, usePushbackMigration } 
  */
 export function MigrationPushbackScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const [batchId, setBatchId] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -31,7 +33,7 @@ export function MigrationPushbackScreen() {
         toast({ title: t(`${count} জন শিক্ষার্থী পূর্ববর্তী শ্রেণিতে ফিরেছে`, `${count} students reverted`), variant: "success" });
         setBatchId("");
       },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("পুশব্যাক ব্যর্থ", "Pushback failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "পুশব্যাক ব্যর্থ", en: "Pushback failed" }), variant: "error" }),
     });
   }
 
@@ -87,7 +89,7 @@ export function MigrationPushbackScreen() {
               <div className="p-5"><EmptyState title={t("কোনো রেকর্ড নেই", "No records")} /></div>
             ) : (
               <>
-                <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-[12.5px] font-semibold text-text-muted">
+                <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-meta font-semibold text-text-muted">
                   <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
                   <div className="w-24 text-right">{t("পুরাতন রোল", "Old Roll")}</div>
                   <div className="w-24 text-right">{t("নতুন রোল", "New Roll")}</div>

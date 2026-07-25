@@ -1,7 +1,9 @@
 // Shared Supabase data access for the Student module (update-basic, reports-summary,
 // migration merit/no-merit/pushback). RLS-scoped; multi-step writes via transaction
 // -safe RPCs. Section options come from @/shared/services/lookups.
+import { z } from "zod";
 import type { BrowserClient } from "@/shared/services/supabase/types";
+import { isoDate, shortText, uuid } from "@/shared/lib/validation";
 
 type RpcFn = (
   fn: string,
@@ -58,25 +60,38 @@ export async function fetchStudentBasic(
   };
 }
 
-export type StudentBasicPayload = {
-  id: string;
-  name_bn: string;
-  name_en: string;
-  dob: string;
-  gender: string;
-  blood_group: string; // DB token, mapped by caller
-  religion: string;
-  birth_reg_no: string;
-  nationality: string;
-  student_category_id: string;
-};
+/**
+ * Student identity write. `dob` is the field that matters: the column is `date`,
+ * the input is free text, and a `dd/mm/yyyy` entry casts to either the wrong date
+ * or a hard error — on a record used to compute exam eligibility and age reports.
+ *
+ * Everything else is `.optional()`-free but permissive on content, because this
+ * screen legitimately saves partial records (a new admission often has no birth
+ * registration number yet) and blocking that would make the form unusable.
+ */
+export const studentBasicSchema = z
+  .object({
+    id: uuid,
+    name_bn: shortText(120),
+    name_en: shortText(120),
+    dob: z.union([isoDate, z.literal("")]),
+    gender: shortText(16),
+    blood_group: shortText(8),
+    religion: shortText(32),
+    birth_reg_no: shortText(32),
+    nationality: shortText(48),
+    student_category_id: z.union([uuid, z.literal("")]),
+  })
+  .strict();
+
+export type StudentBasicPayload = z.input<typeof studentBasicSchema>;
 
 export async function updateStudentBasic(
   supabase: BrowserClient,
   payload: StudentBasicPayload,
 ): Promise<string> {
   const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_update_student_basic", { payload });
+  const { data, error } = await rpc("fn_update_student_basic", { payload: studentBasicSchema.parse(payload) });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
@@ -116,27 +131,50 @@ export async function fetchStudentReport(
 
 /* --------------------------------------------------------------- migration */
 
-export type MigrationStudentInput = {
-  student_id: string;
-  source_enrollment_id: string;
-  merit_rank?: number;
-  result?: string;
-};
+/**
+ * Year-end promotion — the single most destructive write in the product. It
+ * re-enrols a whole section into the next class and rewrites roll numbers, and
+ * the only way back is `fn_pushback_migration`.
+ *
+ * The two rules that earn their place:
+ *  - `students.min(1)` — an empty list means the operator's selection was lost
+ *    somewhere in the UI. Without this the RPC creates an empty completed batch,
+ *    which then shows up in the migration history as a promotion that "happened".
+ *  - source ≠ target — promoting a section into itself passes every DB constraint
+ *    and produces duplicate enrolments that are painful to unpick by hand.
+ */
+export const runMigrationSchema = z
+  .object({
+    academic_year_id: uuid,
+    source_class_section_id: uuid,
+    target_class_section_id: uuid,
+    type: z.enum(["merit", "no_merit"]),
+    students: z
+      .array(
+        z.object({
+          student_id: uuid,
+          source_enrollment_id: uuid,
+          merit_rank: z.number().int().positive().optional(),
+          result: z.string().optional(),
+        }),
+      )
+      .min(1, "Select at least one student to migrate"),
+  })
+  .strict()
+  .refine((p) => p.source_class_section_id !== p.target_class_section_id, {
+    message: "Source and target section must differ",
+    path: ["target_class_section_id"],
+  });
 
-export type RunMigrationPayload = {
-  academic_year_id: string;
-  source_class_section_id: string;
-  target_class_section_id: string;
-  type: "merit" | "no_merit";
-  students: MigrationStudentInput[];
-};
+export type MigrationStudentInput = z.input<typeof runMigrationSchema>["students"][number];
+export type RunMigrationPayload = z.input<typeof runMigrationSchema>;
 
 export async function runMigration(
   supabase: BrowserClient,
   payload: RunMigrationPayload,
 ): Promise<string> {
   const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_run_migration", { payload });
+  const { data, error } = await rpc("fn_run_migration", { payload: runMigrationSchema.parse(payload) });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }

@@ -7,6 +7,7 @@ import { RELIGION, STUDENT_STATUS } from "@/shared/constants/enums";
 import { Skeleton, ErrorState, EmptyState, Breadcrumb } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { useStudentReport } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /**
  * Student · Reports Summary — live enrollment / gender / class / religion / age
@@ -25,6 +26,7 @@ const AGE_LABELS: Record<string, [string, string]> = {
 
 export function ReportsSummaryScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const report = useStudentReport();
 
   const pct = (part: number, whole: number) => (whole > 0 ? ((part / whole) * 100).toFixed(1) : "0.0");
@@ -65,7 +67,7 @@ export function ReportsSummaryScreen() {
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-[18px]" />)}
         </div>
       ) : report.isError ? (
-        <ErrorState title={t("রিপোর্ট লোড করা যায়নি", "Could not load report")} description={report.error instanceof Error ? report.error.message : undefined} />
+        <ErrorState title={t("রিপোর্ট লোড করা যায়নি", "Could not load report")} description={msg(report.error)} />
       ) : !report.data || report.data.total === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("কোনো শিক্ষার্থী নেই", "No students yet")} description={t("শিক্ষার্থী ভর্তি করলে এখানে পরিসংখ্যান দেখা যাবে।", "Statistics appear here once students are enrolled.")} />
       ) : (
@@ -90,7 +92,7 @@ export function ReportsSummaryScreen() {
                   <div key={k.label} className={cn("flex flex-col gap-3 rounded-[18px] bg-linear-to-r px-5 py-4.5 text-white", k.grad, k.shadow)}>
                     <p className="text-meta font-medium opacity-90">{k.label}</p>
                     <p className="text-3xl font-bold tnum">{n(k.value)}</p>
-                    <div className="flex items-center gap-1.5 text-[12.5px] opacity-90">
+                    <div className="flex items-center gap-1.5 text-meta opacity-90">
                       {k.up ? <TrendingUp size={13} /> : null}
                       {k.sub ? <span className="font-semibold">{k.sub}</span> : <span className="opacity-70">{t("শিক্ষাবর্ষ চলমান", "Current year")}</span>}
                     </div>
@@ -144,7 +146,7 @@ export function ReportsSummaryScreen() {
                 </div>
                 <div className="mt-3 overflow-x-auto">
                   <div className="min-w-160">
-                    <div className="flex items-center gap-3 px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+                    <div className="flex items-center gap-3 px-5 py-3 text-meta font-semibold text-text-muted">
                       <div className="flex-1">{t("শ্রেণি", "Class")}</div>
                       <div className="w-22.5 text-right">{t("শাখা", "Sections")}</div>
                       <div className="w-22.5 text-right">{t("ছেলে", "Boys")}</div>
@@ -202,7 +204,7 @@ function CardHead({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div>
       <p className="text-base font-semibold text-text-primary">{title}</p>
-      {subtitle ? <p className="mt-0.5 text-[12.5px] text-text-muted">{subtitle}</p> : null}
+      {subtitle ? <p className="mt-0.5 text-meta text-text-muted">{subtitle}</p> : null}
     </div>
   );
 }

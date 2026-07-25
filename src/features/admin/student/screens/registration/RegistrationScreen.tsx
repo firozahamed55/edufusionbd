@@ -16,6 +16,7 @@ import {
 import type { Option } from "@/shared/services/lookups/api";
 import { BLOOD_TOKEN, type RegisterPayload } from "./logic/api";
 import { useRegisterStudent } from "./logic/useRegisterStudent";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const EMPTY = {
   name_bn: "", name_en: "", dob: "", gender: "", blood_group: "", religion: "",
@@ -30,6 +31,7 @@ const EMPTY = {
 
 export function RegistrationScreen() {
   const { t, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const [f, setF] = useState({ ...EMPTY });
   const up = (k: keyof typeof EMPTY, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
@@ -81,7 +83,7 @@ export function RegistrationScreen() {
         void id;
       },
       onError: (e: unknown) =>
-        toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+        toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
 
@@ -277,7 +279,7 @@ export function RegistrationScreen() {
               ))}
             </div>
           </FormCard>
-          <div className="flex gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg p-3.5 text-[12.5px] leading-relaxed text-info-fg">
+          <div className="flex gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg p-3.5 text-meta leading-relaxed text-info-fg">
             <Info size={16} className="mt-0.5 shrink-0" />
             <p>{t("* চিহ্নিত ফিল্ডগুলো অবশ্যই পূরণ করতে হবে। শিক্ষার্থী আইডি সংরক্ষণের সময় স্বয়ংক্রিয়ভাবে তৈরি হবে।", "* Required fields must be filled. Student ID is generated automatically on save.")}</p>
           </div>
