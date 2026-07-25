@@ -39,6 +39,8 @@ export const FEE_STATUS: BiLabel[] = [
   { value: "partial", bn: "আংশিক", en: "Partial" },
 ];
 
+/** Kept in step with `paymentMethod` in shared/lib/validation.ts by a test in
+ *  shared/lib/validation.test.ts — add a method in both places or it fails. */
 export const PAYMENT_METHOD: BiLabel[] = [
   { value: "cash", bn: "নগদ", en: "Cash" },
   { value: "bkash", bn: "বিকাশ", en: "bKash" },
