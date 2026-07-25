@@ -16,6 +16,15 @@ export type TeacherRow = {
 
 const PAGE_SIZE_DEFAULT = 20;
 
+/**
+ * The arguments this screen renders on first paint — no search, no filter, page 1.
+ *
+ * Lives in this module (which has no `"use client"`) so the RSC that prefetches
+ * the query can import it. A Server Component importing this from the hook file
+ * would get `undefined` and silently prefetch the wrong key.
+ */
+export const TEACHER_LIST_FIRST_PAINT = { page: 1, search: "", department: "" } as const;
+
 export async function fetchTeachers(
   supabase: BrowserClient,
   { page = 1, perPage = PAGE_SIZE_DEFAULT, search = "", department = "" }:

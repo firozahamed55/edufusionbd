@@ -21,6 +21,7 @@ import {
   useUpdateTeacher,
 } from "../logic/hooks";
 import type { TeacherFormValues, TeacherWritePayload } from "../logic/api";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /**
  * Shared teacher form — used by both Registration and Update Profile, which are
@@ -73,6 +74,7 @@ const DOCS = ["জাতীয় পরিচয়পত্র", "শিক্
 export function TeacherForm({ mode }: { mode: "register" | "update" }) {
   const isRegister = mode === "register";
   const { t, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
 
   const [selectedId, setSelectedId] = useState<string>("");
@@ -146,7 +148,7 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
           setF({ ...EMPTY });
         },
         onError: (e: unknown) =>
-          toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+          toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       });
     } else {
       update.mutate(
@@ -154,7 +156,7 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
         {
           onSuccess: () => toast({ title: t("প্রোফাইল হালনাগাদ হয়েছে", "Profile updated"), variant: "success" }),
           onError: (e: unknown) =>
-            toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }),
+            toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
         },
       );
     }
@@ -389,7 +391,7 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
             </div>
           </FormCard>
 
-          <div className="flex gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg p-3.5 text-[12.5px] leading-relaxed text-info-fg">
+          <div className="flex gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg p-3.5 text-meta leading-relaxed text-info-fg">
             <Info size={16} className="mt-0.5 shrink-0" />
             <p>{t("* চিহ্নিত ফিল্ডগুলো অবশ্যই পূরণ করতে হবে। কর্মচারী আইডি সংরক্ষণের সময় স্বয়ংক্রিয়ভাবে তৈরি হবে।", "* Required fields must be filled. Employee ID is generated automatically on save.")}</p>
           </div>
