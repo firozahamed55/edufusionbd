@@ -7,10 +7,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "db:pull": "supabase db pull",
+    "db:diff": "supabase db diff --linked",
     "gen:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/shared/types/database.types.ts"
+  },
+  "//overrides": "next pins transitively-vulnerable copies of sharp (libvips CVEs, GHSA-f88m-g3jw-g9cj) and postcss (GHSA-qx2v-qp2m-jg93 et al). Both are API-compatible at the versions forced here; drop these entries once next ships the bumps itself. Do NOT add brace-expansion here: v5 breaks minimatch@3's CJS default import ('expand is not a function') and disarms eslint's file globbing — tests/architecture.test.ts catches it. The residual brace-expansion/minimatch advisories are devDependency-only (eslint toolchain), so CI gates on `npm audit --omit=dev`.",
+  "overrides": {
+    "sharp": "^0.35.3",
+    "postcss": "^8.5.23"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -18,8 +27,8 @@
     "@tanstack/react-query": "^5.62.11",
     "clsx": "^2.1.1",
     "lucide-react": "^0.469.0",
-    "next": "15.1.3",
-    "next-intl": "^3.26.3",
+    "next": "^15.5.21",
+    "next-intl": "^4.13.4",
     "next-themes": "^0.4.4",
     "react": "19.0.0",
     "react-dom": "19.0.0",
@@ -27,6 +36,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
@@ -34,11 +44,11 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^6.0.3",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "15.1.3",
-    "eslint-plugin-boundaries": "^5.0.1",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.21",
+    "eslint-plugin-boundaries": "^7.1.0",
     "jsdom": "^29.1.1",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.23",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.10"
