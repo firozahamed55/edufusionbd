@@ -21,22 +21,28 @@ functions) and seed data all live here as versioned migrations.
 > (UI files never issue SQL; all DB access goes through `logic/api.ts` →
 > Supabase → RPCs), not by splitting into separate deployable repos.
 
-## Materialize the migration `.sql` files
+## Migration files are IN THIS REPO (as of 2026-07-25)
 
-The full migration history lives in the hosted project. To pull every migration
-into `supabase/migrations/` as versioned SQL files (one command):
+All **34** migrations are materialized under `migrations/`, byte-identical to the
+hosted project's `supabase_migrations.schema_migrations` history (verified by
+md5 per migration). The schema is therefore reproducible from source alone: a
+fresh project can be rebuilt with `supabase db push`, and the DR gap of
+"schema exists only in the hosted project" is closed.
+
+**Every future schema change must land here as a migration file and go through
+PR review — do not apply DDL to the hosted project by hand.**
 
 ```bash
-# 1. Install the CLI (once):    npm i -g supabase   (or: npx supabase ...)
-# 2. Log in:                    supabase login
-# 3. Link this folder:          supabase link --project-ref dkumhtrrgsuwxucgncix
-# 4. Pull all migrations:       supabase db pull
+# Re-sync after someone applies a change out-of-band:
+supabase link --project-ref dkumhtrrgsuwxucgncix   # once, needs `supabase login`
+npm run db:pull                                    # supabase db pull
+npm run db:diff                                    # confirm repo == remote (empty diff)
 ```
 
 `gen:types` in `../package.json` regenerates `../src/shared/types/database.types.ts`
 from the live schema.
 
-## Migration history (22 migrations)
+## Migration history (34 migrations)
 
 | # | Version | Migration | Purpose |
 |---|---------|-----------|---------|
@@ -62,6 +68,18 @@ from the live schema.
 | 20 | 20260711092039 | fix_collect_fee_no_double_ledger | let trigger own the ledger write |
 | 21 | 20260711093354 | attendance_rpcs | `fn_mark_attendance`, `fn_attendance_summary` |
 | 22 | 20260711093456 | fix_mark_attendance_generated_key | match generated `exam_key` via `exam_id` |
+| 23 | 20260711181028 | exam_module_rpcs | `fn_upsert_exam`, `fn_save_marks`, `fn_save_exam_config` |
+| 24 | 20260711181940 | certificate_and_setting_rpcs | template/batch/testimonial/transfer RPCs + `fn_save_setting` |
+| 25 | 20260711182633 | sms_notice_rpcs | campaign send, template CRUD, package purchase, notice CRUD |
+| 26 | 20260711183330 | core_settings_rpcs | institution/class/subject/group/grading/signature CRUD |
+| 27 | 20260724045934 | add_subject_class_range_and_status | `subject.min/max_class_level` + `status`; `fn_upsert_subject` |
+| 28 | 20260724050009 | create_institution_assets_bucket | private storage bucket + 4 per-tenant storage policies |
+| 29 | 20260724050615 | add_fn_record_file_upload | register an uploaded object in `file_object` |
+| 30 | 20260724052041 | extend_fn_update_institution | more institution fields + metadata merge |
+| 31 | 20260724052216 | make_fn_update_institution_partial_safe | only overwrite keys present in the payload |
+| 32 | 20260724052546 | add_class_section_upsert_delete_rpcs | `fn_upsert_class_section` / `fn_delete_class_section` |
+| 33 | 20260724054154 | extend_fn_upsert_signature_image | signature image file id |
+| 34 | 20260725045652 | lock_class_section_and_upload_rpcs_to_authenticated | **security fix** — revoke anon EXECUTE on 3 `SECURITY DEFINER` RPCs |
 
 ## RPC catalog (server-side business logic)
 
