@@ -15,6 +15,7 @@ export {
 } from "./Form";
 export { Pagination } from "./Pagination";
 export { Breadcrumb, type Crumb } from "./Breadcrumb";
+export { PageHeader } from "./PageHeader";
 export { Table, THead, TBody, TR, TH, TD, TableEmpty } from "./Table";
 export { Skeleton, Spinner, EmptyState, ErrorState } from "./states";
 export { PasswordInput } from "./PasswordInput";
