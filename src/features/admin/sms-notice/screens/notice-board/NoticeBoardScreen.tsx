@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Plus, Trash2, Megaphone } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast, PageHeader } from "@/shared/ui";
 import { useNotices, useUpsertNotice, useDeleteNotice } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const AUDIENCES = [
   { value: "all_parents", bn: "সকল অভিভাবক", en: "All parents" },
@@ -23,6 +24,7 @@ const lab = (arr: { value: string; bn: string; en: string }[], v: string | null,
 
 export function NoticeBoardScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const notices = useNotices();
   const upsert = useUpsertNotice();
@@ -33,18 +35,18 @@ export function NoticeBoardScreen() {
 
   function add() {
     if (!f.title.trim()) { toast({ title: t("শিরোনাম আবশ্যক", "Title required"), variant: "error" }); return; }
-    upsert.mutate(f, { onSuccess: () => { toast({ title: t("নোটিশ প্রকাশিত হয়েছে", "Notice published"), variant: "success" }); setF({ title: "", body: "", audience: "all_parents", event_date: "", status: "published" }); }, onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }) });
+    upsert.mutate(f, { onSuccess: () => { toast({ title: t("নোটিশ প্রকাশিত হয়েছে", "Notice published"), variant: "success" }); setF({ title: "", body: "", audience: "all_parents", event_date: "", status: "published" }); }, onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }) });
   }
-  function remove() { if (!delId) return; const id = delId; setDelId(null); del.mutate(id, { onSuccess: () => toast({ title: t("নোটিশ সরানো হয়েছে", "Notice archived"), variant: "success" }), onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }) }); }
+  function remove() { if (!delId) return; const id = delId; setDelId(null); del.mutate(id, { onSuccess: () => toast({ title: t("নোটিশ সরানো হয়েছে", "Notice archived"), variant: "success" }), onError: (e: unknown) => toast({ title: msg(e), variant: "error" }) }); }
 
   const rows = notices.data ?? [];
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("নোটিশ বোর্ড", "Notice Board") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("নোটিশ বোর্ড", "Notice Board")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("নোটিশ প্রকাশ ও ব্যবস্থাপনা করুন", "Publish and manage notices")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("নোটিশ বোর্ড", "Notice Board") }]}
+        title={t("নোটিশ বোর্ড", "Notice Board")}
+        subtitle={t("নোটিশ প্রকাশ ও ব্যবস্থাপনা করুন", "Publish and manage notices")}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr]">
         <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3">

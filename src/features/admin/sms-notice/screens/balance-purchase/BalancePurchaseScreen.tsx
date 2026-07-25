@@ -2,11 +2,13 @@
 
 import { Wallet, Check, Package } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, Button, useToast, Breadcrumb } from "@/shared/ui";
+import { Skeleton, EmptyState, Button, useToast, PageHeader } from "@/shared/ui";
 import { useSmsAccount, usePackages, usePurchasePackage } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 export function BalancePurchaseScreen() {
   const { t, n } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const account = useSmsAccount();
   const packages = usePackages();
@@ -15,17 +17,17 @@ export function BalancePurchaseScreen() {
   function buy(id: string) {
     purchase.mutate(id, {
       onSuccess: () => toast({ title: t("প্যাকেজ কেনা হয়েছে, ব্যালেন্স যুক্ত হয়েছে", "Package purchased, balance added"), variant: "success" }),
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("ক্রয় ব্যর্থ", "Purchase failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "ক্রয় ব্যর্থ", en: "Purchase failed" }), variant: "error" }),
     });
   }
 
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("ব্যালেন্স", "Balance") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS ব্যালেন্স ও প্যাকেজ", "SMS Balance & Packages")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("বর্তমান ব্যালেন্স দেখুন ও প্যাকেজ কিনুন", "View balance and purchase packages")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("ব্যালেন্স", "Balance") }]}
+        title={t("SMS ব্যালেন্স ও প্যাকেজ", "SMS Balance & Packages")}
+        subtitle={t("বর্তমান ব্যালেন্স দেখুন ও প্যাকেজ কিনুন", "View balance and purchase packages")}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex items-center gap-4 rounded-2xl bg-linear-to-r from-[#4f46e5] to-[#7c3aed] p-6 text-white shadow-e3">

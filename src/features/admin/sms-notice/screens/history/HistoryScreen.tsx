@@ -3,7 +3,7 @@
 import { Download, History as HistoryIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, PageHeader } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { useCampaigns } from "../../logic/hooks";
 
@@ -21,11 +21,12 @@ export function HistoryScreen() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start gap-3">
-        <header className="flex-1">
-          <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("ইতিহাস", "History") }]} />
-          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS ইতিহাস", "SMS History")}</h1>
-          <p className="mt-1 text-meta text-text-muted">{t("পাঠানো ক্যাম্পেইনসমূহের রেকর্ড", "Record of sent campaigns")}</p>
-        </header>
+        <PageHeader
+          crumbs={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("ইতিহাস", "History") }]}
+          title={t("SMS ইতিহাস", "SMS History")}
+          subtitle={t("পাঠানো ক্যাম্পেইনসমূহের রেকর্ড", "Record of sent campaigns")}
+          className="flex-1"
+        />
         <button
           onClick={() => exportCsv(
             `sms-history-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -60,7 +61,7 @@ export function HistoryScreen() {
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
           <div className="min-w-180">
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-[12.5px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-40">{t("তারিখ", "Date")}</div>
               <div className="w-28">{t("প্রাপক", "Recipients")}</div>
               <div className="flex-1">{t("বার্তা", "Message")}</div>

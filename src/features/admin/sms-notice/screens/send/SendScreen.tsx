@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { Send, MessageSquare } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Textarea, Button, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, useToast, PageHeader } from "@/shared/ui";
 import { useSmsAccount, useTemplates, useSendCampaign } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const RECIPIENTS = [
   { value: "parent", bn: "অভিভাবক", en: "Parents" },
@@ -14,6 +15,7 @@ const RECIPIENTS = [
 
 export function SendScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const account = useSmsAccount();
   const templates = useTemplates();
@@ -29,9 +31,12 @@ export function SendScreen() {
 
   function submit() {
     if (!f.body.trim()) { toast({ title: t("বার্তা লিখুন", "Enter a message"), variant: "error" }); return; }
+    // The schema also rejects this (sendCampaignSchema), but a generic "some
+    // values aren't valid" toast would not tell the operator WHICH field.
+    if (!(Number(f.recipient_count) > 0)) { toast({ title: t("প্রাপক সংখ্যা দিন", "Enter the recipient count"), variant: "error" }); return; }
     send.mutate(f, {
       onSuccess: () => { toast({ title: t("SMS ক্যাম্পেইন পাঠানো হয়েছে", "SMS campaign sent"), variant: "success" }); setF({ recipient_type: "parent", recipient_group: "", language: "bn", template_id: "", body: "", recipient_count: "" }); },
-      onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("পাঠানো ব্যর্থ", "Send failed"), variant: "error" }),
+      onError: (e: unknown) => toast({ title: msg(e, { bn: "পাঠানো ব্যর্থ", en: "Send failed" }), variant: "error" }),
     });
   }
 
@@ -41,11 +46,12 @@ export function SendScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header className="flex flex-wrap items-end gap-4">
-        <div className="flex-1">
-          <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("SMS পাঠান", "Send SMS") }]} />
-          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS পাঠান", "Send SMS")}</h1>
-          <p className="mt-1 text-meta text-text-muted">{t("অভিভাবক, শিক্ষার্থী বা শিক্ষকদের বার্তা পাঠান", "Message parents, students or teachers")}</p>
-        </div>
+        <PageHeader
+          crumbs={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("SMS পাঠান", "Send SMS") }]}
+          title={t("SMS পাঠান", "Send SMS")}
+          subtitle={t("অভিভাবক, শিক্ষার্থী বা শিক্ষকদের বার্তা পাঠান", "Message parents, students or teachers")}
+          className="flex-1"
+        />
         <div className="rounded-xl bg-primary-subtle px-4 py-2.5 text-center">
           <p className="text-xs text-text-muted">{t("এসএমএস ব্যালেন্স", "SMS balance")}</p>
           <p className="text-lg font-bold text-primary tnum">{n(account.data?.balance ?? 0)}</p>
@@ -66,11 +72,11 @@ export function SendScreen() {
           <Textarea value={f.body} onChange={(e) => up("body", e.target.value)} placeholder={t("এখানে বার্তা লিখুন…", "Type your message…")} className="min-h-32" />
         </Field>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[12.5px] text-text-muted">{t("অক্ষর", "Chars")}: <b className="tnum">{n(chars)}</b> · {t("সেগমেন্ট", "Segments")}: <b className="tnum">{n(segments)}</b></span>
+          <span className="text-meta text-text-muted">{t("অক্ষর", "Chars")}: <b className="tnum">{n(chars)}</b> · {t("সেগমেন্ট", "Segments")}: <b className="tnum">{n(segments)}</b></span>
           <div className="flex-1" />
           <Button variant="primary" onClick={submit} disabled={send.isPending}><Send size={16} /> {send.isPending ? t("পাঠানো হচ্ছে…", "Sending…") : t("পাঠান", "Send")}</Button>
         </div>
-        <div className="flex items-start gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-[12.5px] text-info-fg">
+        <div className="flex items-start gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-meta text-info-fg">
           <MessageSquare size={16} className="mt-0.5 shrink-0" />
           <p>{t("বার্তাটি রেকর্ড করা হবে ও ব্যালেন্স থেকে প্রাপক সংখ্যা অনুযায়ী কেটে নেওয়া হবে। প্রকৃত ডেলিভারি গেটওয়ে ইন্টিগ্রেশনের পর সক্রিয় হবে।", "The campaign is recorded and the balance is debited by the recipient count. Actual delivery activates after gateway integration.")}</p>
         </div>

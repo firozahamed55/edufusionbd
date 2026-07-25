@@ -17,7 +17,7 @@ function useMut<T>(fn: (v: T) => Promise<unknown>, keys: string[]) {
   return useMutation({ mutationFn: fn, onSuccess: () => keys.forEach((k) => qc.invalidateQueries({ queryKey: ["sms", k] })) });
 }
 
-export const useSendCampaign = () => useMut((p: Record<string, unknown>) => api.sendCampaign(c(), p), ["campaigns", "account"]);
+export const useSendCampaign = () => useMut((p: api.SendCampaignPayload) => api.sendCampaign(c(), p), ["campaigns", "account"]);
 export const usePurchasePackage = () => useMut((id: string) => api.purchasePackage(c(), id), ["account"]);
 export const useUpsertTemplate = () => useMut((p: Record<string, unknown>) => api.upsertTemplate(c(), p), ["templates"]);
 export const useDeleteTemplate = () => useMut((id: string) => api.deleteTemplate(c(), id), ["templates"]);

@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Plus, Trash2, MessageSquareText } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast, PageHeader } from "@/shared/ui";
 import { useTemplates, useUpsertTemplate, useDeleteTemplate } from "../../logic/hooks";
+import { useErrorMessage } from "@/shared/services/errors";
 
 const CATEGORIES = [
   { value: "result", bn: "ফলাফল", en: "Result" },
@@ -19,6 +20,7 @@ const catLabel = (v: string | null, isBn: boolean) => CATEGORIES.find((x) => x.v
 
 export function TemplatesScreen() {
   const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
   const toast = useToast();
   const templates = useTemplates();
   const upsert = useUpsertTemplate();
@@ -28,18 +30,18 @@ export function TemplatesScreen() {
 
   function add() {
     if (!f.name.trim() || !f.body.trim()) { toast({ title: t("নাম ও বার্তা আবশ্যক", "Name & body required"), variant: "error" }); return; }
-    upsert.mutate(f, { onSuccess: () => { toast({ title: t("টেমপ্লেট সংরক্ষিত", "Template saved"), variant: "success" }); setF({ name: "", category: "result", body: "" }); }, onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : t("সংরক্ষণ ব্যর্থ", "Save failed"), variant: "error" }) });
+    upsert.mutate(f, { onSuccess: () => { toast({ title: t("টেমপ্লেট সংরক্ষিত", "Template saved"), variant: "success" }); setF({ name: "", category: "result", body: "" }); }, onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }) });
   }
-  function remove() { if (!delId) return; const id = delId; setDelId(null); del.mutate(id, { onSuccess: () => toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: e instanceof Error ? e.message : "Error", variant: "error" }) }); }
+  function remove() { if (!delId) return; const id = delId; setDelId(null); del.mutate(id, { onSuccess: () => toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }), onError: (e: unknown) => toast({ title: msg(e), variant: "error" }) }); }
 
   const rows = templates.data ?? [];
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <Breadcrumb items={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("টেমপ্লেট", "Templates") }]} />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("SMS টেমপ্লেট", "SMS Templates")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("পুনঃব্যবহারযোগ্য বার্তা টেমপ্লেট তৈরি করুন", "Create reusable message templates")}</p>
-      </header>
+      <PageHeader
+        crumbs={[{ label: t("SMS ও নোটিশ", "SMS & Notice"), href: "/admin/sms-notice/send" }, { label: t("টেমপ্লেট", "Templates") }]}
+        title={t("SMS টেমপ্লেট", "SMS Templates")}
+        subtitle={t("পুনঃব্যবহারযোগ্য বার্তা টেমপ্লেট তৈরি করুন", "Create reusable message templates")}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
         <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3">
