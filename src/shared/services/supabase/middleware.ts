@@ -1,12 +1,28 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/shared/types/database.types";
 
-/** Refresh the Supabase session on every request and return the current user. */
+/** The subset of the JWT the edge gate needs: identity + role. */
+export type SessionClaims = { sub: string; role?: string };
+
+/**
+ * Refresh the Supabase session on every request and return the verified claims.
+ *
+ * Uses `getClaims()` rather than `getUser()`: this project signs JWTs with an
+ * asymmetric ES256 key, so the signature is verified locally via WebCrypto
+ * against a cached JWKS — no auth-server round trip. `getUser()` cost a measured
+ * ~150ms (p99 ~870ms) on EVERY request, including RSC prefetches, which put that
+ * latency directly on the critical path of every navigation. Security is
+ * unchanged: the signature is still cryptographically verified, and RLS
+ * re-enforces tenant isolation at the data layer.
+ *
+ * Session refresh still happens — `getClaims()` refreshes an access token that
+ * is about to expire before validating it, and the cookie handlers below write
+ * the rotated tokens back onto the response.
+ */
 export async function updateSession(
   request: NextRequest,
-): Promise<{ response: NextResponse; user: User | null }> {
+): Promise<{ response: NextResponse; claims: SessionClaims | null }> {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -32,9 +48,18 @@ export async function updateSession(
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
 
-  return { response, user };
+  return {
+    response,
+    claims: claims
+      ? {
+          sub: claims.sub,
+          role: (claims.app_metadata?.role ?? claims.user_metadata?.role) as
+            | string
+            | undefined,
+        }
+      : null,
+  };
 }
