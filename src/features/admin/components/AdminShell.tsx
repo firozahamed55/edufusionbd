@@ -18,6 +18,122 @@ import { useT } from "@/shared/i18n/useT";
 import { useSmsAccount } from "@/features/admin/sms-notice/logic/hooks";
 import { CommandPalette } from "@/features/admin/core/components/CommandPalette";
 
+type Tb = (b: { bn: string; en: string }) => string;
+
+const isSubActive = (s: AdminSubItem, pathname: string) => {
+  const prefixes = Array.isArray(s.match) ? s.match : [s.match ?? s.href];
+  return prefixes.some((p) => pathname.startsWith(p));
+};
+
+/**
+ * NavLink/SubLink live at module scope, NOT inside AdminShell.
+ *
+ * Declared inside the component they were re-created on every render, so React
+ * saw a brand-new element type each time and tore down + remounted the entire
+ * sidebar subtree — on every pathname change, every drawer/menu toggle, and
+ * once a minute forever from the topbar clock interval. Hoisting them makes the
+ * type identity stable, so those renders become cheap reconciliations instead.
+ */
+function SubLink({
+  item,
+  pathname,
+  t,
+}: {
+  item: AdminSubItem;
+  pathname: string;
+  t: Tb;
+}) {
+  const active = isSubActive(item, pathname);
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex h-9 items-center gap-2.5 rounded-lg px-3 text-meta transition-colors",
+        active
+          ? "bg-primary-subtle font-semibold text-text-primary"
+          : "font-medium text-text-secondary hover:bg-sunken",
+      )}
+    >
+      <span
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          active ? "bg-primary" : "bg-text-muted/70",
+        )}
+      />
+      <span className="truncate">{t(item)}</span>
+    </Link>
+  );
+}
+
+function NavLink({
+  item,
+  pathname,
+  active,
+  t,
+}: {
+  item: AdminNavItem;
+  pathname: string;
+  active: boolean;
+  t: Tb;
+}) {
+  const Icon = item.icon;
+  const Chevron = active ? ChevronDown : ChevronRight;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <Link
+        href={item.href}
+        aria-current={active && !item.sub ? "page" : undefined}
+        className={cn(
+          "flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
+          active
+            ? "bg-primary-subtle font-semibold text-primary"
+            : "font-medium text-text-secondary hover:bg-sunken",
+        )}
+      >
+        <Icon size={18} className="shrink-0" />
+        <span className="truncate">{t(item)}</span>
+        {item.sub ? (
+          <Chevron size={15} className="ml-auto shrink-0 text-text-muted" />
+        ) : null}
+      </Link>
+      {item.sub && active ? (
+        <div className="flex flex-col gap-0.5 pb-1 pl-6">
+          {item.sub.map((group, gi) => {
+            if (!group.label) {
+              return group.items.map((s) => (
+                <SubLink key={s.href} item={s} pathname={pathname} t={t} />
+              ));
+            }
+            // Labeled group (Core Settings): header row toggles like Figma —
+            // only the group holding the active route is expanded.
+            const open = group.items.some((s) => isSubActive(s, pathname));
+            const GroupChevron = open ? ChevronUp : ChevronDown;
+            return (
+              <div key={gi} className="flex flex-col gap-0.5">
+                <Link
+                  href={group.items[0].href}
+                  className="flex h-9 items-center gap-2.5 rounded-lg px-3 text-meta font-medium text-text-secondary hover:bg-sunken"
+                >
+                  <span className="flex-1 truncate">{t(group.label)}</span>
+                  <GroupChevron size={14} className="shrink-0 text-text-muted" />
+                </Link>
+                {open ? (
+                  <div className="flex flex-col gap-0.5 pl-3">
+                    {group.items.map((s) => (
+                      <SubLink key={s.href} item={s} pathname={pathname} t={t} />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * Sticky sidebar + sticky topbar + scrolling content — the shared admin chrome.
  * Fully token-driven, so it renders correctly in light and dark from one path.
@@ -68,10 +184,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
   };
   const isActive = (i: AdminNavItem) =>
     pathname.startsWith(i.match ?? `/admin/${i.key}`);
-  const isSubActive = (s: AdminSubItem) => {
-    const prefixes = Array.isArray(s.match) ? s.match : [s.match ?? s.href];
-    return prefixes.some((p) => pathname.startsWith(p));
-  };
 
   // Close the mobile drawer and profile menu on navigation.
   useEffect(() => {
@@ -91,87 +203,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const SubLink = ({ item }: { item: AdminSubItem }) => {
-    const active = isSubActive(item);
-    return (
-      <Link
-        href={item.href}
-        aria-current={active ? "page" : undefined}
-        className={cn(
-          "flex h-9 items-center gap-2.5 rounded-lg px-3 text-meta transition-colors",
-          active
-            ? "bg-primary-subtle font-semibold text-text-primary"
-            : "font-medium text-text-secondary hover:bg-sunken",
-        )}
-      >
-        <span
-          className={cn(
-            "size-1.5 shrink-0 rounded-full",
-            active ? "bg-primary" : "bg-text-muted/70",
-          )}
-        />
-        <span className="truncate">{t(item)}</span>
-      </Link>
-    );
-  };
-
-  const NavLink = ({ item }: { item: AdminNavItem }) => {
-    const Icon = item.icon;
-    const active = isActive(item);
-    const Chevron = active ? ChevronDown : ChevronRight;
-    return (
-      <div className="flex flex-col gap-0.5">
-        <Link
-          href={item.href}
-          aria-current={active && !item.sub ? "page" : undefined}
-          className={cn(
-            "flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
-            active
-              ? "bg-primary-subtle font-semibold text-primary"
-              : "font-medium text-text-secondary hover:bg-sunken",
-          )}
-        >
-          <Icon size={18} className="shrink-0" />
-          <span className="truncate">{t(item)}</span>
-          {item.sub ? (
-            <Chevron size={15} className="ml-auto shrink-0 text-text-muted" />
-          ) : null}
-        </Link>
-        {item.sub && active ? (
-          <div className="flex flex-col gap-0.5 pb-1 pl-6">
-            {item.sub.map((group, gi) => {
-              if (!group.label) {
-                return group.items.map((s) => <SubLink key={s.href} item={s} />);
-              }
-              // Labeled group (Core Settings): header row toggles like Figma —
-              // only the group holding the active route is expanded.
-              const open = group.items.some(isSubActive);
-              const GroupChevron = open ? ChevronUp : ChevronDown;
-              return (
-                <div key={gi} className="flex flex-col gap-0.5">
-                  <Link
-                    href={group.items[0].href}
-                    className="flex h-9 items-center gap-2.5 rounded-lg px-3 text-meta font-medium text-text-secondary hover:bg-sunken"
-                  >
-                    <span className="flex-1 truncate">{t(group.label)}</span>
-                    <GroupChevron size={14} className="shrink-0 text-text-muted" />
-                  </Link>
-                  {open ? (
-                    <div className="flex flex-col gap-0.5 pl-3">
-                      {group.items.map((s) => (
-                        <SubLink key={s.href} item={s} />
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-
   // Sidebar content — rendered identically in the desktop rail and mobile drawer.
   const sidebarNav = (
     <nav aria-label={tx("প্রধান নেভিগেশন", "Main navigation")} className="flex flex-1 flex-col gap-1">
@@ -180,9 +211,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           E
         </div>
         <div className="leading-tight">
-          <p className="text-body font-semibold">
-            {tx("এডুফিউশনবিডি", "EduFusionBD")}
-          </p>
+          <p className="text-body font-semibold font-latin">EduFusionBD</p>
           <p className="text-micro text-text-muted">{tx("অ্যাডমিন", "Admin")}</p>
         </div>
       </div>
@@ -195,7 +224,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </p>
           ) : null}
           {section.items.map((item) => (
-            <NavLink key={item.key} item={item} />
+            <NavLink
+              key={item.key}
+              item={item}
+              pathname={pathname}
+              active={isActive(item)}
+              t={t}
+            />
           ))}
         </div>
       ))}
@@ -204,7 +239,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <div className="h-px w-full bg-border-default" />
       <div className="flex flex-col gap-1 pt-1">
         {ADMIN_NAV_FOOTER.map((item) => (
-          <NavLink key={item.key} item={item} />
+          <NavLink
+            key={item.key}
+            item={item}
+            pathname={pathname}
+            active={isActive(item)}
+            t={t}
+          />
         ))}
       </div>
     </nav>
