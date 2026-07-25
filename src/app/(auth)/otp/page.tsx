@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { useT } from "@/shared/i18n/useT";
 import { Button, OtpInput } from "@/shared/ui";
 import { AuthShell, AuthCard, AuthBackLink } from "@/features/auth/components";
-import { roleHome } from "@/features/auth/components/roles";
 
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;
@@ -17,7 +15,6 @@ const RESEND_SECONDS = 30;
  */
 export default function OtpPage() {
   const { t, n } = useT();
-  const router = useRouter();
   const [code, setCode] = useState("");
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
   const [loading, setLoading] = useState(false);
@@ -44,14 +41,27 @@ export default function OtpPage() {
       setError(t("সম্পূর্ণ কোড দিন", "Enter the complete code"));
       return;
     }
-    setError(null);
-    setLoading(true);
-    // Verify against the auth API; simulate the round-trip for the UI flow.
-    await new Promise((r) => setTimeout(r, 700));
+    // OTP LOGIN IS NOT WIRED. There is no SMS provider yet, so there is nothing
+    // to verify this code against.
+    //
+    // What used to be here was a 700ms `setTimeout` followed by
+    // `router.replace(roleHome(null))` — i.e. any six digits "succeeded" and the
+    // user was sent to /admin/dashboard. The middleware gate caught them there
+    // and bounced them to /login (so this was never an auth bypass), but the
+    // screen still claimed to authenticate people, and it would have BECOME a
+    // bypass the moment that gate regressed. A login form that lies is worse than
+    // one that is honestly unavailable.
+    //
+    // Replace this block with `supabase.auth.verifyOtp({ phone, token: code })`
+    // when the SMS provider is selected; the input, timer and error states above
+    // are already the right shape for it.
     setLoading(false);
-    // On success, route to the role home (defaults to admin fallback).
-    router.replace(roleHome(null));
-    router.refresh();
+    setError(
+      t(
+        "ওটিপি লগইন এখনও চালু হয়নি। পাসওয়ার্ড দিয়ে লগইন করুন।",
+        "OTP sign-in isn't available yet. Please sign in with your password.",
+      ),
+    );
   }
 
   return (

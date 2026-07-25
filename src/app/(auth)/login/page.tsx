@@ -10,6 +10,7 @@ import { useT } from "@/shared/i18n/useT";
 import { Button, PasswordInput, Checkbox } from "@/shared/ui";
 import { AuthShell, AuthCard } from "@/features/auth/components";
 import { roleHome, isRole, safeInternalPath, ROLE_LABELS } from "@/features/auth/components/roles";
+import { useErrorMessage } from "@/shared/services/errors";
 
 /**
  * Login — Figma split-panel. Primary identifier is a mobile number (how
@@ -20,6 +21,7 @@ import { roleHome, isRole, safeInternalPath, ROLE_LABELS } from "@/features/auth
  */
 export default function LoginPage() {
   const { t } = useT();
+  const msg = useErrorMessage();
   const router = useRouter();
   const params = useSearchParams();
   // Role the user picked on the Role Selection screen — drives the header only.
@@ -46,7 +48,14 @@ export default function LoginPage() {
     });
     if (error) {
       setLoading(false);
-      setError(t("মোবাইল নম্বর/ইমেইল বা পাসওয়ার্ড ভুল", "Invalid mobile number/email or password"));
+      // Supabase Auth throttles /auth/v1/token per IP and answers 429. Reporting
+      // that as "wrong password" made a throttled user retry harder, which keeps
+      // the token bucket empty — so the classifier distinguishes them and only
+      // falls back to the credentials message for a genuine rejection.
+      setError(msg(error, {
+        bn: "মোবাইল নম্বর/ইমেইল বা পাসওয়ার্ড ভুল",
+        en: "Invalid mobile number/email or password",
+      }));
       return;
     }
     const actualRole = (data.user?.app_metadata?.role ?? data.user?.user_metadata?.role) as
