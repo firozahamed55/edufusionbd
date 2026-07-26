@@ -106,10 +106,25 @@ export type SendCampaignPayload = {
   recipient_count: string | number;
 };
 
-export async function sendCampaign(s: BrowserClient, payload: SendCampaignPayload): Promise<string> {
-  const { data, error } = await s.rpc("fn_send_sms_campaign", { payload: sendCampaignSchema.parse(payload) });
-  if (error) throw new Error(error.message);
-  return (data as string) ?? "";
+/**
+ * Routed through `POST /api/v1/sms/send`, not `supabase.rpc()` directly — see
+ * `src/server/sms/sendCampaign.ts` for why this is the one write that goes
+ * through the server tier. `s` (the `BrowserClient`) is unused here; kept in
+ * the signature so this function matches every other mutation in the module
+ * and callers do not need to know which few writes are routed differently.
+ */
+export async function sendCampaign(
+  _s: BrowserClient,
+  payload: SendCampaignPayload,
+): Promise<string> {
+  const res = await fetch("/api/v1/sms/send", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(sendCampaignSchema.parse(payload)),
+  });
+  const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
+  if (!res.ok) throw new Error(body.message ?? `Send failed (${res.status})`);
+  return body.id ?? "";
 }
 
 export type NoticeRow = { id: string; title: string; body: string | null; audience: string | null; event_date: string | null; status: string };

@@ -39,6 +39,13 @@ const config = [
         { type: "config", pattern: "src/config" },
         { type: "shared", pattern: "src/shared" },
         { type: "feature", pattern: "src/features/*", capture: ["feature"] },
+        // Route-handler backing code (audit §3.2 "src/server/" tier — use
+        // cases for writes that need validate·limit·authz·audit, not a home
+        // for reads RLS already makes safe). Layered like `app`: it may pull
+        // from any feature's `logic/` module rather than duplicate a schema,
+        // because a use case's whole job is orchestrating existing feature
+        // logic behind an HTTP boundary, not reimplementing it.
+        { type: "server", pattern: "src/server" },
       ],
     },
     rules: {
@@ -52,6 +59,12 @@ const config = [
           policies: [
             {
               from: { element: { type: "app" } },
+              allow: {
+                to: { element: { type: ["shared", "config", "feature", "server"] } },
+              },
+            },
+            {
+              from: { element: { type: "server" } },
               allow: {
                 to: { element: { type: ["shared", "config", "feature"] } },
               },

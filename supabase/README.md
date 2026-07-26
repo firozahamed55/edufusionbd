@@ -23,7 +23,7 @@ functions) and seed data all live here as versioned migrations.
 
 ## Migration files are IN THIS REPO (as of 2026-07-26)
 
-All **47** migrations are materialized under `migrations/`, byte-identical to the
+All **48** migrations are materialized under `migrations/`, byte-identical to the
 hosted project's `supabase_migrations.schema_migrations` history (verified by
 md5 per migration). The schema is therefore reproducible from source alone: a
 fresh project can be rebuilt with `supabase db push`, and the DR gap of
@@ -93,6 +93,7 @@ from the live schema.
 | 45 | 20260726053505 | partition_attendance_and_mark_by_academic_year | **Phase 1.2 (A-H5)** — `attendance`/`mark` LIST-partitioned by `academic_year_id`, RLS/triggers/views recreated on the new tables |
 | 46 | 20260726053715 | set_partition_key_at_write_paths | Corrects migration 45's first attempt (BEFORE trigger cannot set a partition key) — folded into 45 on disk; kept as a version marker |
 | 47 | 20260726055141 | set_based_migration_rewrite | **Phase 2.5 (A-H7)** — `fn_run_migration`/`fn_pushback_migration` rewritten as INSERT/UPDATE...FROM over a temp working table, no per-row loop |
+| 48 | 20260726055938 | rate_limiting | **Phase 2.1 (A-H8)** — `request_log` + `private.check_rate_limit()`; wired into `fn_send_sms_campaign` (20 sends/hour/school) |
 
 ## RPC catalog (server-side business logic)
 

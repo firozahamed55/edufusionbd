@@ -1402,8 +1402,8 @@ That is a small change from what exists. It is also the difference between a dem
 
 | # | Action | Finding | Days | Status |
 |---|---|---|---|---|
-| 2.1 | `src/server/` + `/api/v1/*` with validate·limit·authz·audit middleware | A-H8 | 3 | ⬜ |
-| 2.2 | Outbox table + `pg_cron` + Edge Function drainer | **A-H7** | 2 | ⬜ |
+| 2.1 | `src/server/` + `/api/v1/*` with validate·limit·authz·audit middleware | A-H8 | 3 | ✅ (scoped) |
+| 2.2 | Outbox table + `pg_cron` + Edge Function drainer | **A-H7** | 2 | ⬜ deferred |
 | 2.3 | Real SMS provider integration via outbox | **A-H9** | 2 | ⬜ **blocked — needs an SMS provider account** |
 | 2.4 | bKash/Nagad gateway + webhook + signature verify + reconciliation | **A-H9** | 3 | ⬜ **blocked — needs merchant credentials** |
 | 2.5 | Set-based rewrite of `fn_run_migration` | A-H7 | 1 | ✅ |
@@ -1411,7 +1411,11 @@ That is a small change from what exists. It is also the difference between a dem
 
 **2.5 done.** `fn_run_migration` and `fn_pushback_migration` no longer loop row-by-row: a session-temp working table plus four `INSERT`/`UPDATE ... FROM` statements replace the `for ... loop`. The roll-number arithmetic (`v_base_roll + ord`) is unchanged — `jsonb_array_elements(...) WITH ORDINALITY` recovers the client's submission order as `ord`, which is what the loop's counter was doing one row at a time. Verified round-trip (migrate → pushback → students land back on their original enrolment) against the live schema before being committed; pgTAP suite extended to 38 assertions.
 
-**2.3 and 2.4 need a decision only the school can make** — which SMS aggregator, which of bKash/Nagad/Rocket (or all three), and whether real merchant credentials exist yet. Building against fabricated ones would produce code that compiles and looks integrated but cannot send a message or move money; that is worse than the current honest "not implemented" state (§7.1, A-H9). Outbox plumbing (2.2) is provider-agnostic and can and should land first regardless of that answer.
+**2.1 done, scoped to one real write, not 51 proxies.** The audit's own §3.2 says "reads that are already safe under RLS keep going direct — do not proxy 65 queries through Next for symmetry." The same reasoning applies to writes that carry no rate-limit or webhook concern: RLS + the permission-guarded RPC tier (migration 41) already fully authorize them. Built the tier (`src/server/` + `boundaries/dependencies` policy for it) and pointed it at the one write the audit named specifically — SMS send, which "spends real money per message" with no protection. The rate limit itself (`private.check_rate_limit()`, a fixed-window counter over a new `request_log` table) lives **inside** `private.fn_send_sms_campaign`, not only in the Next.js route: the client talks to PostgREST directly for everything else in this app, so a check that lived solely in a route handler would protect nothing against a direct `POST /rest/v1/rpc/fn_send_sms_campaign`. 20 sends/hour/school. Caught and fixed a live bug while verifying it end-to-end: `middleware.ts` redirected an unauthenticated `/api/v1/*` request to an HTML `/login` page (307) instead of a JSON 401 — invisible from the browser's normal navigation flow, only found by curling the route directly. `/api/v1/*` is now excluded from that redirect; each route answers unauthenticated calls with real JSON.
+
+**2.2 deferred, not built.** An outbox has no real consumer while 2.3/2.4 stay unbuilt — building it now would be exactly the "scaffolding for later" ponytail exists to catch. Revisit once an SMS provider or payment gateway gives it something to drain.
+
+**2.3 and 2.4 need a decision only the school can make** — which SMS aggregator, which of bKash/Nagad/Rocket (or all three), and whether real merchant credentials exist yet. Building against fabricated ones would produce code that compiles and looks integrated but cannot send a message or move money; that is worse than the current honest "not implemented" state (§7.1, A-H9). User confirmed 2026-07-26: skip both for now, continue with everything else.
 
 ### Phase 3 — Product completion & operations · 10 days
 

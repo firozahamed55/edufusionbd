@@ -31,6 +31,13 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic =
     pathname === "/" || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  // `/api/v1/*` (audit A-H8's server tier) is fetched by client JS, never
+  // navigated to. A 307 redirect to an HTML /login page on a missing session
+  // silently breaks the caller — `fetch()` follows it and gets HTML where it
+  // expected JSON. Every route under here does its own `getUser()` check
+  // (see `src/server/sms/sendCampaign.ts`) and returns a real 401, so the
+  // redirect below must not apply here.
+  const isApiV1 = pathname.startsWith("/api/v1/");
 
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   request.headers.set("x-nonce", nonce);
@@ -67,7 +74,7 @@ export async function middleware(request: NextRequest) {
   const { response, claims } = await updateSession(request);
   response.headers.set("Content-Security-Policy", csp);
 
-  if (!claims && !isPublic) {
+  if (!claims && !isPublic && !isApiV1) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.login;
     url.searchParams.set("redirect", pathname);

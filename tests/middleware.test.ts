@@ -67,6 +67,13 @@ describe("unauthenticated requests", () => {
     expect(new URL(res.headers.get("location")!).pathname).toBe("/login");
   });
 
+  it("does NOT redirect /api/v1/* — lets the route handler answer with its own JSON status", async () => {
+    signedOut();
+    const res = await middleware(req("/api/v1/sms/send"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
   it("preserves the requested path as ?redirect= so login can return there", async () => {
     signedOut();
     const res = await middleware(req("/admin/student/list"));
