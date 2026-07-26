@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Send, MessageSquare } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Send, MessageSquare, Users } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Input, Select, Textarea, Button, useToast, PageHeader } from "@/shared/ui";
 import { useSmsAccount, useTemplates, useSendCampaign } from "../../logic/hooks";
@@ -20,7 +21,25 @@ export function SendScreen() {
   const account = useSmsAccount();
   const templates = useTemplates();
   const send = useSendCampaign();
-  const [f, setF] = useState({ recipient_type: "parent", recipient_group: "", language: "bn", template_id: "", body: "", recipient_count: "" });
+
+  /**
+   * Recipients handed over from another screen's bulk action (audit W-1).
+   * The Teacher List has always navigated here with `?recipients=id,id,…` and
+   * NOTHING read it — the selection was silently discarded while the operator
+   * believed it had carried over. This is the consumer that makes that
+   * handoff real.
+   */
+  const params = useSearchParams();
+  const handedOver = (params.get("recipients") ?? "").split(",").filter(Boolean);
+
+  const [f, setF] = useState({
+    recipient_type: handedOver.length > 0 ? "teacher" : "parent",
+    recipient_group: "",
+    language: "bn",
+    template_id: "",
+    body: "",
+    recipient_count: handedOver.length > 0 ? String(handedOver.length) : "",
+  });
   const up = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   function pickTemplate(id: string) {
@@ -57,6 +76,18 @@ export function SendScreen() {
           <p className="text-lg font-bold text-primary tnum">{n(account.data?.balance ?? 0)}</p>
         </div>
       </header>
+
+      {handedOver.length > 0 ? (
+        <div className="flex items-center gap-2.5 rounded-xl border border-primary/30 bg-primary-subtle px-4 py-3 text-meta font-medium text-primary">
+          <Users size={16} className="shrink-0" />
+          <span>
+            {t(
+              `${n(handedOver.length)} জন প্রাপক নির্বাচিত অবস্থায় আনা হয়েছে`,
+              `${handedOver.length} recipients carried over from your selection`,
+            )}
+          </span>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

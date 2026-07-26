@@ -19,6 +19,7 @@ import {
 import type { ReactNode } from "react";
 import { createClient } from "@/shared/services/supabase/client";
 import { ADMIN_NAV_ZONES, ADMIN_SETTINGS_MODULE, ADMIN_ALL_MODULES, type AdminModule } from "./adminNav";
+import type { Role } from "@/shared/constants/roles";
 import { resolveActiveModule, resolveActiveTab } from "./resolveNav";
 import { useRailState } from "./useRailState";
 import { useAdminUser } from "./useAdminUser";
@@ -120,9 +121,13 @@ function AdminShellInner({ children }: { children: ReactNode }) {
 
   const activeModule = resolveActiveModule(pathname);
   const activeTab = resolveActiveTab(activeModule, pathname);
+  // B-7: a module the operator's role can't use should not be discoverable.
+  // RLS already blocks the data; this stops the UI advertising dead ends.
+  const canSee = (mod: AdminModule) =>
+    !mod.roles || (me?.role ? mod.roles.includes(me.role as Role) : false);
   const pinnedModules = pins
     .map((k) => ADMIN_ALL_MODULES.find((m) => m.key === k))
-    .filter((m): m is AdminModule => Boolean(m));
+    .filter((m): m is AdminModule => Boolean(m) && canSee(m as AdminModule));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -196,7 +201,7 @@ function AdminShellInner({ children }: { children: ReactNode }) {
               {locale === "bn" ? zone.label.bn : zone.label.en}
             </p>
           ) : null}
-          {zone.items.map((mod) => (
+          {zone.items.filter(canSee).map((mod) => (
             <RailLink
               key={mod.key}
               mod={mod}
@@ -416,7 +421,12 @@ function AdminShellInner({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main id="admin-main" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        {/* --shell-pad is the single source of truth for this padding; SaveBar
+            bleeds against it instead of mirroring the values (audit S-5). */}
+        <main
+          id="admin-main"
+          className="flex-1 overflow-y-auto p-[var(--shell-pad)] [--shell-pad:1rem] sm:[--shell-pad:1.5rem] lg:[--shell-pad:2rem]"
+        >
           {/* --layout-max caps the measure on ultrawide displays (audit S-4). */}
           <div className="mx-auto flex w-full max-w-[var(--layout-max)] flex-col gap-5">
             <ArchivedYearBanner />

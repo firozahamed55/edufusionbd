@@ -34,10 +34,19 @@ export const TEACHER_LIST_FIRST_PAINT = { page: 1, search: "", departmentId: "" 
  * extra round trip on the server prefetch path only; the client hook always
  * passes the id it already has cached.
  */
+/** Whitelist: a sort key arriving from the URL must never reach `.order()` raw. */
+const SORT_COLUMNS: Record<string, string> = {
+  name: "name_en",
+  status: "status",
+};
+
 export async function fetchTeachers(
   supabase: BrowserClient,
-  { page = 1, perPage = PAGE_SIZE_DEFAULT, search = "", departmentId = "", yearId }:
-    { page?: number; perPage?: number; search?: string; departmentId?: string; yearId?: string } = {},
+  { page = 1, perPage = PAGE_SIZE_DEFAULT, search = "", departmentId = "", yearId, sort }:
+    {
+      page?: number; perPage?: number; search?: string; departmentId?: string; yearId?: string;
+      sort?: { key: string; dir: "asc" | "desc" } | null;
+    } = {},
 ): Promise<{ rows: TeacherRow[]; total: number }> {
   const year = yearId ?? (await fetchCurrentYear(supabase))?.id ?? null;
   const from = (page - 1) * perPage;
@@ -60,7 +69,10 @@ export async function fetchTeachers(
       // joined column can't use an index and silently drops rows if two
       // departments ever share a display name.
       if (departmentId) q = q.eq("department_id", departmentId);
-      return q.order("employee_code", { ascending: true }).range(from, to);
+      const column = sort ? SORT_COLUMNS[sort.key] : undefined;
+      return column
+        ? q.order(column, { ascending: sort!.dir === "asc" }).range(from, to)
+        : q.order("employee_code", { ascending: true }).range(from, to);
     })(),
     // // Year-scoped (audit A-M16): see shared/services/academicYear/api.ts. The "class teacher" badge is about the CURRENT year: without this a
     // teacher who led a section two years ago is still badged today.

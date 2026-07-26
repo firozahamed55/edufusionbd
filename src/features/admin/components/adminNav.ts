@@ -12,6 +12,7 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
+import type { Role } from "@/shared/constants/roles";
 
 /**
  * Admin IA — rail addresses AREAS, the page addresses SCREENS within an area
@@ -50,6 +51,14 @@ export type AdminModule = {
   en: string;
   /** Visual accent treatment (EduSathi). */
   accent?: boolean;
+  /**
+   * Roles that may see this module. Omitted => visible to anyone who can reach
+   * /admin at all, which middleware already restricts to admin|super_admin
+   * (audit B-7). Nothing sets this today because the role model has no
+   * sub-admin roles yet — the moment a registrar/accountant role is added,
+   * listing it here is the whole change; the rail already filters on it.
+   */
+  roles?: readonly Role[];
   /** Omitted => single-screen module, no tab bar (Dashboard, EduSathi, Reports). */
   tabs?: AdminTab[];
 };

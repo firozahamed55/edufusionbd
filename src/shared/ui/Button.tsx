@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import type { ButtonHTMLAttributes } from "react";
 
@@ -22,14 +23,25 @@ const sizes: Record<Size, string> = {
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
+  /** Shows a spinner, sets aria-busy, and disables the button. */
+  loading?: boolean;
 }
 
-/** Design-system Button. Colors are semantic tokens → correct in light & dark. */
+/**
+ * Design-system Button. Colors are semantic tokens → correct in light & dark.
+ *
+ * `loading` exists so async actions stop re-implementing pending UI at every
+ * call site (audit S-7) — and, more importantly, so they stop *omitting* it and
+ * letting an operator double-submit a fee collection or a result process.
+ */
 export function Button({
   variant = "primary",
   size = "md",
   type,
   className,
+  loading,
+  disabled,
+  children,
   ...props
 }: ButtonProps) {
   return (
@@ -37,6 +49,8 @@ export function Button({
       // Default to "button" so a Button placed inside a <form> never submits it
       // implicitly; callers opt in with type="submit" where that is intended.
       type={type ?? "button"}
+      aria-busy={loading || undefined}
+      disabled={disabled || loading}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
@@ -44,6 +58,9 @@ export function Button({
         className,
       )}
       {...props}
-    />
+    >
+      {loading ? <Loader2 size={15} className="shrink-0 animate-spin" aria-hidden /> : null}
+      {children}
+    </button>
   );
 }

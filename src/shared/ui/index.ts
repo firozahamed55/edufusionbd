@@ -16,7 +16,8 @@ export {
 export { Pagination } from "./Pagination";
 export { Breadcrumb, type Crumb } from "./Breadcrumb";
 export { PageHeader } from "./PageHeader";
-export { Table, THead, TBody, TR, TH, TD, TableEmpty } from "./Table";
+export { Table, THead, TBody, TR, TH, TD, TableEmpty, SortableTH, type Sort, type SortDir } from "./Table";
+export { RowActions, type RowAction } from "./RowActions";
 export { Skeleton, Spinner, EmptyState, ErrorState } from "./states";
 export { PasswordInput } from "./PasswordInput";
 export { OtpInput } from "./OtpInput";
