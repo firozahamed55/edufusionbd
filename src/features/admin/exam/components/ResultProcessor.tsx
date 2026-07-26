@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Cpu, Award, Download } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Button, Skeleton, EmptyState, ErrorState, useToast, Breadcrumb } from "@/shared/ui";
+import { Field, Select, Button, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useExams, useExamResults, useProcessExam } from "../logic/hooks";
@@ -43,12 +43,6 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <Breadcrumb
-          items={[
-            { label: t("পরীক্ষা ও ফলাফল", "Exam & Results"), href: "/admin/exam/settings" },
-            { label: isProcess ? t("ফলাফল প্রক্রিয়াকরণ", "Result Processing") : t("মার্কশিট ডাউনলোড", "Result Sheet") },
-          ]}
-        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{isProcess ? t("ফলাফল প্রক্রিয়াকরণ", "Result Processing") : t("ফলাফল ও মার্কশিট", "Results & Mark Sheet")}</h1>
         <p className="mt-1 text-meta text-text-muted">{isProcess ? t("নম্বর থেকে GPA, গ্রেড ও মেধাক্রম গণনা করুন", "Compute GPA, grade & merit rank from marks") : t("প্রক্রিয়াকৃত ফলাফল দেখুন ও ডাউনলোড করুন", "View & download processed results")}</p>
       </header>

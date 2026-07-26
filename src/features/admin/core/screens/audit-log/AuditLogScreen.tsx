@@ -15,8 +15,7 @@ import {
   ErrorState,
   Pagination,
   Modal,
-  Breadcrumb,
-} from "@/shared/ui";
+  } from "@/shared/ui";
 import { useAuditLog } from "./logic/useAuditLog";
 import { AUDIT_ENTITIES, type AuditLogRow } from "./logic/api";
 
@@ -50,12 +49,6 @@ export function AuditLogScreen() {
   return (
     <div className="flex flex-col gap-7">
       <div>
-        <Breadcrumb
-          items={[
-            { label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" },
-            { label: t("পরিবর্তনের ইতিহাস", "Audit Log") },
-          ]}
-        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
           {t("পরিবর্তনের ইতিহাস", "Audit Log")}
         </h1>

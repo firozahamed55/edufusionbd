@@ -39,6 +39,12 @@ export const queryKeys = {
   academicYear: {
     all: ["academic-year"] as const,
     current: ["academic-year", "current"] as const,
+    list: ["academic-year", "list"] as const,
+  },
+
+  /** The signed-in operator, for the shell's identity slot. */
+  admin: {
+    me: ["admin", "me"] as const,
   },
 
   attendance: {

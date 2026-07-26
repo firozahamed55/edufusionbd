@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ShoppingCart, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Skeleton, EmptyState, ErrorState, Breadcrumb } from "@/shared/ui";
+import { Field, Select, Skeleton, EmptyState, ErrorState } from "@/shared/ui";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
@@ -24,13 +24,6 @@ export function QuickCollectionListScreen() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <Breadcrumb
-          items={[
-            { label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" },
-            { label: t("দ্রুত ফি আদায়", "Fast fee collection") },
-            { label: t("শিক্ষার্থী তালিকা", "Student list") },
-          ]}
-        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("কুইক কালেকশন", "Quick Collection")}</h1>
       </header>
 

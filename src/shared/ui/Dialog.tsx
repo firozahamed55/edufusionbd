@@ -10,33 +10,22 @@ const FOCUSABLE =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 /**
- * Accessible modal dialog — the missing "confirm / detail" archetype.
- * Implements a full focus trap (WCAG 2.4.3 + 2.1.2): moves focus in on open,
- * cycles Tab/Shift+Tab within the panel, closes on Escape or overlay click,
- * locks body scroll, and restores focus to the trigger on close.
- * Controlled: the caller owns `open` and `onClose`.
+ * The focus-trap half of `Modal`, extracted so any overlay (drawer, dropdown
+ * menu) can get the same WCAG 2.4.3/2.1.2 behavior — move focus in on open,
+ * cycle Tab/Shift+Tab within the panel, close on Escape, restore focus to the
+ * trigger on close (audit T-7: the mobile drawer and profile menu had none of
+ * this despite this exact trap already existing here, unused, for `Modal`).
+ * Pass `lockScroll: false` for a lightweight dropdown that shouldn't freeze
+ * the page behind it.
  */
-export function Modal({
-  open,
-  onClose,
-  title,
-  description,
-  children,
-  footer,
-  className,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  description?: string;
-  children?: ReactNode;
-  footer?: ReactNode;
-  className?: string;
-}) {
-  const panelRef = useRef<HTMLDivElement>(null);
+export function useFocusTrap(
+  panelRef: React.RefObject<HTMLElement | null>,
+  open: boolean,
+  onClose: () => void,
+  opts: { lockScroll?: boolean } = {},
+) {
   const restoreRef = useRef<HTMLElement | null>(null);
-  const titleId = useId();
-  const descId = useId();
+  const { lockScroll = true } = opts;
 
   useEffect(() => {
     if (!open) return;
@@ -74,13 +63,43 @@ export function Modal({
 
     document.addEventListener("keydown", onKey, true);
     const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (lockScroll) document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey, true);
-      document.body.style.overflow = prevOverflow;
+      if (lockScroll) document.body.style.overflow = prevOverflow;
       restoreRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open, onClose, panelRef, lockScroll]);
+}
+
+/**
+ * Accessible modal dialog — the missing "confirm / detail" archetype.
+ * Implements a full focus trap (WCAG 2.4.3 + 2.1.2) via `useFocusTrap`, locks
+ * body scroll, and closes on Escape or overlay click.
+ * Controlled: the caller owns `open` and `onClose`.
+ */
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  className,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  children?: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descId = useId();
+
+  useFocusTrap(panelRef, open, onClose);
 
   if (!open) return null;
 

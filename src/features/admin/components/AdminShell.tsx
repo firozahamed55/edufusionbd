@@ -2,233 +2,208 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ChevronUp, CalendarDays, MessageSquareText, Menu, X, LogOut, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ChevronDown,
+  Menu,
+  X,
+  LogOut,
+  Search,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Pin,
+  User,
+  Keyboard,
+  LifeBuoy,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { createClient } from "@/shared/services/supabase/client";
-import {
-  ADMIN_NAV_SECTIONS,
-  ADMIN_NAV_FOOTER,
-  type AdminNavItem,
-  type AdminSubItem,
-} from "./adminNav";
-import { ThemeToggle, LocaleToggle } from "@/shared/ui";
+import { ADMIN_NAV_ZONES, ADMIN_SETTINGS_MODULE, ADMIN_ALL_MODULES, type AdminModule } from "./adminNav";
+import { resolveActiveModule, resolveActiveTab } from "./resolveNav";
+import { useRailState } from "./useRailState";
+import { useAdminUser } from "./useAdminUser";
+import { AcademicYearSelector, ArchivedYearBanner } from "./AcademicYearSelector";
+import { AcademicYearProvider } from "@/shared/services/academicYear/context";
+import { ThemeToggle, LocaleToggle, useFocusTrap } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { useSmsAccount } from "@/features/admin/sms-notice/logic/hooks";
 import { CommandPalette } from "@/features/admin/core/components/CommandPalette";
 
 type Tb = (b: { bn: string; en: string }) => string;
 
-const isSubActive = (s: AdminSubItem, pathname: string) => {
-  const prefixes = Array.isArray(s.match) ? s.match : [s.match ?? s.href];
-  return prefixes.some((p) => pathname.startsWith(p));
-};
-
 /**
- * NavLink/SubLink live at module scope, NOT inside AdminShell.
+ * Module-scope, NOT declared inside AdminShell.
  *
- * Declared inside the component they were re-created on every render, so React
- * saw a brand-new element type each time and tore down + remounted the entire
- * sidebar subtree — on every pathname change, every drawer/menu toggle, and
- * once a minute forever from the topbar clock interval. Hoisting them makes the
- * type identity stable, so those renders become cheap reconciliations instead.
+ * Declared inside the component it was re-created on every render, so React saw
+ * a brand-new element type each time and tore down + remounted the entire
+ * sidebar subtree on every navigation and every menu toggle.
  */
-function SubLink({
-  item,
-  pathname,
-  t,
-}: {
-  item: AdminSubItem;
-  pathname: string;
-  t: Tb;
-}) {
-  const active = isSubActive(item, pathname);
-  return (
-    <Link
-      href={item.href}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "flex h-9 items-center gap-2.5 rounded-lg px-3 text-meta transition-colors",
-        active
-          ? "bg-primary-subtle font-semibold text-text-primary"
-          : "font-medium text-text-secondary hover:bg-sunken",
-      )}
-    >
-      <span
-        className={cn(
-          "size-1.5 shrink-0 rounded-full",
-          active ? "bg-primary" : "bg-text-muted/70",
-        )}
-      />
-      <span className="truncate">{t(item)}</span>
-    </Link>
-  );
-}
-
-function NavLink({
-  item,
-  pathname,
+function RailLink({
+  mod,
   active,
+  collapsed,
+  pinned,
+  onTogglePin,
   t,
 }: {
-  item: AdminNavItem;
-  pathname: string;
+  mod: AdminModule;
   active: boolean;
+  collapsed: boolean;
+  pinned: boolean;
+  onTogglePin: (key: string) => void;
   t: Tb;
 }) {
-  const Icon = item.icon;
-  const Chevron = active ? ChevronDown : ChevronRight;
+  const Icon = mod.icon;
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="group/rail relative flex items-center">
       <Link
-        href={item.href}
-        aria-current={active && !item.sub ? "page" : undefined}
+        href={mod.href}
+        aria-current={active ? "page" : undefined}
+        title={collapsed ? t(mod) : undefined}
         className={cn(
-          "flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
+          "flex h-10 flex-1 items-center gap-3 rounded-lg text-sm transition-colors",
+          collapsed ? "justify-center px-0" : "px-3",
           active
             ? "bg-primary-subtle font-semibold text-primary"
             : "font-medium text-text-secondary hover:bg-sunken",
+          mod.accent && !active && "text-accent",
         )}
       >
         <Icon size={18} className="shrink-0" />
-        <span className="truncate">{t(item)}</span>
-        {item.sub ? (
-          <Chevron size={15} className="ml-auto shrink-0 text-text-muted" />
-        ) : null}
+        {collapsed ? <span className="sr-only">{t(mod)}</span> : <span className="truncate">{t(mod)}</span>}
       </Link>
-      {item.sub && active ? (
-        <div className="flex flex-col gap-0.5 pb-1 pl-6">
-          {item.sub.map((group, gi) => {
-            if (!group.label) {
-              return group.items.map((s) => (
-                <SubLink key={s.href} item={s} pathname={pathname} t={t} />
-              ));
-            }
-            // Labeled group (Core Settings): header row toggles like Figma —
-            // only the group holding the active route is expanded.
-            const open = group.items.some((s) => isSubActive(s, pathname));
-            const GroupChevron = open ? ChevronUp : ChevronDown;
-            return (
-              <div key={gi} className="flex flex-col gap-0.5">
-                <Link
-                  href={group.items[0].href}
-                  className="flex h-9 items-center gap-2.5 rounded-lg px-3 text-meta font-medium text-text-secondary hover:bg-sunken"
-                >
-                  <span className="flex-1 truncate">{t(group.label)}</span>
-                  <GroupChevron size={14} className="shrink-0 text-text-muted" />
-                </Link>
-                {open ? (
-                  <div className="flex flex-col gap-0.5 pl-3">
-                    {group.items.map((s) => (
-                      <SubLink key={s.href} item={s} pathname={pathname} t={t} />
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+      {!collapsed ? (
+        <button
+          type="button"
+          onClick={() => onTogglePin(mod.key)}
+          aria-label={pinned ? "Unpin" : "Pin"}
+          aria-pressed={pinned}
+          className={cn(
+            "absolute right-1 grid size-7 place-items-center rounded-md text-text-decorative transition-opacity hover:bg-sunken hover:text-text-secondary focus-visible:opacity-100",
+            pinned ? "opacity-100 text-primary" : "opacity-0 group-hover/rail:opacity-100",
+          )}
+        >
+          <Pin size={13} />
+        </button>
       ) : null}
     </div>
   );
 }
 
 /**
- * Sticky sidebar + sticky topbar + scrolling content — the shared admin chrome.
- * Fully token-driven, so it renders correctly in light and dark from one path.
- * Collected screens supply ONLY the content area; the shell is never duplicated.
+ * Sticky rail + sticky context topbar + scrolling content — the shared admin
+ * chrome, fully token-driven so one code path is correct in light and dark.
  *
- * Responsive: at lg+ the sidebar is a permanent sticky rail. Below lg it collapses
- * into an off-canvas drawer opened by the topbar hamburger, closed by the overlay,
- * the Escape key, or navigating. A skip-to-content link and aria-current on the
- * active route keep the chrome keyboard- and screen-reader-friendly.
+ * The rail addresses AREAS (10 modules, constant height); a module's own
+ * screens are `ModuleTabs` on the page (final_admin.md §9.1). Three rail
+ * states: expanded 256px at xl+, compact 72px at lg–xl (recovers 184px on the
+ * 1366×768 laptops schools actually buy), off-canvas drawer below lg.
+ *
+ * The topbar carries what the page is (breadcrumb + title), which academic year
+ * it's writing to, and the page's primary action — none of which it held
+ * before (T-1, T-3).
  */
-export function AdminShell({ children }: { children: ReactNode }) {
+function AdminShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { locale, t: tx, tb: t, n: num } = useT();
-  const { data: smsAccount } = useSmsAccount();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const { locale, t: tx, tb: t } = useT();
+  const { collapsed, toggleCollapsed, pins, togglePin } = useRailState();
+  const { data: me } = useAdminUser();
 
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  const clockLabel = now
-    ? new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-US", {
-        day: "numeric",
-        month: "short",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }).format(now)
-    : "";
+  const drawerRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(drawerRef, drawerOpen, () => setDrawerOpen(false));
+  useFocusTrap(menuRef, menuOpen, () => setMenuOpen(false), { lockScroll: false });
+
+  const activeModule = resolveActiveModule(pathname);
+  const activeTab = resolveActiveTab(activeModule, pathname);
+  const pinnedModules = pins
+    .map((k) => ADMIN_ALL_MODULES.find((m) => m.key === k))
+    .filter((m): m is AdminModule => Boolean(m));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setPaletteOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+      // "[" toggles the rail — matches the collapse affordance in the header.
+      if (e.key === "[" && !(e.target as HTMLElement)?.closest?.("input,textarea,select,[contenteditable]")) {
+        toggleCollapsed();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [toggleCollapsed]);
+
+  // Close transient chrome on navigation.
+  useEffect(() => {
+    setDrawerOpen(false);
+    setMenuOpen(false);
+  }, [pathname]);
 
   const signOut = async () => {
     await createClient().auth.signOut();
     router.replace("/login");
     router.refresh();
   };
-  const isActive = (i: AdminNavItem) =>
-    pathname.startsWith(i.match ?? `/admin/${i.key}`);
 
-  // Close the mobile drawer and profile menu on navigation.
-  useEffect(() => {
-    setDrawerOpen(false);
-    setMenuOpen(false);
-  }, [pathname]);
-
-  // Close the mobile drawer and profile menu on Escape.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setDrawerOpen(false);
-        setMenuOpen(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // Sidebar content — rendered identically in the desktop rail and mobile drawer.
-  const sidebarNav = (
+  const renderZone = (isCollapsed: boolean) => (
     <nav aria-label={tx("প্রধান নেভিগেশন", "Main navigation")} className="flex flex-1 flex-col gap-1">
-      <div className="flex items-center gap-2.5 px-1 pb-2 pt-0.5">
-        <div className="grid size-9 place-items-center rounded-lg bg-primary text-lg font-bold text-text-on-primary">
+      <div className={cn("flex items-center gap-2.5 pb-2 pt-0.5", isCollapsed ? "justify-center px-0" : "px-1")}>
+        <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-lg font-bold text-text-on-primary">
           E
         </div>
-        <div className="leading-tight">
-          <p className="text-body font-semibold font-latin">EduFusionBD</p>
-          <p className="text-micro text-text-muted">{tx("অ্যাডমিন", "Admin")}</p>
-        </div>
+        {!isCollapsed ? (
+          <div className="leading-tight">
+            <p className="text-body font-semibold font-latin">EduFusionBD</p>
+            <p className="text-micro text-text-muted">{tx("অ্যাডমিন", "Admin")}</p>
+          </div>
+        ) : null}
       </div>
 
-      {ADMIN_NAV_SECTIONS.map((section, i) => (
-        <div key={i} className="flex flex-col gap-1">
-          {section.label ? (
-            <p className="px-3 pb-1 pt-3 text-micro font-semibold uppercase tracking-wide text-text-muted">
-              {locale === "bn" ? section.label.bn : section.label.en}
+      {pinnedModules.length > 0 ? (
+        <div className="flex flex-col gap-1 pb-1">
+          {!isCollapsed ? (
+            <p className="px-3 pb-1 pt-2 text-micro font-semibold uppercase tracking-wide text-text-secondary">
+              {tx("পিন করা", "Pinned")}
             </p>
           ) : null}
-          {section.items.map((item) => (
-            <NavLink
-              key={item.key}
-              item={item}
-              pathname={pathname}
-              active={isActive(item)}
+          {pinnedModules.map((mod) => (
+            <RailLink
+              key={`pin-${mod.key}`}
+              mod={mod}
+              active={activeModule?.key === mod.key}
+              collapsed={isCollapsed}
+              pinned
+              onTogglePin={togglePin}
+              t={t}
+            />
+          ))}
+          <div className="mx-2 mt-1 h-px bg-border-default" />
+        </div>
+      ) : null}
+
+      {ADMIN_NAV_ZONES.map((zone, i) => (
+        <div key={i} className="flex flex-col gap-1">
+          {zone.label && !isCollapsed ? (
+            // 12px text-secondary, not 11px text-muted — the IA's own scaffolding
+            // was the least legible text on screen at 2.4:1 (audit N-10).
+            <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+              {locale === "bn" ? zone.label.bn : zone.label.en}
+            </p>
+          ) : null}
+          {zone.items.map((mod) => (
+            <RailLink
+              key={mod.key}
+              mod={mod}
+              active={activeModule?.key === mod.key}
+              collapsed={isCollapsed}
+              pinned={pins.includes(mod.key)}
+              onTogglePin={togglePin}
               t={t}
             />
           ))}
@@ -238,15 +213,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <div className="flex-1" />
       <div className="h-px w-full bg-border-default" />
       <div className="flex flex-col gap-1 pt-1">
-        {ADMIN_NAV_FOOTER.map((item) => (
-          <NavLink
-            key={item.key}
-            item={item}
-            pathname={pathname}
-            active={isActive(item)}
-            t={t}
-          />
-        ))}
+        <RailLink
+          mod={ADMIN_SETTINGS_MODULE}
+          active={activeModule?.key === ADMIN_SETTINGS_MODULE.key}
+          collapsed={isCollapsed}
+          pinned={pins.includes(ADMIN_SETTINGS_MODULE.key)}
+          onTogglePin={togglePin}
+          t={t}
+        />
       </div>
     </nav>
   );
@@ -260,14 +234,25 @@ export function AdminShell({ children }: { children: ReactNode }) {
         {tx("মূল কন্টেন্টে যান", "Skip to content")}
       </a>
 
-      {/* Desktop sidebar (permanent rail at lg+) */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border-default bg-surface px-4 py-5 lg:flex">
-        {sidebarNav}
+      {/*
+        Rail: compact by default at md–xl (this is the band that was entirely
+        unhandled — a drawer with desktop-density content, audit R-1/R-4),
+        expanded at xl+ unless the operator collapsed it.
+      */}
+      <aside
+        className={cn(
+          "sticky top-0 hidden h-screen shrink-0 flex-col gap-1 overflow-y-auto overflow-x-hidden border-r border-border-default bg-surface py-5 transition-[width] md:flex",
+          collapsed ? "w-18 px-2" : "w-18 px-2 xl:w-64 xl:px-4",
+        )}
+      >
+        {/* Collapsed below xl regardless of preference; expanded state only exists at xl+. */}
+        <div className="hidden xl:contents">{!collapsed ? renderZone(false) : null}</div>
+        <div className={cn(collapsed ? "contents" : "contents xl:hidden")}>{renderZone(true)}</div>
       </aside>
 
-      {/* Mobile drawer (below lg) */}
+      {/* Drawer below md */}
       {drawerOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-40 md:hidden">
           <button
             type="button"
             aria-label={tx("বন্ধ করুন", "Close menu")}
@@ -275,10 +260,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
             className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
           />
           <aside
+            ref={drawerRef}
             role="dialog"
             aria-modal="true"
             aria-label={tx("নেভিগেশন", "Navigation")}
-            className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col gap-1 overflow-y-auto border-r border-border-default bg-surface px-4 py-5 shadow-e3"
+            tabIndex={-1}
+            className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col gap-1 overflow-y-auto border-r border-border-default bg-surface px-4 py-5 shadow-e3 focus:outline-none"
           >
             <button
               type="button"
@@ -288,100 +275,165 @@ export function AdminShell({ children }: { children: ReactNode }) {
             >
               <X size={18} />
             </button>
-            {sidebarNav}
+            {renderZone(false)}
           </aside>
         </div>
       ) : null}
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-2.5 border-b border-border-default bg-surface px-4 sm:px-6">
-          <button
-            type="button"
-            aria-label={tx("মেনু খুলুন", "Open menu")}
-            aria-expanded={drawerOpen}
-            onClick={() => setDrawerOpen(true)}
-            className="grid size-9 shrink-0 place-items-center rounded-lg border border-border-strong text-text-secondary hover:bg-sunken lg:hidden"
-          >
-            <Menu size={18} />
-          </button>
-
-          <div className="flex-1" />
-
-          <div className="hidden items-center gap-1.5 text-meta font-medium text-text-secondary md:flex">
-            <CalendarDays size={15} />
-            <span>{clockLabel}</span>
-          </div>
-          <div className="hidden items-center gap-1.5 rounded-full bg-success-bg px-3 py-1.5 text-meta font-semibold text-success-fg sm:flex">
-            <MessageSquareText size={15} />
-            <span>{smsAccount ? `${num(smsAccount.balance.toLocaleString())} SMS` : "—"}</span>
-          </div>
-          <div className="mx-1 hidden h-7 w-px bg-border-default sm:block" />
-          <button
-            type="button"
-            aria-label={tx("অনুসন্ধান", "Search")}
-            onClick={() => setPaletteOpen(true)}
-            className="grid size-9 place-items-center rounded-lg border border-border-strong text-text-secondary hover:bg-sunken"
-          >
-            <Search size={18} />
-          </button>
-          <ThemeToggle />
-          <LocaleToggle />
-          <div className="mx-1 hidden h-7 w-px bg-border-default sm:block" />
-          <div className="relative">
+        <header className="sticky top-0 z-10 flex flex-col gap-1 border-b border-border-default bg-surface px-4 py-2.5 sm:px-6">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 hover:bg-sunken"
+              aria-label={tx("মেনু খুলুন", "Open menu")}
+              aria-expanded={drawerOpen}
+              onClick={() => setDrawerOpen(true)}
+              className="grid size-9 shrink-0 place-items-center rounded-lg border border-border-control text-text-secondary hover:bg-sunken md:hidden"
             >
-              <span className="grid size-8 place-items-center rounded-full bg-primary text-meta font-semibold text-text-on-primary">
-                {tx("অ্যা", "AD")}
-              </span>
-              <span className="hidden leading-tight sm:block">
-                <span className="block text-meta font-semibold text-text-primary">
-                  {tx("অ্যাডমিন", "Admin")}
-                </span>
-                <span className="block text-micro text-text-muted">
-                  {tx("প্রধান শিক্ষক", "Head Teacher")}
-                </span>
-              </span>
-              <ChevronDown size={16} className="hidden text-text-muted sm:block" />
+              <Menu size={18} />
             </button>
-            {menuOpen ? (
-              <>
-                {/* Click-away overlay (same cheap trick as the mobile drawer). */}
-                <button
-                  type="button"
-                  aria-hidden="true"
-                  tabIndex={-1}
-                  onClick={() => setMenuOpen(false)}
-                  className="fixed inset-0 z-40 cursor-default"
-                />
-                <div
-                  role="menu"
-                  className="absolute right-0 top-full z-50 mt-2 w-44 rounded-lg border border-border-default bg-surface py-1 shadow-e3"
-                >
+            <button
+              type="button"
+              aria-label={collapsed ? tx("সাইডবার খুলুন", "Expand sidebar") : tx("সাইডবার সংকুচিত করুন", "Collapse sidebar")}
+              onClick={toggleCollapsed}
+              className="hidden size-9 shrink-0 place-items-center rounded-lg text-text-secondary hover:bg-sunken xl:grid"
+            >
+              {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+
+            {/* Breadcrumb lives in the sticky bar so orientation survives scrolling (T-3). */}
+            <nav aria-label="Breadcrumb" className="hidden min-w-0 flex-1 items-center gap-1.5 text-meta text-text-muted sm:flex">
+              {activeModule ? (
+                <>
+                  <Link href={activeModule.href} className="truncate hover:text-text-secondary hover:underline">
+                    {t(activeModule)}
+                  </Link>
+                  {activeTab ? (
+                    <>
+                      <span aria-hidden>›</span>
+                      <span aria-current="page" className="truncate text-text-secondary">
+                        {t(activeTab)}
+                      </span>
+                    </>
+                  ) : null}
+                </>
+              ) : null}
+            </nav>
+            <div className="flex-1 sm:hidden" />
+
+            <AcademicYearSelector />
+            <button
+              type="button"
+              aria-label={tx("অনুসন্ধান", "Search")}
+              onClick={() => setPaletteOpen(true)}
+              className="grid size-9 place-items-center rounded-lg border border-border-control text-text-secondary hover:bg-sunken"
+            >
+              <Search size={18} />
+            </button>
+            <ThemeToggle />
+            <LocaleToggle />
+            <div className="mx-1 hidden h-7 w-px bg-border-default sm:block" />
+            <div className="relative">
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((o) => !o)}
+                className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 hover:bg-sunken"
+              >
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-meta font-semibold text-text-on-primary">
+                  {me?.initials ?? "—"}
+                </span>
+                <span className="hidden leading-tight sm:block">
+                  <span className="block max-w-32 truncate text-meta font-semibold text-text-primary">
+                    {me?.name ?? tx("লোড হচ্ছে…", "Loading…")}
+                  </span>
+                  {me?.role ? (
+                    <span className="block text-micro text-text-muted">{me.role.replace(/_/g, " ")}</span>
+                  ) : null}
+                </span>
+                <ChevronDown size={16} className="hidden text-text-muted sm:block" />
+              </button>
+              {menuOpen ? (
+                <>
                   <button
                     type="button"
-                    role="menuitem"
-                    onClick={signOut}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-meta font-medium text-danger-fg hover:bg-sunken"
+                    aria-hidden="true"
+                    tabIndex={-1}
+                    onClick={() => setMenuOpen(false)}
+                    className="fixed inset-0 z-40 cursor-default"
+                  />
+                  <div
+                    ref={menuRef}
+                    role="menu"
+                    tabIndex={-1}
+                    className="absolute right-0 top-full z-50 mt-2 w-52 rounded-lg border border-border-default bg-surface py-1 shadow-e3 focus:outline-none"
                   >
-                    <LogOut size={16} />
-                    {tx("লগ আউট", "Sign out")}
-                  </button>
-                </div>
-              </>
-            ) : null}
+                    {me?.email ? (
+                      <p className="truncate border-b border-border-default px-3 pb-2 pt-1 text-micro text-text-muted">
+                        {me.email}
+                      </p>
+                    ) : null}
+                    <Link
+                      href="/admin/core/user-list"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-meta font-medium text-text-primary hover:bg-sunken"
+                    >
+                      <User size={16} /> {tx("প্রোফাইল", "Profile")}
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setPaletteOpen(true);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-meta font-medium text-text-primary hover:bg-sunken"
+                    >
+                      <Keyboard size={16} /> {tx("শর্টকাট (⌘K)", "Shortcuts (⌘K)")}
+                    </button>
+                    <Link
+                      href="/admin/edusathi"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-meta font-medium text-text-primary hover:bg-sunken"
+                    >
+                      <LifeBuoy size={16} /> {tx("সহায়তা", "Help")}
+                    </Link>
+                    <div className="my-1 h-px bg-border-default" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={signOut}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-meta font-medium text-danger-fg hover:bg-sunken"
+                    >
+                      <LogOut size={16} /> {tx("লগ আউট", "Sign out")}
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </div>
         </header>
 
-        <main id="admin-main" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
+        <main id="admin-main" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {/* --layout-max caps the measure on ultrawide displays (audit S-4). */}
+          <div className="mx-auto flex w-full max-w-[var(--layout-max)] flex-col gap-5">
+            <ArchivedYearBanner />
+            {children}
+          </div>
+        </main>
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
+  );
+}
+
+export function AdminShell({ children }: { children: ReactNode }) {
+  return (
+    <AcademicYearProvider>
+      <AdminShellInner>{children}</AdminShellInner>
+    </AcademicYearProvider>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Info, Upload } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Textarea, Select, Skeleton, SaveBar, UnsavedDot, useToast, Breadcrumb } from "@/shared/ui";
+import { FormCard, Field, Input, Textarea, Select, Skeleton, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
 import { createClient } from "@/shared/services/supabase/client";
 import { uploadInstitutionAsset, getAssetSignedUrl } from "@/shared/lib/institutionAssets";
 import { useInstitution, useUpdateInstitution, useEducationBoards, useTeacherOptions } from "../../logic/hooks";
@@ -94,13 +94,6 @@ export function StartupScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <Breadcrumb
-          items={[
-            { label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" },
-            { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") },
-            { label: t("স্টার্টআপ", "StartUp") },
-          ]}
-        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("স্টার্টআপ কনফিগারেশন", "Startup Configuration")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("প্রতিষ্ঠানের মৌলিক পরিচিতি ও প্রাথমিক সেটআপ", "The institution's core identity & initial setup")}</p>
       </header>

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Search, ArrowUp, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Button, Field, Select, SaveBar, UnsavedDot, Checkbox, Skeleton, EmptyState, ErrorState, useToast, Breadcrumb } from "@/shared/ui";
+import { Button, Field, Select, SaveBar, UnsavedDot, Checkbox, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
 import { useClassSectionsLookup, useAcademicYears } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useSectionStudents, useRunMigration } from "../logic/hooks";
@@ -76,12 +76,6 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <Breadcrumb
-          items={[
-            { label: t("মাইগ্রেশন", "Migration"), href: "/admin/student/migration-merit" },
-            { label: isMerit ? t("মেধাক্রমসহ", "With Merit") : t("মেধাক্রম ছাড়া", "Without Merit") },
-          ]}
-        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{isMerit ? t("মাইগ্রেশন — মেধাক্রমসহ", "Migration — With Merit") : t("মাইগ্রেশন — মেধাক্রম ছাড়া", "Migration — Without Merit")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("শিক্ষার্থীদের পরবর্তী শ্রেণিতে উন্নীত করুন", "Promote students to the next class")}</p>
       </header>

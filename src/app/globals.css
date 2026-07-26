@@ -91,6 +91,26 @@
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 320ms;
+
+  /* Layout — caps the measure so tables/forms don't stretch to 2000px+ on a
+     27" monitor (audit S-4: 44 of 56 screens had no cap, the other 12 used
+     three different values). Applied once in AdminShell, not per screen. */
+  --layout-max: 90rem;   /* 1440px */
+  --layout-prose: 42rem;
+
+  /* Z-index scale — replaces ad-hoc z-10/20/40/50 picked per call site (S-6). */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-savebar: 20;
+  --z-drawer: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+
+  /* Row density (audit B-11 — one row height for a registrar scanning 500 rows
+     and a head teacher reading 5). */
+  --row-height-comfortable: 3.25rem;
+  --row-height-compact: 2.5rem;
 }
 
 /* Dark values = EXACT resolved output of the Figma file's Dark variable mode. */

@@ -21,6 +21,6 @@ export { Skeleton, Spinner, EmptyState, ErrorState } from "./states";
 export { PasswordInput } from "./PasswordInput";
 export { OtpInput } from "./OtpInput";
 export { Stepper } from "./Stepper";
-export { Modal, ConfirmDialog } from "./Dialog";
+export { Modal, ConfirmDialog, useFocusTrap } from "./Dialog";
 export { ToastProvider, useToast } from "./Toast";
 export { BarChart, Donut, type BarDatum } from "./Chart";

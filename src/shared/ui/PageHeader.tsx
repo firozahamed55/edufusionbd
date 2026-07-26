@@ -1,8 +1,8 @@
 import { cn } from "@/shared/lib/cn";
-import { Breadcrumb, type Crumb } from "./Breadcrumb";
+import type { Crumb } from "./Breadcrumb";
 
 /**
- * The breadcrumb + h1 + subtitle block that opens every admin screen (audit M-8).
+ * The h1 + subtitle block that opens every admin screen (audit M-8).
  *
  * It was copied into 40 screens. Notably, all 40 copies were byte-identical —
  * `mt-1.5 text-h4 font-bold text-text-primary` and `mt-1 text-meta text-text-muted`
@@ -11,28 +11,26 @@ import { Breadcrumb, type Crumb } from "./Breadcrumb";
  * the screen they happen to be working on. Forty places to change is forty chances
  * to change thirty-nine.
  *
- * Deliberately has no `actions` prop. Screens that pair the header with a button
- * already wrap it in their own flex row with their own alignment (`items-start
- * gap-3` on one screen, `items-end gap-4` on another, both correct for their
- * content). `className` lets those keep their wrapper and pass `flex-1` down,
- * which made the migration a pure substitution with byte-identical output rather
- * than a redesign of 40 layouts.
+ * `crumbs` is accepted but no longer rendered: the breadcrumb moved into the
+ * sticky topbar (final_admin.md T-3/§9.4) so orientation survives scrolling on
+ * long tables. The prop stays so the ~15 call sites did not all need editing in
+ * the same commit, and because the trail is still the screen's own knowledge —
+ * a future "collapse to Home › … › Current" lives here, not in the shell.
  */
 export function PageHeader({
-  crumbs,
   title,
   subtitle,
   className,
 }: {
-  crumbs: Crumb[];
+  /** @deprecated The topbar renders the trail now; passing this is a no-op. */
+  crumbs?: Crumb[];
   title: string;
   subtitle?: string;
   className?: string;
 }) {
   return (
     <header className={cn(className)}>
-      <Breadcrumb items={crumbs} />
-      <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{title}</h1>
+      <h1 className="text-h4 font-bold text-text-primary">{title}</h1>
       {subtitle ? <p className="mt-1 text-meta text-text-muted">{subtitle}</p> : null}
     </header>
   );

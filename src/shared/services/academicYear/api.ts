@@ -15,14 +15,15 @@
  * "the current year" is a database-enforced singleton per institution. This is
  * the one place that reads it.
  *
- * ponytail: no year *switcher* yet — every screen scopes to the current year.
- * When looking at a past year becomes a requirement, replace `useCurrentYear`'s
- * internals with a context whose default is this query; the ~10 call sites
- * already take the id as a parameter and will not need to change.
+ * The year is now also SELECTABLE (audit T-1/B-1 — it was resolved implicitly by
+ * 21 files and displayed nowhere, so an operator could not see or choose which
+ * year they were writing to). `AcademicYearProvider` overrides the selection;
+ * this query remains the default and the definition of "current".
  */
 import type { BrowserClient } from "@/shared/services/supabase/types";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
-export type AcademicYear = { id: string; year_label: string };
+export type AcademicYear = { id: string; year_label: string; is_current?: boolean };
 
 export async function fetchCurrentYear(supabase: BrowserClient): Promise<AcademicYear | null> {
   const { data, error } = await supabase
@@ -33,4 +34,16 @@ export async function fetchCurrentYear(supabase: BrowserClient): Promise<Academi
     .maybeSingle();
   if (error) throw error;
   return data ?? null;
+}
+
+/** Every year the institution has, newest first — feeds the topbar switcher. */
+export async function fetchAcademicYears(supabase: BrowserClient): Promise<AcademicYear[]> {
+  const { data, error } = await supabase
+    .from("academic_year")
+    .select("id, year_label, is_current")
+    .is("deleted_at", null)
+    .order("year_label", { ascending: false })
+    .limit(MAX_OPTIONS);
+  if (error) throw error;
+  return data ?? [];
 }

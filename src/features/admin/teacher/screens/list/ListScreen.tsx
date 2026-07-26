@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus, Search, Pencil, Download } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination, Breadcrumb } from "@/shared/ui";
+import { Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination } from "@/shared/ui";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { useDepartments } from "@/shared/services/lookups/hooks";
@@ -79,12 +79,6 @@ export function ListScreen() {
       {/* Header */}
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1">
-          <Breadcrumb
-            items={[
-              { label: t("শিক্ষক ও কর্মী", "Teachers & Staff"), href: "/admin/teacher/registration" },
-              { label: t("শিক্ষক তালিকা", "Teacher List") },
-            ]}
-          />
           <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
             {t("শিক্ষক তালিকা", "Teacher List")}
           </h1>

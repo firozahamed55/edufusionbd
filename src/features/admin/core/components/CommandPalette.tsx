@@ -4,19 +4,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { ADMIN_NAV_SECTIONS, ADMIN_NAV_FOOTER, type AdminNavItem, type AdminSubItem } from "@/features/admin/components/adminNav";
+import { ADMIN_ALL_MODULES } from "@/features/admin/components/adminNav";
 
 type Entry = { href: string; bn: string; en: string };
 
 function flatten(): Entry[] {
   const out: Entry[] = [];
-  const addSub = (s: AdminSubItem) => out.push({ href: s.href, bn: s.bn, en: s.en });
-  const addItem = (i: AdminNavItem) => {
-    out.push({ href: i.href, bn: i.bn, en: i.en });
-    i.sub?.forEach((group) => group.items.forEach(addSub));
-  };
-  ADMIN_NAV_SECTIONS.forEach((s) => s.items.forEach(addItem));
-  ADMIN_NAV_FOOTER.forEach(addItem);
+  for (const mod of ADMIN_ALL_MODULES) {
+    out.push({ href: mod.href, bn: mod.bn, en: mod.en });
+    for (const tab of mod.tabs ?? []) out.push({ href: tab.href, bn: `${mod.bn} · ${tab.bn}`, en: `${mod.en} · ${tab.en}` });
+  }
   return out;
 }
 

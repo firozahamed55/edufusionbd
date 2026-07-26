@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast, Breadcrumb } from "@/shared/ui";
+import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
 import { useSetting, useSaveSetting, useGradeSchemes } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 import type { RpcPayload } from "@/shared/services/supabase/types";
@@ -69,13 +69,6 @@ export function BasicConfigScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <Breadcrumb
-          items={[
-            { label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" },
-            { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") },
-            { label: t("বেসিক কনফিগ", "Basic Config") },
-          ]}
-        />
         <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বেসিক কনফিগারেশন", "Basic Configuration")}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("একাডেমিক, আঞ্চলিক ও ডিফল্ট নীতিমালা", "Academic, regional & default policies")}</p>
       </header>

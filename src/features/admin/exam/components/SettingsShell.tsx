@@ -1,28 +1,31 @@
 "use client";
 
-import Link from "next/link";
 import { RotateCcw, Save } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { Button, SaveBar, UnsavedDot, Breadcrumb } from "@/shared/ui";
+import { Button, SaveBar, UnsavedDot } from "@/shared/ui";
 import { useT } from "@/shared/i18n/useT";
+import { useIsReadOnlyYear } from "@/shared/services/academicYear/context";
 import type { ReactNode } from "react";
 
 /**
  * Shared shell for the 5 tabbed exam-settings screens (Start / Mark /
- * Marksheet / Comment / Date config). Provides the header, real tab navigation
- * (Links between the 5 routes) and the sticky save bar; each screen supplies
- * only its config cards. Figma 169:2 + siblings.
+ * Marksheet / Comment / Date config). Supplies the page header and the sticky
+ * save bar; each screen supplies only its config cards.
+ *
+ * The tab bar it used to own is now `ModuleTabs` in the exam route layout —
+ * this file was the ONE place in the app that got sub-navigation right, and
+ * generalising it app-wide was the core of the §9 nav redesign.
  */
 
 export type SettingsTabId = "settings" | "mark" | "marksheet" | "comment" | "date";
 
-const TABS: { id: SettingsTabId; bn: string; en: string; href: string }[] = [
-  { id: "settings", bn: "পরীক্ষা শুরু", en: "Exam Start", href: "/admin/exam/settings" },
-  { id: "mark", bn: "মার্ক কনফিগ", en: "Mark Config", href: "/admin/exam/mark-config" },
-  { id: "marksheet", bn: "মার্কশিট কনফিগ", en: "Marksheet Config", href: "/admin/exam/marksheet-config" },
-  { id: "comment", bn: "মন্তব্য কনফিগ", en: "Comment Config", href: "/admin/exam/comment-config" },
-  { id: "date", bn: "তারিখ কনফিগ", en: "Date Config", href: "/admin/exam/date-config" },
-];
+const TITLES: Record<SettingsTabId, { bn: string; en: string }> = {
+  settings: { bn: "পরীক্ষা শুরু", en: "Exam Start" },
+  mark: { bn: "মার্ক কনফিগ", en: "Mark Config" },
+  marksheet: { bn: "মার্কশিট কনফিগ", en: "Marksheet Config" },
+  comment: { bn: "মন্তব্য কনফিগ", en: "Comment Config" },
+  date: { bn: "তারিখ কনফিগ", en: "Date Config" },
+};
 
 export function SettingsShell({
   active,
@@ -40,46 +43,34 @@ export function SettingsShell({
   statusText?: ReactNode;
 }) {
   const { t } = useT();
-  const activeTab = TABS.find((tab) => tab.id === active);
+  const readOnly = useIsReadOnlyYear();
+  const title = TITLES[active];
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <Breadcrumb
-          items={[
-            { label: t("পরীক্ষা ও ফলাফল", "Exam & Results"), href: "/admin/exam/settings" },
-            { label: t("সেটিংস", "Settings"), href: "/admin/exam/settings" },
-            { label: activeTab ? t(activeTab.bn, activeTab.en) : "" },
-          ]}
-        />
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("পরীক্ষা সেটিংস", "Exam Settings")}</h1>
+        <h1 className="text-h4 font-bold text-text-primary">{t(title.bn, title.en)}</h1>
         <p className="mt-1 text-meta text-text-muted">{t("পরীক্ষা শুরু, মার্ক, মার্কশিট, মন্তব্য ও তারিখ কনফিগারেশন", "Exam start, mark, marksheet, comment & date configuration")}</p>
       </header>
-
-      <div className="flex gap-6 overflow-x-auto border-b border-border-default">
-        {TABS.map((tab) => (
-          <Link
-            key={tab.id}
-            href={tab.href}
-            className={cn(
-              "-mb-px whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors",
-              tab.id === active
-                ? "border-primary text-primary"
-                : "border-transparent text-text-secondary hover:text-text-primary",
-            )}
-          >
-            {t(tab.bn, tab.en)}
-          </Link>
-        ))}
-      </div>
 
       {children}
 
       {onSave ? (
-        <SaveBar status={<><UnsavedDot /><span>{statusText ?? t("কনফিগারেশন সংরক্ষণ করুন", "Save configuration")}</span></>}>
-          <Button variant="secondary" onClick={onReset} disabled={saving}>
+        <SaveBar
+          status={
+            <>
+              <UnsavedDot />
+              <span>
+                {readOnly
+                  ? t("আর্কাইভ বর্ষ — সম্পাদনা বন্ধ", "Archived year — editing disabled")
+                  : (statusText ?? t("কনফিগারেশন সংরক্ষণ করুন", "Save configuration"))}
+              </span>
+            </>
+          }
+        >
+          <Button variant="secondary" onClick={onReset} disabled={saving || readOnly}>
             <RotateCcw size={15} /> {t("রিসেট", "Reset")}
           </Button>
-          <Button variant="primary" onClick={onSave} disabled={saving}>
+          <Button variant="primary" onClick={onSave} disabled={saving || readOnly}>
             <Save size={16} /> {saving ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("সংরক্ষণ করুন", "Save")}
           </Button>
         </SaveBar>

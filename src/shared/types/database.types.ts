@@ -3029,6 +3029,52 @@ export type Database = {
           },
         ]
       }
+      request_log: {
+        Row: {
+          at: string
+          bucket: string
+          id: string
+          institution_id: string
+          profile_id: string
+        }
+        Insert: {
+          at?: string
+          bucket: string
+          id?: string
+          institution_id: string
+          profile_id: string
+        }
+        Update: {
+          at?: string
+          bucket?: string
+          id?: string
+          institution_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_log_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institution"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_log_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_kpi"
+            referencedColumns: ["institution_id"]
+          },
+          {
+            foreignKeyName: "request_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       result_approval: {
         Row: {
           approved_at: string | null
@@ -5414,6 +5460,7 @@ export type Database = {
         Returns: Json
       }
       fn_generate_code: { Args: { p_entity: string }; Returns: string }
+      fn_generate_monthly_invoices: { Args: never; Returns: number }
       fn_mark_attendance: { Args: { payload: Json }; Returns: number }
       fn_process_exam_result: {
         Args: { p_exam_id: string }
