@@ -47,7 +47,7 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
         <p className="mt-1 text-meta text-text-muted">{isProcess ? t("নম্বর থেকে GPA, গ্রেড ও মেধাক্রম গণনা করুন", "Compute GPA, grade & merit rank from marks") : t("প্রক্রিয়াকৃত ফলাফল দেখুন ও ডাউনলোড করুন", "View & download processed results")}</p>
       </header>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("পরীক্ষা", "Exam")} required className="w-65 max-w-full">
           <Select value={examId} placeholder={exams.isLoading ? t("লোড হচ্ছে…", "Loading…") : t("নির্বাচন", "Select")} options={(exams.data ?? []).map((e) => ({ value: e.id, label: e.name }))} onChange={(e) => setExamId(e.target.value)} />
         </Field>
@@ -67,13 +67,13 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
       {!examId ? (
         <EmptyState icon={<Award size={22} />} title={t("একটি পরীক্ষা নির্বাচন করুন", "Select an exam")} />
       ) : results.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : results.isError ? (
         <ErrorState title={t("ফলাফল লোড করা যায়নি", "Could not load results")} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Award size={22} />} title={t("এখনও কোনো প্রক্রিয়াকৃত ফলাফল নেই", "No processed results yet")} description={isProcess ? t("নম্বর এন্ট্রির পর ‘ফলাফল প্রক্রিয়া করুন’ চাপুন।", "After entering marks, click Process results.") : undefined} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-180">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("ফলাফল তালিকা", "Results")}</p>

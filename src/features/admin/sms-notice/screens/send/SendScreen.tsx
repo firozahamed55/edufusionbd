@@ -89,7 +89,7 @@ export function SendScreen() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
+      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e1">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label={t("প্রাপক", "Recipients")}><Select value={f.recipient_type} options={RECIPIENTS.map((r) => ({ value: r.value, label: isBn ? r.bn : r.en }))} onChange={(e) => up("recipient_type", e.target.value)} /></Field>
           <Field label={t("গ্রুপ (শ্রেণি/শাখা)", "Group (class/section)")}><Input value={f.recipient_group} onChange={(e) => up("recipient_group", e.target.value)} placeholder={t("যেমন: ৯ম-ক", "e.g. 9-A")} /></Field>

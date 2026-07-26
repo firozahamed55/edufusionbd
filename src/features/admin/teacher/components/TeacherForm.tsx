@@ -372,7 +372,7 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
           <FormCard title={t("ডকুমেন্ট", "Documents")}>
             <div className="flex flex-col gap-2">
               {DOCS.map((doc) => (
-                <div key={doc} className="flex items-center gap-3 rounded-[10px] border border-border-default bg-surface px-3 py-2.5">
+                <div key={doc} className="flex items-center gap-3 rounded-lg border border-border-default bg-surface px-3 py-2.5">
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken text-text-secondary">
                     <FileText size={16} />
                   </span>

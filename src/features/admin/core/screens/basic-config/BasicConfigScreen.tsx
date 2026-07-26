@@ -74,7 +74,7 @@ export function BasicConfigScreen() {
       </header>
 
       {config.isLoading ? (
-        <div className="flex flex-col gap-3 rounded-2xl bg-surface p-6 shadow-e3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-3 rounded-2xl bg-surface p-6 shadow-e1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : (
         <>
           <FormCard title={t("একাডেমিক সেটিংস", "Academic Settings")}>
@@ -147,7 +147,7 @@ export function BasicConfigScreen() {
                   <div key={tg.key} className={i > 0 ? "flex items-center gap-3 border-t border-border-default py-3.5" : "flex items-center gap-3 py-1.5"}>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-text-primary">{t(tg.bn, tg.en)}</p>
-                      <p className="mt-0.5 text-[12px] text-text-muted">{t(tg.sub_bn, tg.sub_en)}</p>
+                      <p className="mt-0.5 text-xs text-text-muted">{t(tg.sub_bn, tg.sub_en)}</p>
                     </div>
                     <button
                       type="button"

@@ -131,6 +131,57 @@ const config = [
       ],
     },
   },
+
+  /**
+   * Design-system enforcement (final_admin.md RC-1 + §11.3).
+   *
+   * The design system was *defined* and not *enforced*, and the audit measured
+   * exactly what that costs: `shadow-e3` — the modal/popover elevation — used
+   * 95 times against 5 uses of e1+e2 combined, so the elevation scale had
+   * collapsed to a single value and nothing on any screen read as raised.
+   * Alongside it: two button implementations, 29 raw hex values, and 13
+   * arbitrary radii.
+   *
+   * Documentation did not hold that line for a year. These rules make each
+   * regression a build failure instead of a code-review hope.
+   */
+  {
+    files: ["src/**/*.tsx"],
+    ignores: [
+      // Overlay primitives are the legitimate home of modal elevation.
+      "src/shared/ui/Dialog.tsx",
+      "src/shared/ui/RowActions.tsx",
+      "src/shared/ui/Toast.tsx",
+      "src/features/admin/components/AdminShell.tsx",
+      "src/features/admin/components/AcademicYearSelector.tsx",
+      "src/features/admin/core/components/CommandPalette.tsx",
+      // global-error renders when the ROOT LAYOUT itself failed, so globals.css
+      // is not guaranteed to be loaded and no token is available. Inline hex is
+      // the only thing that can be relied on here — this is the one honest
+      // exception, not an unfixed violation.
+      "src/app/global-error.tsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/(?:^|\\s)shadow-e3(?:\\s|$)/]",
+          message:
+            "shadow-e3 is the MODAL elevation. A page card is shadow-e1 (raised) or a plain border (flat); a dropdown is shadow-e2. Using e3 everywhere is what collapsed the scale (final_admin.md S-1).",
+        },
+        {
+          selector: "Literal[value=/#[0-9a-fA-F]{6}\\b/]",
+          message:
+            "Raw hex is banned in TSX. Add a semantic token in globals.css and use the Tailwind utility, so the value themes in dark mode instead of silently staying light (S-6).",
+        },
+        {
+          selector: "Literal[value=/(?:^|\\s)(?:text|rounded)-\\[\\d/]",
+          message:
+            "Arbitrary text-[Npx] / rounded-[Npx] are banned. Use the named type scale (text-meta, text-h4, …) or the radius scale (S-6).",
+        },
+      ],
+    },
+  },
 ];
 
 export default config;

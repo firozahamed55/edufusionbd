@@ -60,6 +60,13 @@
   --color-status-info-fg: #4f46e5;
   --color-status-info-bg: #eef0ff;
 
+  /* Third-party payment brand colours. These are the ONLY colours in the app
+     that must NOT adapt to the theme — bKash pink and Nagad red are those
+     companies' brand identity and are fixed by their guidelines. Named here so
+     they are still centralized rather than inline hex in a button. */
+  --color-brand-bkash: #e2136e;
+  --color-brand-nagad: #ec1c24;
+
   /* Decorative palette (icon chips / gradients used in collected code) */
   --indigo-100: #e0e3ff;
   --indigo-400: #818cf8;
@@ -190,6 +197,8 @@
   --color-danger-fg: var(--color-status-danger-fg);
   --color-danger-bg: var(--color-status-danger-bg);
   --color-danger-solid: var(--color-status-danger-solid);
+  --color-brand-bkash: var(--color-brand-bkash);
+  --color-brand-nagad: var(--color-brand-nagad);
   --color-info-fg: var(--color-status-info-fg);
   --color-info-bg: var(--color-status-info-bg);
 

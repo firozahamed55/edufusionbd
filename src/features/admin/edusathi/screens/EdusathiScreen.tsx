@@ -70,7 +70,7 @@ export function EdusathiScreen() {
       <div className="grid gap-3 sm:grid-cols-3">
         {capabilities.map((c) => (
           <div key={c.title} className="flex flex-col gap-2 rounded-2xl border border-border-default bg-surface p-4 shadow-e1">
-            <span className="grid size-9 place-items-center rounded-[10px] bg-primary-subtle text-primary">
+            <span className="grid size-9 place-items-center rounded-lg bg-primary-subtle text-primary">
               <c.icon size={18} aria-hidden />
             </span>
             <p className="text-sm font-semibold text-text-primary">{c.title}</p>

@@ -50,16 +50,16 @@ export function SubjectGroupScreen() {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl bg-surface p-5 shadow-e3"><EmptyState icon={<Layers size={22} />} title={t("কোনো গ্রুপ নেই", "No groups yet")} /></div>
+        <div className="rounded-2xl bg-surface p-5 shadow-e1"><EmptyState icon={<Layers size={22} />} title={t("কোনো গ্রুপ নেই", "No groups yet")} /></div>
       ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {rows.map((g) => (
-            <div key={g.id} className="flex flex-col gap-3.5 rounded-2xl bg-surface p-4.5 shadow-e3">
+            <div key={g.id} className="flex flex-col gap-3.5 rounded-2xl border border-border-default bg-surface p-4.5 shadow-e1">
               <div className="flex items-center gap-3">
-                <span className="grid size-10.5 shrink-0 place-items-center rounded-[10px] bg-primary-subtle text-lg font-bold text-primary">{g.name.slice(0, 1)}</span>
+                <span className="grid size-10.5 shrink-0 place-items-center rounded-lg bg-primary-subtle text-lg font-bold text-primary">{g.name.slice(0, 1)}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[16px] font-semibold text-text-primary">{g.name}</p>
-                  <p className="text-[12px] text-text-muted">{t(`${n(g.subject_ids.length)}টি বিষয়`, `${n(g.subject_ids.length)} subjects`)}</p>
+                  <p className="truncate text-base font-semibold text-text-primary">{g.name}</p>
+                  <p className="text-xs text-text-muted">{t(`${n(g.subject_ids.length)}টি বিষয়`, `${n(g.subject_ids.length)} subjects`)}</p>
                 </div>
                 <button onClick={() => openEdit(g)} aria-label={t("সম্পাদনা", "Edit")} className="grid size-8.5 shrink-0 place-items-center rounded-lg border border-border-strong text-text-secondary hover:bg-sunken"><Pencil size={15} /></button>
                 <button onClick={() => setDelId(g.id)} aria-label={t("মুছুন", "Delete")} className="grid size-8.5 shrink-0 place-items-center rounded-lg border border-border-strong text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>

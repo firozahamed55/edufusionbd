@@ -80,7 +80,7 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
         <p className="mt-1 text-meta text-text-muted">{t("শিক্ষার্থীদের পরবর্তী শ্রেণিতে উন্নীত করুন", "Promote students to the next class")}</p>
       </header>
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl bg-surface p-5 shadow-e3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl bg-surface p-5 shadow-e1 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <Field label={t("উৎস শ্রেণি ও শাখা", "Source Class & Section")} required>
           <Select value={sourceId} placeholder={sections.isLoading ? t("লোড হচ্ছে…", "Loading…") : t("নির্বাচন করুন", "Select")} options={opt(sections.data)}
             onChange={(e) => { setSourceId(e.target.value); setSelected(new Set()); }} />
@@ -96,13 +96,13 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
       {!sourceId ? (
         <EmptyState icon={<Users size={22} />} title={t("উৎস শাখা নির্বাচন করুন", "Select a source section")} description={t("উন্নীত করার জন্য শিক্ষার্থী তালিকা লোড করুন।", "Load the student list to promote them.")} />
       ) : students.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : students.isError ? (
         <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(students.error)} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("এই শাখায় কোনো শিক্ষার্থী নেই", "No students in this section")} />
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
             <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student List")}</p>
             {selected.size > 0 ? <span className="text-meta font-semibold text-text-secondary">{n(selected.size)} {t("নির্বাচিত", "selected")}</span> : null}

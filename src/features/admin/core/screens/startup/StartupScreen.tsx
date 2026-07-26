@@ -99,7 +99,7 @@ export function StartupScreen() {
       </header>
 
       {inst.isLoading ? (
-        <div className="flex flex-col gap-3 rounded-2xl bg-surface p-6 shadow-e3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-3 rounded-2xl bg-surface p-6 shadow-e1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
           <div className="flex flex-col gap-5">
@@ -172,7 +172,7 @@ export function StartupScreen() {
                 >
                   <Upload size={14} /> {logoUploading ? t("আপলোড হচ্ছে…", "Uploading…") : t("লোগো আপলোড করুন", "Upload logo")}
                 </button>
-                <p className="text-[11.5px] text-text-muted">{t("PNG/SVG • সর্বোচ্চ ১ MB", "PNG/SVG • up to 1 MB")}</p>
+                <p className="text-micro text-text-muted">{t("PNG/SVG • সর্বোচ্চ ১ MB", "PNG/SVG • up to 1 MB")}</p>
                 <input ref={fileInputRef} type="file" accept="image/png,image/svg+xml" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) onLogoPick(file); e.target.value = ""; }} />
               </div>
             </FormCard>

@@ -32,7 +32,7 @@ export function IncomeStatementScreen() {
         subtitle={t("আয়-ব্যায়ের সমন্বিত বিবরণী", "Combined income & expenditure")}
       />
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("শুরুর তারিখ", "From")} required className="w-50"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
         <Field label={t("শেষ তারিখ", "To")} required className="w-50"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
         <Button variant="primary" className="h-10.5 px-6" onClick={() => setRange({ from, to })}><Search size={16} /> {t("অনুসন্ধান", "Search")}</Button>
@@ -80,7 +80,7 @@ function Empty({ t }: { t: (bn: string, en: string) => string }) {
 
 function Ledger({ title, totalLabel, credit, children }: { title: string; totalLabel: string; credit: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+    <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
       <div className="border-b border-border-default px-5 py-4"><p className="text-base font-semibold text-text-primary">{title}</p></div>
       <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
         <div className="flex-1">{title.includes("আয়") || title.toLowerCase().includes("income") ? "খাত / Head" : "খাত / Head"}</div>

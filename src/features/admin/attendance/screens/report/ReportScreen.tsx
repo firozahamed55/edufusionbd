@@ -36,7 +36,7 @@ export function ReportScreen() {
         subtitle={t("শ্রেণি ও তারিখ অনুযায়ী উপস্থিতির সারসংক্ষেপ", "Attendance summary by class and date range")}
       />
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("শ্রেণি ও শাখা", "Class & section")} required className="w-65 max-w-full">
           <Select value={sectionId} placeholder={t("নির্বাচন করুন", "Select")} options={opt(sections.data)} onChange={(e) => setSectionId(e.target.value)} />
         </Field>
@@ -48,7 +48,7 @@ export function ReportScreen() {
       {!applied ? (
         <EmptyState icon={<Users size={22} />} title={t("একটি শ্রেণি নির্বাচন করে অনুসন্ধান করুন", "Select a class and search")} />
       ) : q.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
         <ErrorState title={t("রিপোর্ট লোড করা যায়নি", "Could not load report")} description={msg(q.error)} />
       ) : d ? (
@@ -60,7 +60,7 @@ export function ReportScreen() {
             <SoftStat tone="info" icon={Hash} value={n(d.working_days)} label={t("মোট কার্যদিবস", "Working days")} />
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+          <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student list")}</p>
               <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(d.students.length)}</span>
@@ -93,7 +93,7 @@ export function ReportScreen() {
 const softTone = { success: "bg-success-bg text-success-fg", primary: "bg-primary-subtle text-primary", danger: "bg-danger-bg text-danger-fg", info: "bg-info-bg text-info-fg" } as const;
 function SoftStat({ tone, icon: Icon, value, label }: { tone: keyof typeof softTone; icon: LucideIcon; value: string; label: string }) {
   return (
-    <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e3">
+    <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e1">
       <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", softTone[tone])}><Icon size={22} /></span>
       <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-meta text-text-muted">{label}</p></div>
     </div>

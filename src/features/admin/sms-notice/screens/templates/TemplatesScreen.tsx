@@ -44,7 +44,7 @@ export function TemplatesScreen() {
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
-        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3">
+        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e1">
           <div className="flex items-center gap-2"><span className="grid size-7 place-items-center rounded-lg bg-primary-subtle text-primary"><Plus size={16} /></span><p className="text-base font-semibold text-text-primary">{t("নতুন টেমপ্লেট", "New template")}</p></div>
           <Field label={t("নাম", "Name")} required><Input value={f.name} onChange={(e) => setF((p) => ({ ...p, name: e.target.value }))} /></Field>
           <Field label={t("ক্যাটাগরি", "Category")}><Select value={f.category} options={CATEGORIES.map((x) => ({ value: x.value, label: isBn ? x.bn : x.en }))} onChange={(e) => setF((p) => ({ ...p, category: e.target.value }))} /></Field>
@@ -52,7 +52,7 @@ export function TemplatesScreen() {
           <Button variant="primary" onClick={add} disabled={upsert.isPending}><Plus size={16} /> {upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("যোগ করুন", "Add")}</Button>
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="border-b border-border-default px-5 py-4"><p className="text-base font-semibold text-text-primary">{t("টেমপ্লেট তালিকা", "Templates")}</p></div>
           {rows.length === 0 ? (
             <div className="p-5"><EmptyState icon={<MessageSquareText size={22} />} title={t("কোনো টেমপ্লেট নেই", "No templates yet")} /></div>

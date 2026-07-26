@@ -62,19 +62,19 @@ export function HistoryScreen() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("মোট ক্যাম্পেইন", "Campaigns")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(totals.data?.campaigns ?? total)}</p></div>
-        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("মোট প্রাপক", "Recipients")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(totals.data?.recipients ?? 0)}</p></div>
-        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("আনুমানিক খরচ", "Est. cost")}</p><p className="text-2xl font-bold text-text-primary tnum">৳{n(Math.round(totals.data?.cost ?? 0))}</p></div>
+        <div className="rounded-2xl bg-surface p-5 shadow-e1"><p className="text-meta text-text-muted">{t("মোট ক্যাম্পেইন", "Campaigns")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(totals.data?.campaigns ?? total)}</p></div>
+        <div className="rounded-2xl bg-surface p-5 shadow-e1"><p className="text-meta text-text-muted">{t("মোট প্রাপক", "Recipients")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(totals.data?.recipients ?? 0)}</p></div>
+        <div className="rounded-2xl bg-surface p-5 shadow-e1"><p className="text-meta text-text-muted">{t("আনুমানিক খরচ", "Est. cost")}</p><p className="text-2xl font-bold text-text-primary tnum">৳{n(Math.round(totals.data?.cost ?? 0))}</p></div>
       </div>
 
       {q.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
         <ErrorState title={t("ইতিহাস লোড করা যায়নি", "Could not load history")} />
       ) : total === 0 ? (
         <EmptyState icon={<HistoryIcon size={22} />} title={t("এখনও কোনো ক্যাম্পেইন নেই", "No campaigns yet")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-180">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-40">{t("তারিখ", "Date")}</div>

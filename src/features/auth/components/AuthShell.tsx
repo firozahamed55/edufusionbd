@@ -33,9 +33,9 @@ export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,56%)]">
       {/* Brand rail */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#1e3a8a] px-12 py-10 text-white lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-primary-hover px-12 py-10 text-white lg:flex">
         <div className="flex items-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-lg bg-white text-lg font-black text-[#1e3a8a]">
+          <span className="grid size-9 place-items-center rounded-lg bg-white text-lg font-black text-primary-hover">
             E
           </span>
           <span className="text-lg font-bold">EduFusionBD</span>

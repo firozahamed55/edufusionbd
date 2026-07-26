@@ -37,10 +37,10 @@ export function DigitalCollectionScreen() {
   const rate = s && s.total > 0 ? Math.round((s.successCount / s.total) * 100) : 0;
 
   const KPIS = [
-    { value: `৳${n(s?.successTotal ?? 0)}`, label: t("সফল আদায়", "Collected"), grad: "from-[#4f46e5] to-[#7c3aed]", shadow: "shadow-[0px_6px_16px_-4px_rgba(79,70,229,0.26)]" },
-    { value: n(s?.successCount ?? 0), label: t("সফল লেনদেন", "Successful"), grad: "from-[#059669] to-[#0d9488]", shadow: "shadow-[0px_6px_16px_-4px_rgba(5,150,105,0.26)]" },
-    { value: n(s?.pendingCount ?? 0), label: t("অপেক্ষমাণ", "Pending"), grad: "from-[#0284c7] to-[#2563eb]", shadow: "shadow-[0px_6px_16px_-4px_rgba(2,132,199,0.26)]" },
-    { value: `${n(rate)}%`, label: t("সফলতার হার", "Success rate"), grad: "from-[#f97316] to-[#d97706]", shadow: "shadow-[0px_6px_16px_-4px_rgba(249,115,22,0.26)]" },
+    { value: `৳${n(s?.successTotal ?? 0)}`, label: t("সফল আদায়", "Collected"), grad: "grad-indigo", shadow: "shadow-e2" },
+    { value: n(s?.successCount ?? 0), label: t("সফল লেনদেন", "Successful"), grad: "grad-emerald", shadow: "shadow-e2" },
+    { value: n(s?.pendingCount ?? 0), label: t("অপেক্ষমাণ", "Pending"), grad: "grad-sky", shadow: "shadow-e2" },
+    { value: `${n(rate)}%`, label: t("সফলতার হার", "Success rate"), grad: "grad-amber", shadow: "shadow-e2" },
   ];
 
   return (
@@ -52,9 +52,9 @@ export function DigitalCollectionScreen() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {q.isLoading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-[18px]" />) :
+        {q.isLoading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />) :
           KPIS.map((k) => (
-            <div key={k.label} className={cn("flex flex-col gap-2 rounded-[18px] bg-linear-to-r px-5 py-4.5 text-white", k.grad, k.shadow)}>
+            <div key={k.label} className={cn("flex flex-col gap-2 rounded-2xl px-5 py-4.5 text-white", k.grad, k.shadow)}>
               <p className="text-2xl font-bold tnum">{k.value}</p>
               <p className="text-meta font-medium opacity-90">{k.label}</p>
             </div>
@@ -62,13 +62,13 @@ export function DigitalCollectionScreen() {
       </div>
 
       {q.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
         <ErrorState title={t("লেনদেন লোড করা যায়নি", "Could not load transactions")} description={msg(q.error)} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<CreditCard size={22} />} title={t("কোনো ডিজিটাল লেনদেন নেই", "No digital transactions")} description={t("অনলাইন পেমেন্ট এলে এখানে দেখা যাবে।", "Online payments appear here.")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-230">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("অনলাইন লেনদেন", "Online transactions")}</p>

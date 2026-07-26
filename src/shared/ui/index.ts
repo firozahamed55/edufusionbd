@@ -19,6 +19,7 @@ export { PageHeader } from "./PageHeader";
 export { Table, THead, TBody, TR, TH, TD, TableEmpty, SortableTH, type Sort, type SortDir } from "./Table";
 export { RowActions, type RowAction } from "./RowActions";
 export { Skeleton, Spinner, EmptyState, ErrorState } from "./states";
+export { LiveRegion } from "./LiveRegion";
 export { PasswordInput } from "./PasswordInput";
 export { OtpInput } from "./OtpInput";
 export { Stepper } from "./Stepper";

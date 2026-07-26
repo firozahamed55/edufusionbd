@@ -61,7 +61,7 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
         <p className="mt-1 text-meta text-text-muted">{t("পরীক্ষা, শাখা ও বিষয় নির্বাচন করে নম্বর এন্ট্রি করুন", "Select exam, section & subject to enter marks")}</p>
       </header>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("পরীক্ষা", "Exam")} required className="w-55 max-w-full">
           <Select value={examId} placeholder={exams.isLoading ? t("লোড হচ্ছে…", "Loading…") : t("নির্বাচন", "Select")} options={(exams.data ?? []).map((e) => ({ value: e.id, label: e.name }))} onChange={(e) => setExamId(e.target.value)} />
         </Field>
@@ -77,13 +77,13 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
       {!ready ? (
         <EmptyState icon={<ClipboardList size={22} />} title={t("পরীক্ষা, শাখা ও বিষয় নির্বাচন করুন", "Select exam, section and subject")} />
       ) : students.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : students.isError ? (
         <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<ClipboardList size={22} />} title={t("এই শাখায় কোনো শিক্ষার্থী নেই", "No students in this section")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-160">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-15">{t("রোল", "Roll")}</div>

@@ -88,7 +88,7 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
         <p className="mt-1 text-meta text-text-muted">{isExam ? t("নির্বাচিত পরীক্ষায় উপস্থিতি চিহ্নিত করুন", "Mark attendance for the selected exam") : t("নির্বাচিত শ্রেণির আজকের উপস্থিতি চিহ্নিত করুন", "Mark today's attendance for the selected class")}</p>
       </header>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("শ্রেণি ও শাখা", "Class & Section")} required className="w-65 max-w-full">
           <Select value={sectionId} placeholder={sections.isLoading ? t("লোড হচ্ছে…", "Loading…") : t("নির্বাচন করুন", "Select")} options={opt(sections.data)} onChange={(e) => setSectionId(e.target.value)} />
         </Field>
@@ -104,13 +104,13 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
       {!sectionId || (isExam && !examId) ? (
         <EmptyState icon={<Users size={22} />} title={isExam ? t("শ্রেণি ও পরীক্ষা নির্বাচন করুন", "Select class & exam") : t("একটি শ্রেণি নির্বাচন করুন", "Select a class")} />
       ) : students.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : students.isError ? (
         <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(students.error)} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("এই শাখায় কোনো শিক্ষার্থী নেই", "No students in this section")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-225">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student list")}</p>

@@ -57,7 +57,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <section className="flex flex-col gap-4">
       <h2 className="text-h4 font-bold text-text-primary">{title}</h2>
-      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">{children}</div>
+      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e1">{children}</div>
     </section>
   );
 }

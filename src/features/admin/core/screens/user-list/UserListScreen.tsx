@@ -28,13 +28,13 @@ export function UserListScreen() {
       />
 
       {q.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
         <ErrorState title={t("ব্যবহারকারী লোড করা যায়নি", "Could not load users")} />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("কোনো ব্যবহারকারী নেই", "No users yet")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-160">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("ব্যবহারকারী তালিকা", "Users")}</p>

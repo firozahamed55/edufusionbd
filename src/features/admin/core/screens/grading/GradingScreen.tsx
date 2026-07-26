@@ -90,7 +90,7 @@ export function GradingScreen() {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl bg-surface p-5 shadow-e3"><EmptyState icon={<Award size={22} />} title={t("কোনো স্কিম নেই", "No schemes yet")} /></div>
+        <div className="rounded-2xl bg-surface p-5 shadow-e1"><EmptyState icon={<Award size={22} />} title={t("কোনো স্কিম নেই", "No schemes yet")} /></div>
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -107,7 +107,7 @@ export function GradingScreen() {
           </div>
 
           {active ? (
-            <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+            <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
               <div className="flex items-center gap-3 bg-sunken px-5 py-3 text-meta font-semibold text-text-muted">
                 <div className="w-30">{t("গ্রেড", "Grade")}</div>
                 <div className="flex-1">{t("নম্বর সীমা", "Mark range")}</div>

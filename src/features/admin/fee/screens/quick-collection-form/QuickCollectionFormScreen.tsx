@@ -67,14 +67,14 @@ export function QuickCollectionFormScreen() {
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
-        <div className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+        <div className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-e1">
           <Field label={t("শিক্ষার্থী আইডি", "Student ID")} required>
             <Input value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="STU-0001" className="font-latin" />
           </Field>
           <Button variant="primary" onClick={search} disabled={searching}><Search size={15} /> {searching ? t("খুঁজছে…", "Searching…") : t("অনুসন্ধান", "Search")}</Button>
         </div>
 
-        <div className="flex flex-col gap-2.5 rounded-2xl bg-surface p-5 shadow-e3">
+        <div className="flex flex-col gap-2.5 rounded-2xl bg-surface p-5 shadow-e1">
           {!studentId ? (
             <div className="flex flex-1 items-center justify-center gap-2 text-meta text-text-muted"><User size={18} /> {t("একজন শিক্ষার্থী খুঁজুন", "Look up a student")}</div>
           ) : profile.isLoading ? (
@@ -98,7 +98,7 @@ export function QuickCollectionFormScreen() {
 
       {studentId ? (
         <>
-          <div className="grid grid-cols-1 gap-4 rounded-2xl bg-surface p-5 shadow-e3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 rounded-2xl bg-surface p-5 shadow-e1 sm:grid-cols-2">
             <Field label={t("পেমেন্ট মাধ্যম", "Payment method")} required>
               <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} options={PAYMENT_METHOD.map((m) => ({ value: m.value, label: isBn ? m.bn : m.en }))} />
             </Field>
@@ -107,7 +107,7 @@ export function QuickCollectionFormScreen() {
             </Field>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+          <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
             <div className="min-w-200">
               <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
                 <div className="w-40">{t("ফি হেড", "Fee heads")}</div>
@@ -162,7 +162,7 @@ function ProfileRow({ label, value, strong }: { label: string; value: string; st
 }
 function SummaryTile({ gradient, label, value }: { gradient: string; label: string; value: string }) {
   return (
-    <div className={cn("flex flex-col gap-2 rounded-2xl bg-linear-to-r p-5 text-center text-white shadow-e3", gradient)}>
+    <div className={cn("flex flex-col gap-2 rounded-2xl p-5 text-center text-white shadow-e1", gradient)}>
       <p className="text-meta font-medium opacity-90">{label}</p>
       <p className="text-2xl font-bold tnum">{value}</p>
     </div>

@@ -7,7 +7,7 @@ import { UserPlus, Search, Pencil, Download, Send } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
   Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination,
-  SortableTH, RowActions, Checkbox, Button, PageHeader, type Sort,
+  SortableTH, RowActions, Checkbox, Button, PageHeader, LiveRegion, type Sort,
 } from "@/shared/ui";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { useQueryState } from "@/shared/lib/useQueryState";
@@ -102,6 +102,15 @@ export function ListScreen() {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Searching/filtering/sorting silently swaps the table contents; without
+          this a screen-reader user gets no signal that anything happened. */}
+      <LiveRegion
+        message={
+          isLoading
+            ? t("লোড হচ্ছে", "Loading teachers")
+            : t(`${n(total)} জন শিক্ষক পাওয়া গেছে`, `${total} teachers found`)
+        }
+      />
       <div className="flex flex-wrap items-start gap-3">
         <PageHeader
           className="flex-1"

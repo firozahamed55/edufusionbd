@@ -50,7 +50,7 @@ export function TemplateManager() {
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
-        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3">
+        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e1">
           <div className="flex items-center gap-2"><span className="grid size-7 place-items-center rounded-lg bg-primary-subtle text-primary"><Plus size={16} /></span><p className="text-base font-semibold text-text-primary">{t("নতুন টেমপ্লেট", "New template")}</p></div>
           <Field label={t("ধরন", "Type")} required><Select value={f.type} options={TYPES.map((x) => ({ value: x.value, label: isBn ? x.bn : x.en }))} onChange={(e) => setF((p) => ({ ...p, type: e.target.value }))} /></Field>
           <Field label={t("হেডার টেক্সট", "Header text")}><Input value={f.header_text} onChange={(e) => setF((p) => ({ ...p, header_text: e.target.value }))} placeholder={t("প্রতিষ্ঠানের নাম", "Institution name")} /></Field>
@@ -59,7 +59,7 @@ export function TemplateManager() {
           <Button variant="primary" onClick={add} disabled={upsert.isPending}><Plus size={16} /> {upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("টেমপ্লেট যোগ করুন", "Add template")}</Button>
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="flex items-center gap-3 border-b border-border-default px-5 py-4"><p className="flex-1 text-base font-semibold text-text-primary">{t("টেমপ্লেট তালিকা", "Templates")}</p></div>
           {templates.isLoading ? (
             <div className="p-5 text-meta text-text-muted">{t("লোড হচ্ছে…", "Loading…")}</div>

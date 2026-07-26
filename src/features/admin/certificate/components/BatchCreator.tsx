@@ -52,7 +52,7 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
         subtitle={isId ? t("শিক্ষার্থীর পরিচয়পত্র ব্যাচ তৈরি করুন", "Create a student ID-card batch") : t("পরীক্ষার প্রবেশপত্র ব্যাচ তৈরি করুন", "Create an exam admit-card batch")}
       />
 
-      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
+      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e1">
         <h2 className="text-base font-semibold text-text-primary">{t("কনফিগারেশন", "Configuration")}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {!isId ? <Field label={t("পরীক্ষা", "Exam")} required><Select value={f.exam_id ?? ""} placeholder={t("নির্বাচন", "Select")} options={(exams.data ?? []).map((e) => ({ value: e.id, label: e.name }))} onChange={(e) => up("exam_id", e.target.value)} /></Field> : null}
@@ -79,7 +79,7 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+      <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
         <div className="border-b border-border-default px-5 py-4"><p className="text-base font-semibold text-text-primary">{t("সাম্প্রতিক ব্যাচ", "Recent batches")}</p></div>
         {list.length === 0 ? (
           <div className="p-5"><EmptyState icon={isId ? <IdCard size={22} /> : <Layers size={22} />} title={t("এখনও কোনো ব্যাচ নেই", "No batches yet")} /></div>

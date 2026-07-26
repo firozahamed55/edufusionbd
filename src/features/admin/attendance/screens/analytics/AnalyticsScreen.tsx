@@ -44,7 +44,7 @@ export function AnalyticsScreen() {
         subtitle={t("উপস্থিতির প্রবণতা ও ঝুঁকি বিশ্লেষণ", "Attendance trends & risk analysis")}
       />
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("শ্রেণি ও শাখা", "Class & Section")} className="w-65 max-w-full">
           <Select value={sectionId} placeholder={t("সকল শ্রেণি ও শাখা", "All classes & sections")} options={[{ value: "", label: t("সকল শ্রেণি ও শাখা", "All classes & sections") }, ...opt(sections.data)]} onChange={(e) => setSectionId(e.target.value)} />
         </Field>
@@ -66,7 +66,7 @@ export function AnalyticsScreen() {
             <SoftStat tone="info" icon={Hash} value={n(d.working_days)} label={t("কার্যদিবস", "Working days")} />
           </div>
 
-          <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">
+          <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">
             <p className="text-base font-semibold text-text-primary">{t("স্ট্যাটাস বিভাজন", "Status split")}</p>
             <div className="mt-1 flex h-3 overflow-hidden rounded-full bg-sunken">
               {SPLIT.map((s) => s.v > 0 ? <div key={s.key} className={s.color} style={{ width: `${(s.v / splitTotal) * 100}%` }} /> : null)}
@@ -83,7 +83,7 @@ export function AnalyticsScreen() {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+          <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
             <div className="min-w-180">
               <div className="flex items-center gap-2 px-5 pt-5">
                 <p className="text-base font-semibold text-text-primary">{t("ঝুঁকিপূর্ণ শিক্ষার্থী", "At-risk students")}</p>
@@ -122,7 +122,7 @@ export function AnalyticsScreen() {
 const softTone = { success: "bg-success-bg text-success-fg", primary: "bg-primary-subtle text-primary", danger: "bg-danger-bg text-danger-fg", info: "bg-info-bg text-info-fg" } as const;
 function SoftStat({ tone, icon: Icon, value, label }: { tone: keyof typeof softTone; icon: LucideIcon; value: string; label: string }) {
   return (
-    <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e3">
+    <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e1">
       <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", softTone[tone])}><Icon size={22} /></span>
       <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-meta text-text-muted">{label}</p></div>
     </div>

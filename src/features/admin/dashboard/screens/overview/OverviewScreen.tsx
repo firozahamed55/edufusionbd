@@ -114,7 +114,7 @@ export function OverviewScreen() {
         <Skeleton className="h-16 rounded-2xl" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-[18px]" />
+            <Skeleton key={i} className="h-32 rounded-2xl" />
           ))}
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_400px]">
@@ -321,10 +321,10 @@ function Kpi({
   period: string;
 }) {
   return (
-    <div className={cn("relative flex flex-col gap-3.5 overflow-hidden rounded-[18px] px-5 py-4.5 text-white shadow-e2", grad)}>
+    <div className={cn("relative flex flex-col gap-3.5 overflow-hidden rounded-2xl px-5 py-4.5 text-white shadow-e2", grad)}>
       <div className="flex items-center">
         <p className="flex-1 text-meta font-medium">{label}</p>
-        <span className="grid size-9 place-items-center rounded-[10px] bg-white/20">
+        <span className="grid size-9 place-items-center rounded-lg bg-white/20">
           <Icon size={20} />
         </span>
       </div>
@@ -396,7 +396,7 @@ function Alert({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-sunken p-3">
-      <span className={cn("grid size-9 shrink-0 place-items-center rounded-[10px]", toneMap[tone])}>
+      <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", toneMap[tone])}>
         <Icon size={20} />
       </span>
       <div className="min-w-0 flex-1">
@@ -421,7 +421,7 @@ function Alert({
 function QuickAction({ icon: Icon, title, desc, href }: { icon: LucideIcon; title: string; desc: string; href: string }) {
   return (
     <Link href={href} className="flex items-center gap-3 rounded-xl bg-sunken py-2.5 pl-2.5 pr-3 text-left hover:brightness-95">
-      <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary-subtle text-primary">
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-subtle text-primary">
         <Icon size={20} />
       </span>
       <div className="min-w-0 flex-1">
@@ -446,7 +446,7 @@ function Notice({
 }) {
   return (
     <div className="flex gap-3 rounded-xl bg-sunken p-3.5">
-      <span className={cn("grid size-8.5 shrink-0 place-items-center rounded-[9px]", toneMap[tone])}>
+      <span className={cn("grid size-8.5 shrink-0 place-items-center rounded-lg", toneMap[tone])}>
         <Icon size={20} />
       </span>
       <div className="min-w-0 flex-1">

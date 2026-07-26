@@ -40,7 +40,7 @@ export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, 
         subtitle={t(subtitle.bn, subtitle.en)}
       />
 
-      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
+      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e1">
         <h2 className="text-base font-semibold text-text-primary">{t(cardTitle.bn, cardTitle.en)}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {fields.map((f) =>

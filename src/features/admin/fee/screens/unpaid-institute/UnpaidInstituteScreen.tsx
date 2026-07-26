@@ -23,7 +23,7 @@ export function UnpaidInstituteScreen() {
         subtitle={t("প্রতিষ্ঠান অনুযায়ী বকেয়ার সারসংক্ষেপ", "Institute-wide dues summary")}
       />
 
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface p-5 shadow-e1">
         <span className="text-meta text-text-muted">{t("শিক্ষাবর্ষ", "Academic Year")}: <b className="text-text-secondary tnum">{n(2026)}</b></span>
         <div className="flex-1" />
         <button
@@ -48,13 +48,13 @@ export function UnpaidInstituteScreen() {
       </div>
 
       {q.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
         <ErrorState title={t("সারসংক্ষেপ লোড করা যায়নি", "Could not load summary")} description={msg(q.error)} />
       ) : !d || d.rows.length === 0 ? (
         <EmptyState icon={<Wallet size={22} />} title={t("কোনো বকেয়া তথ্য নেই", "No dues data")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-180">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("শ্রেণি-ভিত্তিক বকেয়ার সারসংক্ষেপ", "Class-wise dues summary")}</p>

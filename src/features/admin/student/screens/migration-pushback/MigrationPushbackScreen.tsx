@@ -77,7 +77,7 @@ export function MigrationPushbackScreen() {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+          <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
             <div className="border-b border-border-default px-5 py-4">
               <p className="text-base font-semibold text-text-primary">
                 {t("প্রভাবিত শিক্ষার্থী", "Affected Students")} — {selectedBatch.target_label} → {selectedBatch.source_label}

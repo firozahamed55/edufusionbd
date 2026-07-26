@@ -53,7 +53,7 @@ export function NoticeBoardScreen() {
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr]">
-        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3">
+        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e1">
           <div className="flex items-center gap-2"><span className="grid size-7 place-items-center rounded-lg bg-primary-subtle text-primary"><Plus size={16} /></span><p className="text-base font-semibold text-text-primary">{t("নতুন নোটিশ", "New notice")}</p></div>
           <Field label={t("শিরোনাম", "Title")} required><Input value={f.title} onChange={(e) => up("title", e.target.value)} /></Field>
           <Field label={t("বিবরণ", "Body")}><Textarea value={f.body} onChange={(e) => up("body", e.target.value)} /></Field>
@@ -67,9 +67,9 @@ export function NoticeBoardScreen() {
 
         <div className="flex flex-col gap-3">
           {rows.length === 0 ? (
-            <div className="rounded-2xl bg-surface p-5 shadow-e3"><EmptyState icon={<Megaphone size={22} />} title={t("কোনো নোটিশ নেই", "No notices yet")} /></div>
+            <div className="rounded-2xl bg-surface p-5 shadow-e1"><EmptyState icon={<Megaphone size={22} />} title={t("কোনো নোটিশ নেই", "No notices yet")} /></div>
           ) : rows.map((r) => (
-            <div key={r.id} className="flex items-start gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+            <div key={r.id} className="flex items-start gap-3 rounded-2xl bg-surface p-5 shadow-e1">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-text-primary">{r.title}</p><span className={cn("rounded-full px-2 py-0.5 text-micro font-semibold", statusTone[r.status] ?? "bg-sunken text-text-secondary")}>{lab(STATUSES, r.status, isBn)}</span></div>
                 {r.body ? <p className="mt-1 line-clamp-2 text-meta text-text-muted">{r.body}</p> : null}
@@ -79,7 +79,7 @@ export function NoticeBoardScreen() {
             </div>
           ))}
           {pages > 1 ? (
-            <div className="rounded-2xl bg-surface shadow-e3">
+            <div className="rounded-2xl border border-border-default bg-surface shadow-e1">
               <Pagination
                 label={t(`মোট ${n(total)} নোটিশ`, `${n(total)} notices`)}
                 pages={pages}

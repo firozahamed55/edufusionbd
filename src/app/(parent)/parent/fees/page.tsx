@@ -65,14 +65,14 @@ export default function ParentFees() {
             <button
               type="button"
               onClick={() => setPaid(true)}
-              className="rounded-lg bg-[#e2136e] py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="rounded-lg bg-brand-bkash py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             >
               {t("bKash-এ পরিশোধ", "Pay with bKash")}
             </button>
             <button
               type="button"
               onClick={() => setPaid(true)}
-              className="rounded-lg bg-[#ec1c24] py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="rounded-lg bg-brand-nagad py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             >
               {t("Nagad-এ পরিশোধ", "Pay with Nagad")}
             </button>

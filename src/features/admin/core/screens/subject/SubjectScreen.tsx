@@ -85,7 +85,7 @@ export function SubjectScreen() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+      <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
         {subjects.isLoading ? (
           <div className="flex flex-col gap-2 p-5">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-11 animate-pulse rounded bg-sunken" />)}</div>
         ) : rows.length === 0 ? (
@@ -107,7 +107,7 @@ export function SubjectScreen() {
                 <div className="w-22.5"><span className="rounded-md bg-sunken px-2 py-0.5 font-latin text-meta font-semibold text-text-secondary">{r.code ?? "—"}</span></div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-text-primary">{isBn ? r.name_bn : r.name_en}</p>
-                  <p className="text-[12px] text-text-muted">{r.name_bn} — {r.name_en}</p>
+                  <p className="text-xs text-text-muted">{r.name_bn} — {r.name_en}</p>
                 </div>
                 <div className="w-32.5 text-meta text-text-secondary">{TYPES.find((x) => x.value === r.type)?.[isBn ? "bn" : "en"] ?? r.type}</div>
                 <div className="w-25 text-right text-meta font-semibold text-text-primary tnum">{r.full_marks != null ? n(r.full_marks) : "—"}</div>

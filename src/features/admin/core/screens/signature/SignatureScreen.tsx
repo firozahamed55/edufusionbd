@@ -86,7 +86,7 @@ export function SignatureScreen() {
         {ROLES.map((r) => {
           const url = urls[r.key];
           return (
-            <div key={r.key} className="flex flex-col gap-4 rounded-2xl bg-surface p-4.5 shadow-e3">
+            <div key={r.key} className="flex flex-col gap-4 rounded-2xl border border-border-default bg-surface p-4.5 shadow-e1">
               <p className="text-body font-semibold text-text-primary">{t(r.bn, r.en)}</p>
               <Field label={t("নাম", "Name")}>
                 <Input
@@ -118,7 +118,7 @@ export function SignatureScreen() {
                 >
                   <Upload size={14} /> {uploading === r.key ? t("আপলোড হচ্ছে…", "Uploading…") : t("স্বাক্ষরের ছবি আপলোড করুন", "Upload signature image")}
                 </button>
-                <p className="text-[11.5px] text-text-muted">{t("PNG (স্বচ্ছ ব্যাকগ্রাউন্ড) • সর্বোচ্চ ৫০০KB", "PNG (transparent) • up to 500KB")}</p>
+                <p className="text-micro text-text-muted">{t("PNG (স্বচ্ছ ব্যাকগ্রাউন্ড) • সর্বোচ্চ ৫০০KB", "PNG (transparent) • up to 500KB")}</p>
                 <input
                   ref={(el) => { fileInputs.current[r.key] = el; }}
                   type="file"

@@ -91,7 +91,7 @@ export function ClassScreen() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
-        <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="flex items-center gap-2 bg-sunken px-4.5 py-3.5">
             <p className="text-body font-semibold text-text-primary">{t("শ্রেণিসমূহ", "Classes")}</p>
             <div className="flex-1" />

@@ -14,7 +14,7 @@ import type {
 /**
  * Centralized form primitives — the single source of truth for the EduFusionBD
  * "form" archetype, matched 1:1 to the Figma product file:
- *   • card   → rounded-2xl (16px) bg-surface p-4.5 shadow-e3, gap-14
+ *   • card   → rounded-2xl (16px) border border-border-default bg-surface p-4.5 shadow-e1, gap-14
  *   • field  → label 13px/medium/text-secondary, gap-6 to control
  *   • control→ h-42 px-3 rounded-lg border-border-strong
  * Every value is a semantic token, so all of it themes correctly in light & dark.
@@ -34,7 +34,7 @@ export function FormCard({
   return (
     <section
       className={cn(
-        "flex flex-col gap-3.5 rounded-2xl bg-surface p-4.5 shadow-e3",
+        "flex flex-col gap-3.5 rounded-2xl border border-border-default bg-surface p-4.5 shadow-e1",
         className,
       )}
     >

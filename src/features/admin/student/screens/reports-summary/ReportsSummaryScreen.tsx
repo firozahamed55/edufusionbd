@@ -58,7 +58,7 @@ export function ReportsSummaryScreen() {
 
       {report.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-[18px]" />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
       ) : report.isError ? (
         <ErrorState title={t("রিপোর্ট লোড করা যায়নি", "Could not load report")} description={msg(report.error)} />
@@ -73,17 +73,17 @@ export function ReportsSummaryScreen() {
           const ageEntries = AGE_ORDER.filter((k) => (d.by_age[k] ?? 0) > 0).map((k) => ({ label: t(AGE_LABELS[k][0], AGE_LABELS[k][1]), value: d.by_age[k] }));
           const maxAge = Math.max(1, ...ageEntries.map((a) => a.value));
           const KPIS = [
-            { label: t("মোট শিক্ষার্থী", "Total Students"), value: d.total, grad: "from-[#4f46e5] to-[#7c3aed]", shadow: "shadow-[0px_6px_16px_-4px_rgba(79,70,229,0.26)]", up: true },
-            { label: t("ছেলে", "Boys"), value: d.boys, sub: `${pct(d.boys, d.total)}%`, grad: "from-[#059669] to-[#0d9488]", shadow: "shadow-[0px_6px_16px_-4px_rgba(5,150,105,0.26)]" },
-            { label: t("মেয়ে", "Girls"), value: d.girls, sub: `${pct(d.girls, d.total)}%`, grad: "from-[#0284c7] to-[#2563eb]", shadow: "shadow-[0px_6px_16px_-4px_rgba(2,132,199,0.26)]" },
-            { label: t("সক্রিয়", "Active"), value: d.status["active"] ?? 0, grad: "from-[#f97316] to-[#d97706]", shadow: "shadow-[0px_6px_16px_-4px_rgba(249,115,22,0.26)]" },
+            { label: t("মোট শিক্ষার্থী", "Total Students"), value: d.total, grad: "grad-indigo", shadow: "shadow-e2", up: true },
+            { label: t("ছেলে", "Boys"), value: d.boys, sub: `${pct(d.boys, d.total)}%`, grad: "grad-emerald", shadow: "shadow-e2" },
+            { label: t("মেয়ে", "Girls"), value: d.girls, sub: `${pct(d.girls, d.total)}%`, grad: "grad-sky", shadow: "shadow-e2" },
+            { label: t("সক্রিয়", "Active"), value: d.status["active"] ?? 0, grad: "grad-amber", shadow: "shadow-e2" },
           ];
 
           return (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {KPIS.map((k) => (
-                  <div key={k.label} className={cn("flex flex-col gap-3 rounded-[18px] bg-linear-to-r px-5 py-4.5 text-white", k.grad, k.shadow)}>
+                  <div key={k.label} className={cn("flex flex-col gap-3 rounded-2xl px-5 py-4.5 text-white", k.grad, k.shadow)}>
                     <p className="text-meta font-medium opacity-90">{k.label}</p>
                     <p className="text-3xl font-bold tnum">{n(k.value)}</p>
                     <div className="flex items-center gap-1.5 text-meta opacity-90">
@@ -191,7 +191,7 @@ export function ReportsSummaryScreen() {
 /* ---------- local parts ---------- */
 
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3", className)}>{children}</div>;
+  return <div className={cn("flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e1", className)}>{children}</div>;
 }
 
 function CardHead({ title, subtitle }: { title: string; subtitle?: string }) {

@@ -56,7 +56,7 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
         subtitle={t("শিক্ষার্থী খুঁজে সনদের তথ্য দিন ও তৈরি করুন", "Look up a student, fill the details and generate")}
       />
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("শিক্ষার্থী আইডি", "Student ID")} required className="w-60 max-w-full">
           <Input value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && lookup()} placeholder="STU-0001" className="font-latin" />
         </Field>
@@ -67,7 +67,7 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
       {!student ? (
         <EmptyState icon={<Award size={22} />} title={t("একজন শিক্ষার্থী খুঁজুন", "Look up a student")} />
       ) : (
-        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e3">
+        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-e1">
           <h2 className="text-base font-semibold text-text-primary">{t("সনদের তথ্য", "Certificate details")}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label={t("সেশন", "Session")}><Input value={f.session ?? ""} onChange={(e) => up("session", e.target.value)} placeholder={n("২০২৬")} /></Field>
@@ -94,7 +94,7 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl bg-surface shadow-e3">
+      <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
         <div className="border-b border-border-default px-5 py-4"><p className="text-base font-semibold text-text-primary">{t("সাম্প্রতিক সনদ", "Recent certificates")}</p></div>
         {list.length === 0 ? (
           <div className="p-5"><EmptyState icon={<FileText size={22} />} title={t("এখনও কোনো সনদ নেই", "No certificates yet")} /></div>

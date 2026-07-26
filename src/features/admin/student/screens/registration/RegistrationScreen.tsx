@@ -265,7 +265,7 @@ export function RegistrationScreen() {
           <FormCard title={t("ডকুমেন্ট", "Documents")}>
             <div className="flex flex-col gap-2">
               {[t("জন্ম নিবন্ধন সনদ", "Birth Certificate"), t("পূর্ববর্তী স্কুলের ছাড়পত্র", "Previous School TC"), t("অভিভাবকের NID কপি", "Guardian NID copy")].map((doc) => (
-                <div key={doc} className="flex items-center gap-3 rounded-[10px] border border-border-default bg-surface px-3 py-2.5">
+                <div key={doc} className="flex items-center gap-3 rounded-lg border border-border-default bg-surface px-3 py-2.5">
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken text-text-secondary"><FileText size={16} /></span>
                   <span className="min-w-0 flex-1 truncate text-meta text-text-secondary">{doc}</span>
                   <button className="flex shrink-0 items-center gap-1 text-meta font-semibold text-primary hover:underline"><Upload size={14} /> {t("আপলোড", "Upload")}</button>

@@ -51,7 +51,7 @@ export function UpdateClassScreen() {
         </p>
       </header>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("শ্রেণি ও শাখা", "Class & Section")} required className="w-90 max-w-full">
           <Select
             value={section}
@@ -65,7 +65,7 @@ export function UpdateClassScreen() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+      <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
         <div className="min-w-220">
           <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
             <p className="flex-1 text-base font-semibold text-text-primary">

@@ -48,7 +48,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
       <button type="button" aria-label={t("বন্ধ করুন", "Close")} onClick={onClose} className="absolute inset-0 bg-black/40" />
-      <div role="dialog" aria-modal="true" aria-label={t("কমান্ড প্যালেট", "Command palette")} className="relative z-10 w-full max-w-lg rounded-2xl border border-border-default bg-surface shadow-e3">
+      <div role="dialog" aria-modal="true" aria-label={t("কমান্ড প্যালেট", "Command palette")} className="relative z-10 w-full max-w-lg rounded-2xl bg-surface shadow-e3">
         <div className="flex items-center gap-2.5 border-b border-border-default px-4 py-3">
           <Search size={17} className="text-text-muted" />
           <input

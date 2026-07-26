@@ -30,12 +30,12 @@ export function BalancePurchaseScreen() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="flex items-center gap-4 rounded-2xl bg-linear-to-r from-[#4f46e5] to-[#7c3aed] p-6 text-white shadow-e3">
+        <div className="flex items-center gap-4 rounded-2xl grad-indigo p-6 text-white shadow-e1">
           <span className="grid size-12 place-items-center rounded-xl bg-white/20"><Wallet size={24} /></span>
           <div><p className="text-meta opacity-90">{t("বর্তমান ব্যালেন্স", "Current balance")}</p><p className="text-3xl font-bold tnum">{n(account.data?.balance ?? 0)}</p></div>
         </div>
-        <div className="rounded-2xl bg-surface p-6 shadow-e3"><p className="text-meta text-text-muted">{t("প্রতি SMS রেট", "Per-SMS rate")}</p><p className="text-2xl font-bold text-text-primary tnum">৳{n(account.data?.per_sms_rate ?? 0)}</p></div>
-        <div className="rounded-2xl bg-surface p-6 shadow-e3"><p className="text-meta text-text-muted">{t("সর্বশেষ রিচার্জ", "Last recharge")}</p><p className="text-2xl font-bold text-text-primary tnum">{account.data?.last_recharge_amount ? "৳" + n(account.data.last_recharge_amount) : "—"}</p></div>
+        <div className="rounded-2xl bg-surface p-6 shadow-e1"><p className="text-meta text-text-muted">{t("প্রতি SMS রেট", "Per-SMS rate")}</p><p className="text-2xl font-bold text-text-primary tnum">৳{n(account.data?.per_sms_rate ?? 0)}</p></div>
+        <div className="rounded-2xl bg-surface p-6 shadow-e1"><p className="text-meta text-text-muted">{t("সর্বশেষ রিচার্জ", "Last recharge")}</p><p className="text-2xl font-bold text-text-primary tnum">{account.data?.last_recharge_amount ? "৳" + n(account.data.last_recharge_amount) : "—"}</p></div>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -47,7 +47,7 @@ export function BalancePurchaseScreen() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(packages.data ?? []).map((p) => (
-              <div key={p.id} className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-e3">
+              <div key={p.id} className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-e1">
                 <div className="flex items-center gap-2"><p className="flex-1 text-base font-semibold text-text-primary">{p.name}</p>{p.masking ? <span className="rounded-full bg-success-bg px-2 py-0.5 text-micro font-semibold text-success-fg">{t("মাস্কিং", "Masking")}</span> : null}</div>
                 <p className="text-3xl font-bold text-primary tnum">{n(p.sms_qty)} <span className="text-sm font-medium text-text-muted">SMS</span></p>
                 <div className="flex items-center gap-2 text-meta text-text-secondary"><Check size={14} className="text-success-fg" /> {t("রেট", "Rate")} ৳{n(p.rate)}/SMS</div>

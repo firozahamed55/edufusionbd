@@ -72,7 +72,7 @@ export function FeeMappingScreen() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
-        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3">
+        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e1">
           <div className="flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-lg bg-primary-subtle text-primary"><Plus size={16} /></span>
             <p className="text-base font-semibold text-text-primary">{t("নতুন ম্যাপিং যোগ করুন", "Add new mapping")}</p>
@@ -87,7 +87,7 @@ export function FeeMappingScreen() {
           <Button variant="primary" onClick={add} disabled={upsert.isPending}><Plus size={16} /> {upsert.isPending ? t("যোগ হচ্ছে…", "Adding…") : t("ম্যাপিং যোগ করুন", "Add mapping")}</Button>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-160">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("ফি ম্যাপিং তালিকা", "Fee mappings")}</p>
@@ -141,7 +141,7 @@ export function FeeMappingScreen() {
 const softTone = { primary: "bg-primary-subtle text-primary", success: "bg-success-bg text-success-fg", warning: "bg-warning-bg text-warning-fg", info: "bg-info-bg text-info-fg" } as const;
 function SoftStat({ tone, icon: Icon, value, label }: { tone: keyof typeof softTone; icon: LucideIcon; value: string; label: string }) {
   return (
-    <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e3">
+    <div className="flex items-center gap-3.5 rounded-2xl bg-surface p-5 shadow-e1">
       <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", softTone[tone])}><Icon size={22} /></span>
       <div className="min-w-0"><p className="text-2xl font-bold text-text-primary tnum">{value}</p><p className="truncate text-meta text-text-muted">{label}</p></div>
     </div>
