@@ -5,7 +5,6 @@ import {
   Users,
   UserCheck,
   Wallet,
-  TrendingUp,
   Plus,
   AlertTriangle,
   ShieldAlert,
@@ -17,38 +16,63 @@ import {
   Send,
   Megaphone,
   ChevronRight,
+  History,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { BarChart, Donut, Skeleton, ErrorState } from "@/shared/ui";
+import { BarChart, Donut, Skeleton, ErrorState, EmptyState, PageHeader } from "@/shared/ui";
+import { useAdminUser } from "@/features/admin/components/useAdminUser";
 import { useDashboard } from "./logic/useDashboard";
+import type { AttentionItem } from "./logic/api";
 
 /**
- * Admin dashboard overview — collected from Figma (Light 6:2 / Dark 51:2).
- * Content-only: the sidebar/topbar come from AdminShell. Every color is a
- * semantic token, so this single component is correct in light AND dark.
- * Fully localized via useT() — bn/en switch together with the nav (no more
- * English-nav + Bengali-body mismatch). Charts use the accessible primitives.
+ * Admin dashboard overview.
+ *
+ * Rule from the audit (§10.1): every element is bound to real data, or it does
+ * not ship. Roughly 60% of this screen used to be fiction — a hardcoded
+ * greeting ("Good morning, Nusrat", always), a fabricated weekly attendance
+ * chart, an invented "avg 91% · 1.8% higher" caption, and three priority alerts
+ * with made-up ৳ figures — all rendered identically to the three live KPIs
+ * beside them, on the surface operators see first and most often.
  */
+
+const ATTENTION_META: Record<
+  string,
+  { icon: LucideIcon; cta: { bn: string; en: string } }
+> = {
+  overdue_fees: { icon: AlertTriangle, cta: { bn: "তাগাদা পাঠান", en: "Send reminders" } },
+  attendance_low: { icon: ShieldAlert, cta: { bn: "তালিকা দেখুন", en: "View list" } },
+  results_pending: { icon: ClipboardCheck, cta: { bn: "পর্যালোচনা", en: "Review" } },
+};
 
 export function OverviewScreen() {
   const { t, n } = useT();
+  const { data: me } = useAdminUser();
   const { data, isLoading, isError, refetch } = useDashboard();
 
   const bdt = (v: number) => `৳${n(new Intl.NumberFormat("en-IN").format(Math.round(v)))}`;
   const collected = data?.collectedThisMonth ?? 0;
   const due = data?.totalDue ?? 0;
-  const collectRate =
-    collected + due > 0 ? Math.round((collected / (collected + due)) * 100) : 0;
+  const collectRate = collected + due > 0 ? Math.round((collected / (collected + due)) * 100) : 0;
 
-  const attendance = [
-    { bn: "রবি", en: "Sun", value: 90 },
-    { bn: "সোম", en: "Mon", value: 86 },
-    { bn: "মঙ্গল", en: "Tue", value: 92 },
-    { bn: "বুধ", en: "Wed", value: 89 },
-    { bn: "বৃহ", en: "Thu", value: 93 },
-  ].map((d) => ({ label: t(d.bn, d.en), value: d.value, display: n(d.value) }));
+  // Real time-of-day, not a hardcoded "Good morning".
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? t("সুপ্রভাত", "Good morning") : hour < 17 ? t("শুভ অপরাহ্ন", "Good afternoon") : t("শুভ সন্ধ্যা", "Good evening");
+
+  const trend = data?.attendanceTrend ?? [];
+  const avgRate = trend.length > 0 ? Math.round(trend.reduce((s, p) => s + p.rate, 0) / trend.length) : 0;
+  // Last 7 points, labelled by weekday — the chart is a real 30-day rolling
+  // series now, not five invented numbers.
+  const chartData = trend.slice(-7).map((p) => {
+    const d = new Date(`${p.date}T00:00:00`);
+    return {
+      label: d.toLocaleDateString(undefined, { weekday: "short" }),
+      value: p.rate,
+      display: n(p.rate),
+    };
+  });
 
   const quickActions = [
     { icon: UserPlus, title: t("নতুন শিক্ষার্থী", "New Student"), desc: t("নতুন রেজিস্ট্রেশন", "New registration"), href: "/admin/student/registration" },
@@ -58,52 +82,76 @@ export function OverviewScreen() {
     { icon: Send, title: t("SMS পাঠান", "Send SMS"), desc: t("বাল্ক মেসেজিং", "Bulk messaging"), href: "/admin/sms-notice/send" },
   ];
 
-  // Real secondary metric for the Teachers KPI — was showing the STUDENT count
-  // as the teacher delta (audit D-3). The dashboard view has no teacher-specific
-  // trend field yet, so this uses the one real, non-fabricated relationship the
-  // existing data supports; a true period-over-period delta is Phase 3 (§10.3).
-  const studentsPerTeacher = data?.activeTeachers ? Math.round((data.activeStudents ?? 0) / data.activeTeachers) : 0;
+  const studentsPerTeacher = data?.activeTeachers
+    ? Math.round((data.activeStudents ?? 0) / data.activeTeachers)
+    : 0;
+
+  const attentionLabel = (a: AttentionItem) => {
+    if (a.key === "overdue_fees")
+      return {
+        title: t(
+          `${bdt(a.amount ?? 0)} ফি বকেয়া · ${n(a.count)} জন`,
+          `${bdt(a.amount ?? 0)} overdue · ${a.count} students`,
+        ),
+        desc: t("নির্ধারিত তারিখ পেরিয়েছে", "Past the due date"),
+      };
+    if (a.key === "attendance_low")
+      return {
+        title: t(`গড় উপস্থিতি ${n(a.count)}%`, `Average attendance ${a.count}%`),
+        desc: t("গত ৩০ দিনে ৭৫% এর নিচে", "Below 75% over the last 30 days"),
+      };
+    return {
+      title: t(`${n(a.count)} টি পরীক্ষার ফলাফল অপেক্ষমাণ`, `${a.count} exam results awaiting publish`),
+      desc: t("মার্ক লক করা হয়েছে, প্রকাশ বাকি", "Marks locked, not yet published"),
+    };
+  };
 
   if (isLoading) {
+    // Mirrors the real layout (4 KPI + 2 chart + 1 list) so the page does not
+    // pop in six extra sections after paint (audit D-8).
     return (
-      <div className="mx-auto grid max-w-300 grid-cols-1 gap-4 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 rounded-[18px]" />
-        ))}
+      <div className="flex flex-col gap-5">
+        <Skeleton className="h-16 rounded-2xl" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-[18px]" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_400px]">
+          <Skeleton className="h-72 rounded-2xl" />
+          <Skeleton className="h-72 rounded-2xl" />
+        </div>
+        <Skeleton className="h-48 rounded-2xl" />
       </div>
     );
   }
+
   if (isError) {
     return (
-      <div className="mx-auto max-w-300">
-        <ErrorState
-          title={t("ড্যাশবোর্ড লোড করা যায়নি", "Couldn't load dashboard")}
-          description={t("সংযোগ পরীক্ষা করে আবার চেষ্টা করুন", "Check your connection and try again")}
-          action={
-            <button
-              onClick={() => refetch()}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-on-primary"
-            >
-              {t("পুনরায় চেষ্টা", "Retry")}
-            </button>
-          }
-        />
-      </div>
+      <ErrorState
+        title={t("ড্যাশবোর্ড লোড করা যায়নি", "Couldn't load dashboard")}
+        description={t("সংযোগ পরীক্ষা করে আবার চেষ্টা করুন", "Check your connection and try again")}
+        action={
+          <button
+            onClick={() => refetch()}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-on-primary"
+          >
+            {t("পুনরায় চেষ্টা", "Retry")}
+          </button>
+        }
+      />
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-300 flex-col gap-7">
+    <div className="flex flex-col gap-6">
       {/* Greeting + actions */}
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex-1">
-          <h1 className="text-h3 font-bold text-text-primary">
-            {t("সুপ্রভাত, নুসরাত", "Good morning, Nusrat")}
-          </h1>
-          <p className="mt-1.5 text-sm text-text-secondary">
-            {t("এক নজরে আপনার স্কুলের সাপ্তাহিক চিত্র দেখে নিন", "Your school's week at a glance")}
-          </p>
-        </div>
+        <PageHeader
+          className="flex-1"
+          title={me?.name ? `${greeting}, ${me.name}` : greeting}
+          subtitle={t("এক নজরে আপনার স্কুলের চিত্র", "Your school at a glance")}
+        />
         <div className="flex items-center gap-2.5">
           <Link href="/admin/student/reports-summary" className="rounded-lg border border-border-control bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-sunken">
             {t("প্রতিবেদন", "Report")}
@@ -114,32 +162,75 @@ export function OverviewScreen() {
         </div>
       </div>
 
+      {/* Needs attention — every row from a live query with a real CTA */}
+      <Card className="gap-3">
+        <div className="flex items-center gap-2">
+          <h2 className="flex-1 text-base font-semibold text-text-primary">
+            {t("এখন নজর দিন", "Needs attention")}
+            {(data?.attention.length ?? 0) > 0 ? (
+              <span className="ml-2 rounded-full bg-danger-bg px-2 py-0.5 text-micro font-semibold text-danger-fg tnum">
+                {n(data?.attention.length ?? 0)}
+              </span>
+            ) : null}
+          </h2>
+        </div>
+        {(data?.attention.length ?? 0) === 0 ? (
+          <p className="py-3 text-sm text-text-muted">
+            {t("এই মুহূর্তে কিছু করণীয় নেই।", "Nothing needs your attention right now.")}
+          </p>
+        ) : (
+          data?.attention.map((a) => {
+            const meta = ATTENTION_META[a.key];
+            const label = attentionLabel(a);
+            return (
+              <Alert
+                key={a.key}
+                tone={a.tone}
+                icon={meta.icon}
+                title={label.title}
+                desc={label.desc}
+                cta={t(meta.cta.bn, meta.cta.en)}
+                ctaTone={a.tone === "danger" ? "danger" : undefined}
+                href={a.href}
+              />
+            );
+          })
+        )}
+      </Card>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Kpi grad="grad-indigo" shadow="shadow-[0px_6px_16px_-4px_rgba(79,70,229,0.26)]" icon={Users} label={t("মোট শিক্ষার্থী", "Total Students")} value={n(data?.activeStudents ?? 0)} delta={n(data?.classSections ?? 0)} period={t("শ্রেণি-শাখা", "class-sections")} />
-        <Kpi grad="grad-emerald" shadow="shadow-[0px_6px_16px_-4px_rgba(5,150,105,0.26)]" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(studentsPerTeacher)} period={t("শিক্ষার্থী/শিক্ষক", "students/teacher")} />
-        <Kpi grad="grad-sky" shadow="shadow-[0px_6px_16px_-4px_rgba(2,132,199,0.26)]" icon={Wallet} label={t("এ মাসে আদায়", "Collected (month)")} value={bdt(collected)} delta={bdt(due)} period={t("বকেয়া", "due")} />
+        <Kpi grad="grad-indigo" icon={Users} label={t("মোট শিক্ষার্থী", "Total Students")} value={n(data?.activeStudents ?? 0)} delta={n(data?.classSections ?? 0)} period={t("শ্রেণি-শাখা", "class-sections")} />
+        <Kpi grad="grad-emerald" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(studentsPerTeacher)} period={t("শিক্ষার্থী/শিক্ষক", "students/teacher")} />
+        <Kpi grad="grad-sky" icon={Wallet} label={t("এ মাসে আদায়", "Collected (month)")} value={bdt(collected)} delta={bdt(due)} period={t("বকেয়া", "due")} />
       </div>
 
       {/* Analytics */}
-      <SectionHeader
-        title={t("পরিসংখ্যান ও বিশ্লেষণ", "Statistics & Analytics")}
-        subtitle={t("উপস্থিতি ও ফি আদায়ের সাপ্তাহিক চিত্র", "Weekly attendance and fee collection")}
-      />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_400px]">
         <Card>
           <CardHead
-            title={t("সাপ্তাহিক উপস্থিতির হার", "Weekly Attendance Rate")}
-            subtitle={t("গড় ৯১% · গত সপ্তাহের চেয়ে ১.৮% বেশি", "Avg 91% · 1.8% higher than last week")}
-            pill={t("চলতি সপ্তাহ", "This week")}
+            title={t("উপস্থিতির হার", "Attendance Rate")}
+            subtitle={
+              trend.length > 0
+                ? t(`গত ৩০ দিনের গড় ${n(avgRate)}%`, `${avgRate}% average over the last 30 days`)
+                : t("এখনো কোনো উপস্থিতি রেকর্ড নেই", "No attendance recorded yet")
+            }
           />
-          <div className="mt-4">
-            <BarChart data={attendance} unit="%" max={100} caption={t("সাপ্তাহিক উপস্থিতির হার", "Weekly attendance rate")} />
-          </div>
+          {chartData.length > 0 ? (
+            <div className="mt-4">
+              <BarChart data={chartData} unit="%" max={100} caption={t("দৈনিক উপস্থিতির হার", "Daily attendance rate")} />
+            </div>
+          ) : (
+            <EmptyState
+              icon={<CalendarCheck size={22} />}
+              title={t("উপস্থিতি নেওয়া শুরু করুন", "Start taking attendance")}
+              description={t("উপস্থিতি রেকর্ড হলে এখানে প্রবণতা দেখাবে", "The trend appears here once attendance is recorded")}
+            />
+          )}
         </Card>
 
         <Card>
-          <CardHead title={t("ফি আদায়", "Fee Collection")} pill={t("এই সপ্তাহ", "This week")} />
+          <CardHead title={t("ফি আদায়", "Fee Collection")} />
           <div className="flex items-center justify-center py-2">
             <Donut percent={collectRate} valueLabel={`${n(collectRate)}%`} label={t("আদায় হয়েছে", "collected")} caption={t("ফি আদায়ের হার", "Fee collection rate")} />
           </div>
@@ -150,57 +241,36 @@ export function OverviewScreen() {
         </Card>
       </div>
 
-      {/* Priorities + quick actions */}
-      <SectionHeader
-        title={t("করণীয় ও দ্রুত অ্যাকশন", "To-dos & Quick Actions")}
-        subtitle={t("যেসব বিষয়ে এখন নজর দেওয়া প্রয়োজন", "What needs your attention right now")}
-      />
+      {/* Activity + quick actions */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_400px]">
-        <Card className="gap-3">
-          <div className="flex items-center">
-            <h3 className="flex-1 text-base font-semibold text-text-primary">{t("অগ্রাধিকার ও সতর্কতা", "Priorities & Alerts")}</h3>
-          </div>
-          {/* Content below is still sample data pending the live "Needs Attention"
-              queries (audit D-1, closed in Phase 3 §10.2) — only the dead CTA
-              buttons (D-2) are in scope here; each now links to the real screen
-              the alert is about. */}
-          <Alert
-            tone="danger"
-            icon={AlertTriangle}
-            title={t("৳১,১২,০০০ ফি বকেয়া · ৪২ জন", "৳1,12,000 fees due · 42 students")}
-            desc={t("শেষ তারিখ পেরিয়েছে ৩ দিন আগে", "Due date passed 3 days ago")}
-            cta={t("তাগাদা পাঠান", "Send Reminder")}
-            ctaTone="danger"
-            href="/admin/fee/unpaid-institute"
-          />
-          <Alert
-            tone="warning"
-            icon={ShieldAlert}
-            title={t("৩ জন শিক্ষার্থী ঝুঁকিতে", "3 students at risk")}
-            desc={t("উপস্থিতি ৬২% এর নিচে নেমেছে", "Attendance dropped below 62%")}
-            cta={t("দেখুন", "View")}
-            href="/admin/attendance/analytics"
-          />
-          <Alert
-            tone="info"
-            icon={ClipboardCheck}
-            title={t("অর্ধবার্ষিক ফলাফল অনুমোদনের অপেক্ষায়", "Half-yearly results awaiting approval")}
-            desc={t("৮ম শ্রেণি · প্রকাশের আগে লক করুন", "Class 8 · Lock before publishing")}
-            cta={t("অনুমোদন", "Approve")}
-            href="/admin/exam/result-process"
-          />
-        </Card>
-
         <Card className="gap-2">
           <div className="flex items-center gap-2.5 pb-1">
             <span className="grid size-8 place-items-center rounded-lg bg-primary-subtle text-primary">
-              <TrendingUp size={18} />
+              <History size={17} />
             </span>
-            <h3 className="flex-1 text-base font-semibold text-text-primary">{t("দ্রুত অ্যাকশন", "Quick Actions")}</h3>
-            <span className="rounded-full bg-primary-subtle px-2.5 py-1 text-[11.5px] font-semibold text-primary">
-              {t("৫ শর্টকাট", "5 shortcuts")}
-            </span>
+            <h3 className="flex-1 text-base font-semibold text-text-primary">{t("সাম্প্রতিক কার্যক্রম", "Recent activity")}</h3>
+            <Link href="/admin/core/audit-log" className="text-meta font-medium text-primary">
+              {t("সব দেখুন", "Full history")}
+            </Link>
           </div>
+          {(data?.activity.length ?? 0) === 0 ? (
+            <p className="py-3 text-sm text-text-muted">{t("কোনো কার্যক্রম নেই", "No activity yet")}</p>
+          ) : (
+            data?.activity.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 rounded-xl bg-sunken px-3 py-2.5">
+                <span className="min-w-0 flex-1 truncate text-meta text-text-primary">
+                  <b className="font-semibold">{a.action}</b> · {a.entity}
+                </span>
+                <span className="shrink-0 text-xs text-text-muted tnum">
+                  {n(new Date(a.at).toISOString().slice(0, 10))}
+                </span>
+              </div>
+            ))
+          )}
+        </Card>
+
+        <Card className="gap-2">
+          <h3 className="pb-1 text-base font-semibold text-text-primary">{t("দ্রুত অ্যাকশন", "Quick Actions")}</h3>
           {quickActions.map((a) => (
             <QuickAction key={a.title} {...a} />
           ))}
@@ -215,9 +285,7 @@ export function OverviewScreen() {
         </div>
         <div className="grid grid-cols-1 gap-3.5 pt-1.5 md:grid-cols-3">
           {(data?.notices ?? []).length === 0 ? (
-            <p className="col-span-full py-4 text-sm text-text-muted">
-              {t("কোনো নোটিশ নেই", "No notices yet")}
-            </p>
+            <p className="col-span-full py-4 text-sm text-text-muted">{t("কোনো নোটিশ নেই", "No notices yet")}</p>
           ) : (
             (data?.notices ?? []).map((no) => (
               <Notice
@@ -239,7 +307,6 @@ export function OverviewScreen() {
 
 function Kpi({
   grad,
-  shadow,
   icon: Icon,
   label,
   value,
@@ -247,7 +314,6 @@ function Kpi({
   period,
 }: {
   grad: string;
-  shadow: string;
   icon: LucideIcon;
   label: string;
   value: string;
@@ -255,7 +321,7 @@ function Kpi({
   period: string;
 }) {
   return (
-    <div className={cn("relative flex flex-col gap-3.5 overflow-hidden rounded-[18px] px-5 py-4.5 text-white", grad, shadow)}>
+    <div className={cn("relative flex flex-col gap-3.5 overflow-hidden rounded-[18px] px-5 py-4.5 text-white shadow-e2", grad)}>
       <div className="flex items-center">
         <p className="flex-1 text-meta font-medium">{label}</p>
         <span className="grid size-9 place-items-center rounded-[10px] bg-white/20">
@@ -263,8 +329,10 @@ function Kpi({
         </span>
       </div>
       <p className="text-3xl font-bold tnum">{value}</p>
+      {/* No trend arrow: this is a secondary metric, not a period-over-period
+          change, and rendering an up-arrow beside it was actively misleading
+          (audit D-3). */}
       <div className="flex items-center gap-1.5 text-meta">
-        <TrendingUp size={13} />
         <span className="font-semibold">{delta}</span>
         <span className="opacity-90">{period}</span>
       </div>
@@ -272,33 +340,21 @@ function Kpi({
   );
 }
 
-function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="flex flex-col gap-0.5 pt-1">
-      <h2 className="text-label font-semibold text-text-primary">{title}</h2>
-      <p className="text-meta text-text-muted">{subtitle}</p>
-    </div>
-  );
-}
-
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-e3", className)}>
+    <div className={cn("flex flex-col gap-4 rounded-2xl border border-border-default bg-surface p-5 shadow-e1", className)}>
       {children}
     </div>
   );
 }
 
-function CardHead({ title, subtitle, pill }: { title: string; subtitle?: string; pill: string }) {
+function CardHead({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="flex items-center">
       <div className="flex-1">
         <h3 className="text-base font-semibold text-text-primary">{title}</h3>
         {subtitle ? <p className="mt-0.5 text-meta text-text-muted">{subtitle}</p> : null}
       </div>
-      <span className="rounded-full border border-border-default bg-sunken px-3 py-1.5 text-xs font-medium text-text-secondary">
-        {pill}
-      </span>
     </div>
   );
 }
@@ -308,7 +364,7 @@ function LegendRow({ color, label, value }: { color: string; label: string; valu
     <div className="flex items-center gap-2">
       <span className={cn("size-2.5 rounded-full", color)} />
       <span className="flex-1 text-meta text-text-secondary">{label}</span>
-      <span className="text-meta font-semibold text-text-primary">{value}</span>
+      <span className="text-meta font-semibold text-text-primary tnum">{value}</span>
     </div>
   );
 }
