@@ -14,7 +14,7 @@ begin;
 -- Created inside the test transaction and rolled back with it, so pgTAP never
 -- lands in a real database. Nothing in production needs this extension.
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(38);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures — four accounts on one tenant, differing only in role/linkage.
@@ -182,6 +182,49 @@ select is((select count(*) from public.attendance_default)::int, 0,
   'no attendance row fell through to the DEFAULT partition');
 select is((select count(*) from public.mark_default)::int, 0,
   'no mark row fell through to the DEFAULT partition');
+
+-- ---------------------------------------------------------------------------
+-- A-H7 — the set-based migration rewrite round-trips. Not a role-boundary
+-- check like the rest of this file, but it belongs here: it is the other
+-- correctness property of `fn_run_migration`/`fn_pushback_migration`, and a
+-- regression here is exactly the kind of thing that should fail loudly in CI
+-- rather than be discovered at the next real year-end rollover.
+-- ---------------------------------------------------------------------------
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-0000-0000-0000-000000000001","role":"authenticated"}', true);
+
+-- `row_number()` cannot sit inside `jsonb_agg(...)` directly — "aggregate
+-- function calls cannot contain window function calls" — so the rank is
+-- computed in a CTE first, same as the client does before submitting.
+select lives_ok(
+  $q$with ranked as (
+    select se.student_id, se.id as enr_id, row_number() over (order by se.roll_no) as rnk
+    from public.student_enrollment se
+    join public.class_section cs on cs.id = se.class_section_id
+    join public.class c on c.id = cs.class_id
+    where c.numeric_level = 9 and se.deleted_at is null
+  )
+  select public.fn_run_migration(jsonb_build_object(
+    'academic_year_id', (select id from public.academic_year where is_current),
+    'source_class_section_id', (select cs.id from public.class_section cs
+      join public.class c on c.id = cs.class_id where c.numeric_level = 9 limit 1),
+    'target_class_section_id', (select cs.id from public.class_section cs
+      join public.class c on c.id = cs.class_id where c.numeric_level = 10 limit 1),
+    'type', 'merit',
+    'students', (select jsonb_agg(jsonb_build_object(
+        'student_id', student_id, 'source_enrollment_id', enr_id, 'merit_rank', rnk) order by rnk)
+      from ranked)
+  ))$q$,
+  'the set-based fn_run_migration runs without error on a real section');
+
+select is((select count(*) from public.migration_batch)::int, 1, 'exactly one batch was created');
+
+with u as (
+  select public.fn_pushback_migration((select id from public.migration_batch limit 1)) as reverted
+)
+select cmp_ok((select reverted from u)::int, '>', 0, 'fn_pushback_migration reverts the rows it just created');
+
+select is((select status from public.migration_batch limit 1), 'reverted', 'the batch is marked reverted');
 
 select * from finish();
 rollback;

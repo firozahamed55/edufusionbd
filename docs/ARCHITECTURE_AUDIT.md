@@ -1398,16 +1398,20 @@ That is a small change from what exists. It is also the difference between a dem
 
 **Verification:** `npm run verify` (typecheck → lint → test → build) passes; pgTAP suite extended to 34 assertions (parent/teacher/admin scoping re-verified across the now-partitioned tables) and run live against the hosted project before being committed to disk.
 
-### Phase 2 — The missing tiers · 12 days
+### Phase 2 — The missing tiers · 12 days — 🟡 **in progress (2026-07-26)**
 
-| # | Action | Finding | Days |
-|---|---|---|---|
-| 2.1 | `src/server/` + `/api/v1/*` with validate·limit·authz·audit middleware | A-H8 | 3 |
-| 2.2 | Outbox table + `pg_cron` + Edge Function drainer | **A-H7** | 2 |
-| 2.3 | Real SMS provider integration via outbox | **A-H9** | 2 |
-| 2.4 | bKash/Nagad gateway + webhook + signature verify + reconciliation | **A-H9** | 3 |
-| 2.5 | Set-based rewrite of `fn_run_migration` | A-H7 | 1 |
-| 2.6 | Monthly invoice generation job | — | 1 |
+| # | Action | Finding | Days | Status |
+|---|---|---|---|---|
+| 2.1 | `src/server/` + `/api/v1/*` with validate·limit·authz·audit middleware | A-H8 | 3 | ⬜ |
+| 2.2 | Outbox table + `pg_cron` + Edge Function drainer | **A-H7** | 2 | ⬜ |
+| 2.3 | Real SMS provider integration via outbox | **A-H9** | 2 | ⬜ **blocked — needs an SMS provider account** |
+| 2.4 | bKash/Nagad gateway + webhook + signature verify + reconciliation | **A-H9** | 3 | ⬜ **blocked — needs merchant credentials** |
+| 2.5 | Set-based rewrite of `fn_run_migration` | A-H7 | 1 | ✅ |
+| 2.6 | Monthly invoice generation job | — | 1 | ⬜ |
+
+**2.5 done.** `fn_run_migration` and `fn_pushback_migration` no longer loop row-by-row: a session-temp working table plus four `INSERT`/`UPDATE ... FROM` statements replace the `for ... loop`. The roll-number arithmetic (`v_base_roll + ord`) is unchanged — `jsonb_array_elements(...) WITH ORDINALITY` recovers the client's submission order as `ord`, which is what the loop's counter was doing one row at a time. Verified round-trip (migrate → pushback → students land back on their original enrolment) against the live schema before being committed; pgTAP suite extended to 38 assertions.
+
+**2.3 and 2.4 need a decision only the school can make** — which SMS aggregator, which of bKash/Nagad/Rocket (or all three), and whether real merchant credentials exist yet. Building against fabricated ones would produce code that compiles and looks integrated but cannot send a message or move money; that is worse than the current honest "not implemented" state (§7.1, A-H9). Outbox plumbing (2.2) is provider-agnostic and can and should land first regardless of that answer.
 
 ### Phase 3 — Product completion & operations · 10 days
 
