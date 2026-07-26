@@ -23,6 +23,7 @@ import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { BarChart, Donut, Skeleton, ErrorState, EmptyState, PageHeader } from "@/shared/ui";
 import { useAdminUser } from "@/features/admin/components/useAdminUser";
+import { SetupChecklist } from "../../components/SetupChecklist";
 import { useDashboard } from "./logic/useDashboard";
 import type { AttentionItem } from "./logic/api";
 
@@ -85,6 +86,10 @@ export function OverviewScreen() {
   const studentsPerTeacher = data?.activeTeachers
     ? Math.round((data.activeStudents ?? 0) / data.activeTeachers)
     : 0;
+
+  // Zero students AND zero sections = nothing has been set up, which is a
+  // different state from "zero results for your filter" (B-8).
+  const isEmptyInstitution = (data?.activeStudents ?? 0) === 0 && (data?.classSections ?? 0) === 0;
 
   const attentionLabel = (a: AttentionItem) => {
     if (a.key === "overdue_fees")
@@ -161,6 +166,18 @@ export function OverviewScreen() {
           </Link>
         </div>
       </div>
+
+      {/*
+        A brand-new institution gets an ordered setup path instead of a wall of
+        zeroes and eight sections that cannot possibly have data yet (B-8).
+      */}
+      {isEmptyInstitution ? (
+        <SetupChecklist
+          hasClasses={(data?.classSections ?? 0) > 0}
+          hasSubjects={false}
+          hasStudents={(data?.activeStudents ?? 0) > 0}
+        />
+      ) : null}
 
       {/* Needs attention — every row from a live query with a real CTA */}
       <Card className="gap-3">

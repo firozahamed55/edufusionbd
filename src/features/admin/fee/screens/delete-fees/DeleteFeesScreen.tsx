@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, Trash2, Receipt } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Checkbox, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast, PageHeader, Pagination } from "@/shared/ui";
+import { Checkbox, Skeleton, EmptyState, ErrorState, DangerConfirm, useToast, PageHeader, Pagination } from "@/shared/ui";
 import { useAppliedFees, useDeleteFeeInvoices } from "../../logic/hooks";
 import { APPLIED_FEE_PAGE_SIZE } from "../../logic/api";
 import { useErrorMessage } from "@/shared/services/errors";
@@ -119,10 +119,31 @@ export function DeleteFeesScreen() {
         />
       ) : null}
 
-      <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} onConfirm={doDelete} tone="danger"
+      {/* Typed confirmation, not a yes/no: this voids institution-wide invoices
+          irreversibly, and a plain confirm carried the same weight as dismissing
+          a toast (audit B-2). */}
+      <DangerConfirm
+        open={confirm}
+        onClose={() => setConfirm(false)}
+        onConfirm={doDelete}
+        count={selected.size}
         title={t("নির্বাচিত ফি মুছবেন?", "Delete selected fees?")}
-        description={t(`${selected.size} টি ফি অকার্যকর করা হবে।`, `${selected.size} fees will be voided.`)}
-        confirmLabel={t("হ্যাঁ, মুছুন", "Yes, delete")} cancelLabel={t("বাতিল", "Cancel")} loading={del.isPending} />
+        description={t(
+          `${n(selected.size)} টি ফি ইনভয়েস স্থায়ীভাবে অকার্যকর হবে। এটি ফেরানো যাবে না।`,
+          `${selected.size} fee invoices will be permanently voided. This cannot be undone.`,
+        )}
+        preview={rows
+          .filter((r) => selected.has(r.id))
+          .slice(0, 8)
+          .map((r) => `${isBn ? r.name_bn : r.name_en} · ৳${n(r.due)}`)
+          .join(" · ")}
+        typeToConfirmLabel={(phrase) =>
+          t(`নিশ্চিত করতে ${n(Number(phrase))} টাইপ করুন`, `Type ${phrase} to confirm`)
+        }
+        confirmLabel={t("হ্যাঁ, মুছুন", "Yes, delete")}
+        cancelLabel={t("বাতিল", "Cancel")}
+        loading={del.isPending}
+      />
     </div>
   );
 }

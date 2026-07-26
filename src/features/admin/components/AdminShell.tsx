@@ -25,7 +25,7 @@ import { useRailState } from "./useRailState";
 import { useAdminUser } from "./useAdminUser";
 import { AcademicYearSelector, ArchivedYearBanner } from "./AcademicYearSelector";
 import { AcademicYearProvider } from "@/shared/services/academicYear/context";
-import { ThemeToggle, LocaleToggle, useFocusTrap } from "@/shared/ui";
+import { ThemeToggle, LocaleToggle, useFocusTrap, OfflineBanner } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { CommandPalette } from "@/features/admin/core/components/CommandPalette";
@@ -429,6 +429,12 @@ function AdminShellInner({ children }: { children: ReactNode }) {
         >
           {/* --layout-max caps the measure on ultrawide displays (audit S-4). */}
           <div className="mx-auto flex w-full max-w-[var(--layout-max)] flex-col gap-5">
+            <OfflineBanner
+              message={tx(
+                "ইন্টারনেট সংযোগ নেই — সংরক্ষণ করার আগে সংযোগ ফিরে আসা পর্যন্ত অপেক্ষা করুন",
+                "You're offline — wait for the connection to return before saving",
+              )}
+            />
             <ArchivedYearBanner />
             {children}
           </div>

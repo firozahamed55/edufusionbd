@@ -60,7 +60,12 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
         {isProcess ? (
           <Button variant="primary" className="h-10.5 px-6" onClick={run} disabled={!examId || process.isPending}><Cpu size={16} /> {process.isPending ? t("প্রক্রিয়াকরণ…", "Processing…") : t("ফলাফল প্রক্রিয়া করুন", "Process results")}</Button>
         ) : (
-          <button disabled className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary opacity-60"><Download size={16} /> {t("PDF ডাউনলোড", "Download PDF")}</button>
+          // Print-to-PDF is the browser's own, and now that print.css exists
+          // (audit B-6) it yields a clean result sheet with repeating column
+          // headers instead of the sidebar. No PDF dependency needed.
+          <Button variant="primary" className="h-10.5 px-6" onClick={() => window.print()} disabled={rows.length === 0}>
+            <Download size={16} /> {t("PDF ডাউনলোড", "Download PDF")}
+          </Button>
         )}
       </div>
 
@@ -73,7 +78,7 @@ export function ResultProcessor({ mode }: { mode: "process" | "view" }) {
       ) : rows.length === 0 ? (
         <EmptyState icon={<Award size={22} />} title={t("এখনও কোনো প্রক্রিয়াকৃত ফলাফল নেই", "No processed results yet")} description={isProcess ? t("নম্বর এন্ট্রির পর ‘ফলাফল প্রক্রিয়া করুন’ চাপুন।", "After entering marks, click Process results.") : undefined} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
+        <div data-print="sheet" className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
           <div className="min-w-180">
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
               <p className="flex-1 text-base font-semibold text-text-primary">{t("ফলাফল তালিকা", "Results")}</p>

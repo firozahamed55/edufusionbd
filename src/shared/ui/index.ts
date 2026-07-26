@@ -24,5 +24,7 @@ export { PasswordInput } from "./PasswordInput";
 export { OtpInput } from "./OtpInput";
 export { Stepper } from "./Stepper";
 export { Modal, ConfirmDialog, useFocusTrap } from "./Dialog";
+export { DangerConfirm } from "./DangerConfirm";
+export { OfflineBanner } from "./OfflineBanner";
 export { ToastProvider, useToast } from "./Toast";
 export { BarChart, Donut, type BarDatum } from "./Chart";

@@ -328,6 +328,99 @@ textarea:focus-visible,
     0 0 0 4px var(--color-focus-ring);
 }
 
+/*
+  PRINT (audit B-6). ID cards, admit cards, marksheets and result sheets are the
+  product's actual physical output — Bangladeshi schools print these in bulk —
+  and there was no print stylesheet anywhere, so printing meant printing the
+  sidebar, the topbar and a "Save" button.
+
+  Anything marked `data-print="hide"` disappears; a container marked
+  `data-print="sheet"` becomes the page.
+*/
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Chrome: rail, topbar, save bars, toasts, and anything opted out. */
+  aside,
+  header,
+  nav,
+  [data-print="hide"],
+  [role="status"],
+  [role="alert"] {
+    display: none !important;
+  }
+
+  /* The scrolling shell must not clip the printed sheet at one viewport. */
+  main,
+  [id="admin-main"] {
+    overflow: visible !important;
+    padding: 0 !important;
+    max-height: none !important;
+  }
+
+  [data-print="sheet"] {
+    box-shadow: none !important;
+    border: 0 !important;
+    break-inside: avoid;
+  }
+
+  /* Repeat table headers across printed pages — a 400-row result sheet is
+     unreadable when only page 1 carries column labels. */
+  thead {
+    display: table-header-group;
+  }
+  tr,
+  img {
+    break-inside: avoid;
+  }
+
+  /* Expose link targets that are meaningful on paper, not the JS ones. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 90%;
+  }
+}
+
+/*
+  Windows High Contrast / forced-colors (audit B-9) — common on the shared
+  institutional hardware this product runs on. In forced-colors mode the OS
+  replaces our token-driven colours wholesale, which silently erases
+  border-less surfaces and any state we signalled with background alone.
+*/
+@media (forced-colors: active) {
+  /* Keep card/table boundaries visible once backgrounds are overridden. */
+  table,
+  th,
+  td,
+  [class*="rounded-2xl"],
+  [class*="rounded-xl"] {
+    border: 1px solid CanvasText;
+  }
+  /* Focus must survive — forced-colors drops box-shadow rings entirely. */
+  :focus-visible {
+    outline: 3px solid Highlight !important;
+    outline-offset: 2px;
+  }
+}
+
+/* Honour "prefers-contrast: more" by strengthening the borders and de-emphasised
+   text that the default theme deliberately keeps quiet. */
+@media (prefers-contrast: more) {
+  :root,
+  [data-theme="dark"] {
+    --color-border-default: var(--color-border-control);
+    --color-text-muted: var(--color-text-secondary);
+  }
+}
+
 /* Honour the OS "reduce motion" setting — the app uses transitions everywhere. */
 @media (prefers-reduced-motion: reduce) {
   *,
