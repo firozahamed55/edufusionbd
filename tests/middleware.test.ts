@@ -34,6 +34,11 @@ vi.mock("@/shared/services/supabase/middleware", () => ({
 
 const { middleware, config } = await import("@/middleware");
 
+// The gate's Supabase hop is mocked above; `roleFromClaims` is the real thing.
+const { roleFromClaims } = await vi.importActual<
+  typeof import("@/shared/services/supabase/middleware")
+>("@/shared/services/supabase/middleware");
+
 const req = (path: string) => new NextRequest(new URL(`https://school.test${path}`));
 
 /** Signed-in as `role`; `null` role = authenticated but no role claim. */
@@ -164,6 +169,35 @@ describe("CSP", () => {
     const a = (await middleware(req("/admin/dashboard"))).headers.get("Content-Security-Policy");
     const b = (await middleware(req("/admin/dashboard"))).headers.get("Content-Security-Policy");
     expect(a).not.toBe(b);
+  });
+});
+
+describe("role claim source (A-C2)", () => {
+  // `roleFromClaims` is the ONLY place a role enters the gate. `user_metadata`
+  // is writable by the account holder, so honouring it there would be a
+  // one-line self-promotion to super_admin. These are security assertions.
+  it("reads the role from app_metadata", () => {
+    expect(roleFromClaims({ app_metadata: { role: "admin" } })).toBe("admin");
+  });
+
+  it("IGNORES a role in user_metadata", () => {
+    expect(roleFromClaims({ user_metadata: { role: "super_admin" } })).toBeUndefined();
+  });
+
+  it("does not let user_metadata override or fill in for app_metadata", () => {
+    expect(
+      roleFromClaims({ app_metadata: {}, user_metadata: { role: "super_admin" } }),
+    ).toBeUndefined();
+    expect(
+      roleFromClaims({
+        app_metadata: { role: "parent" },
+        user_metadata: { role: "super_admin" },
+      }),
+    ).toBe("parent");
+  });
+
+  it("rejects a non-string app_metadata role", () => {
+    expect(roleFromClaims({ app_metadata: { role: { toString: () => "admin" } } })).toBeUndefined();
   });
 });
 

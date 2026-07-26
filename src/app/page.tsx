@@ -18,9 +18,8 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   if (user) {
-    const role = (user.app_metadata?.role ?? user.user_metadata?.role) as
-      | string
-      | undefined;
+    // app_metadata only — user_metadata is client-writable (see middleware.ts).
+    const role = user.app_metadata?.role as string | undefined;
     redirect(roleHome(role));
   }
 

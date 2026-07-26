@@ -58,9 +58,8 @@ export default function LoginPage() {
       }));
       return;
     }
-    const actualRole = (data.user?.app_metadata?.role ?? data.user?.user_metadata?.role) as
-      | string
-      | undefined;
+    // app_metadata only — user_metadata is client-writable (see middleware.ts).
+    const actualRole = data.user?.app_metadata?.role as string | undefined;
     // Honor a safe internal deep-link (middleware sets ?redirect=…), else land
     // on the dashboard for the user's REAL role. External redirects are rejected.
     const dest = safeInternalPath(params.get("redirect")) ?? roleHome(actualRole);

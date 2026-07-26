@@ -48,6 +48,33 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
+  rls:
+    name: RLS policy tests (pgTAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Applies all migrations from empty onto a throwaway local Postgres, so
+      # this job doubles as the migration-replay check the audit asked for
+      # (A-M14): a migration that no longer applies cleanly fails here.
+      # Only the services the tests touch — the full stack is ~2 min of pull.
+      - name: Start local Postgres + auth
+        run: supabase start -x studio,realtime,storage-api,imgproxy,edge-runtime,logflare,vector
+
+      # supabase/tests/*.test.sql. These are the assertions that make the
+      # authorization model a claim you can check rather than one you make.
+      - name: pgTAP
+        run: supabase test db
+
+      - name: Stop
+        if: always()
+        run: supabase stop --no-backup
+
   audit:
     name: dependency audit (production)
     runs-on: ubuntu-latest

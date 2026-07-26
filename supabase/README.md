@@ -21,9 +21,9 @@ functions) and seed data all live here as versioned migrations.
 > (UI files never issue SQL; all DB access goes through `logic/api.ts` →
 > Supabase → RPCs), not by splitting into separate deployable repos.
 
-## Migration files are IN THIS REPO (as of 2026-07-25)
+## Migration files are IN THIS REPO (as of 2026-07-26)
 
-All **34** migrations are materialized under `migrations/`, byte-identical to the
+All **41** migrations are materialized under `migrations/`, byte-identical to the
 hosted project's `supabase_migrations.schema_migrations` history (verified by
 md5 per migration). The schema is therefore reproducible from source alone: a
 fresh project can be rebuilt with `supabase db push`, and the DR gap of
@@ -80,11 +80,22 @@ from the live schema.
 | 32 | 20260724052546 | add_class_section_upsert_delete_rpcs | `fn_upsert_class_section` / `fn_delete_class_section` |
 | 33 | 20260724054154 | extend_fn_upsert_signature_image | signature image file id |
 | 34 | 20260725045652 | lock_class_section_and_upload_rpcs_to_authenticated | **security fix** — revoke anon EXECUTE on 3 `SECURITY DEFINER` RPCs |
+| 35 | 20260725101640 | add_fn_digital_transaction_stats | digital-collection KPI aggregate |
+| 36 | 20260726043308 | add_has_permission_and_seed_role_permissions | **Phase 0.2** — `private.has_permission/has_full_class_scope/is_guardian_of`; seed teacher/accountant/exam_controller permissions |
+| 37 | 20260726043413 | role_based_rls_policies | **Phase 0.2 (A-C1)** — verb-split `<t>_read` / `<t>_write` policies on every table |
+| 38 | 20260726043451 | teacher_class_section_scoping | **Phase 0.3** — wire `can_access_class_section` on attendance/mark/enrollment |
+| 39 | 20260726043508 | parent_read_scoping | **Phase 0.4** — parent read-only access via `student_guardian` linkage |
+| 40 | 20260726043523 | audit_log_append_only_and_coverage | **Phase 0.5 (A-H6)** — audit log append-only; coverage 6 → 22 tables |
+| 41 | 20260726044457 | rpc_permission_guards | **Phase 0.2 (A-C1)** — all 48 `fn_*` moved to `private`, permission-checked wrappers in `public` |
 
 ## RPC catalog (server-side business logic)
 
-All are `SECURITY DEFINER`, `search_path=''`, institution-guarded via
-`private.current_institution_id()`, executable only by `authenticated`/`service_role`:
+Since migration 41 each RPC is a **pair**: `private.fn_x` holds the body, and
+`public.fn_x` is a thin `SECURITY DEFINER` wrapper that calls
+`private.require_permission('<code>')` before forwarding. Only the wrapper is
+granted to `authenticated`; `private` is not in PostgREST's exposed schemas and
+EXECUTE on the implementations is revoked. All are `search_path=''` and
+institution-guarded via `private.current_institution_id()`:
 
 `fn_register_student` · `fn_register_teacher` · `fn_update_teacher` ·
 `fn_update_student_basic` · `fn_run_migration` · `fn_pushback_migration` ·

@@ -74,9 +74,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Role gate: each app only admits its own roles. Role comes from the signed
-  // JWT (app_metadata), so it can't be tampered client-side. RLS re-enforces
-  // tenant + row ownership at the data layer (defense-in-depth).
+  // Role gate: each app only admits its own roles. Role is read from the signed
+  // JWT's `app_metadata` ONLY — that claim is service-role-writable, so the
+  // account holder cannot set it. (`user_metadata` IS user-writable and is
+  // deliberately not consulted; see shared/services/supabase/middleware.ts.)
+  // RLS re-enforces tenant + role at the data layer (defense-in-depth).
   if (claims) {
     const { role } = claims;
 

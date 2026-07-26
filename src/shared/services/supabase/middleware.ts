@@ -6,6 +6,24 @@ import type { Database } from "@/shared/types/database.types";
 export type SessionClaims = { sub: string; role?: string };
 
 /**
+ * Extract the role claim — from `app_metadata` ONLY.
+ *
+ * `user_metadata` is writable by the account holder itself
+ * (`supabase.auth.updateUser({ data: { role: 'super_admin' } })` is its
+ * documented purpose), so reading a role from it lets any user promote
+ * themselves. `app_metadata` is service-role-only and is the sole trustworthy
+ * source. Exported so the invariant is directly testable — see
+ * tests/middleware.test.ts.
+ */
+export function roleFromClaims(claims: {
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
+}): string | undefined {
+  const role = claims.app_metadata?.role;
+  return typeof role === "string" ? role : undefined;
+}
+
+/**
  * Refresh the Supabase session on every request and return the verified claims.
  *
  * Uses `getClaims()` rather than `getUser()`: this project signs JWTs with an
@@ -56,9 +74,7 @@ export async function updateSession(
     claims: claims
       ? {
           sub: claims.sub,
-          role: (claims.app_metadata?.role ?? claims.user_metadata?.role) as
-            | string
-            | undefined,
+          role: roleFromClaims(claims),
         }
       : null,
   };
