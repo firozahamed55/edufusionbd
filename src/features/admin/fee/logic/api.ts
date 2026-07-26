@@ -73,11 +73,13 @@ export type StudentInvoice = {
   id: string; period: string | null; total: number; paid: number; waiver: number; due: number; status: string;
   heads: string;
 };
-export async function fetchStudentInvoices(supabase: BrowserClient, studentId: string): Promise<StudentInvoice[]> {
+// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+export async function fetchStudentInvoices(supabase: BrowserClient, studentId: string, yearId: string): Promise<StudentInvoice[]> {
   const { data, error } = await supabase
     .from("fee_invoice")
     .select("id, period, total_amount, paid_amount, waiver_amount, due_amount, status, lines:fee_invoice_line(amount, head:fee_head_id(name))")
-    .eq("student_id", studentId).is("deleted_at", null).order("created_at", { ascending: false }).limit(MAX_OPTIONS);
+    .eq("student_id", studentId).eq("academic_year_id", yearId)
+    .is("deleted_at", null).order("created_at", { ascending: false }).limit(MAX_OPTIONS);
   if (error) throw error;
   return (data ?? []).map((r) => ({
     id: r.id, period: r.period, total: num(r.total_amount), paid: num(r.paid_amount), waiver: num(r.waiver_amount), due: num(r.due_amount), status: r.status,
@@ -99,6 +101,10 @@ export type UnpaidStudent = { studentId: string; code: string | null; roll: numb
  *
  * The filter is now pushed into the query with `!inner` joins, so Postgres does
  * the selection and the transfer is bounded by the section's size.
+ *
+ * DELIBERATELY NOT year-scoped (unlike the rest of A-M16): the section id is
+ * itself per-year, but an unpaid invoice from a previous year is still owed.
+ * A collection screen that hides arrears at rollover writes off real debt.
  */
 export async function fetchUnpaidBySection(supabase: BrowserClient, classSectionId: string): Promise<UnpaidStudent[]> {
   const { data, error } = await supabase
@@ -139,8 +145,10 @@ export const APPLIED_FEE_PAGE_SIZE = 25;
  * to find ONE mistaken invoice among them. Matches `fetchDigitalTransactions`'
  * `{ rows, total }` shape so both feed the same `Pagination` footer.
  */
+// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
 export async function fetchAppliedFees(
   supabase: BrowserClient,
+  yearId: string,
   { page = 1, perPage = APPLIED_FEE_PAGE_SIZE }: { page?: number; perPage?: number } = {},
 ): Promise<{ rows: AppliedFee[]; total: number }> {
   const from = (page - 1) * perPage;
@@ -150,6 +158,7 @@ export async function fetchAppliedFees(
       "id, period, due_amount, status, student:student_id(student_code, name_bn, name_en), lines:fee_invoice_line(head:fee_head_id(name))",
       { count: "exact" },
     )
+    .eq("academic_year_id", yearId)
     .is("deleted_at", null).order("created_at", { ascending: false })
     .range(from, from + perPage - 1);
   if (error) throw error;

@@ -14,7 +14,7 @@ begin;
 -- Created inside the test transaction and rolled back with it, so pgTAP never
 -- lands in a real database. Nothing in production needs this extension.
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(34);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures — four accounts on one tenant, differing only in role/linkage.
@@ -165,6 +165,23 @@ select is((select count(*) from pg_proc p join pg_namespace n on n.oid = p.prona
              and has_function_privilege('authenticated', p.oid, 'execute')
              and pg_get_functiondef(p.oid) not like '%require_permission%')::int,
           0, 'every authenticated-callable public.fn_* has a permission guard');
+
+-- ---------------------------------------------------------------------------
+-- A-H5 — attendance and mark are partitioned by academic_year_id, and every
+-- row lands in a real partition (never DEFAULT). Table-shape assertions, not
+-- role-shape, but they belong with the other "does the schema still hold its
+-- invariants" checks and touch the same two tables A-C1 §2 covers above.
+-- ---------------------------------------------------------------------------
+select is(
+  (select relkind from pg_class where relname = 'attendance' and relnamespace = 'public'::regnamespace),
+  'p', 'attendance is a partitioned table');
+select is(
+  (select relkind from pg_class where relname = 'mark' and relnamespace = 'public'::regnamespace),
+  'p', 'mark is a partitioned table');
+select is((select count(*) from public.attendance_default)::int, 0,
+  'no attendance row fell through to the DEFAULT partition');
+select is((select count(*) from public.mark_default)::int, 0,
+  'no mark row fell through to the DEFAULT partition');
 
 select * from finish();
 rollback;

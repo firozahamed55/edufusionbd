@@ -1,0 +1,14 @@
+-- ============================================================================
+-- Phase 1.2 follow-up — no-op on disk, applied live during the same session
+-- as migration 20260726053505 to correct its first attempt.
+--
+-- The first attempt used a BEFORE trigger to derive `academic_year_id`.
+-- Postgres rejects that for a partitioned table ("moving row to another
+-- partition during a BEFORE FOR EACH ROW trigger is not supported"), caught
+-- immediately by testing the real write path (`fn_mark_attendance`) rather
+-- than only the row count after the backfill. §4 of the previous migration
+-- already reflects the corrected AFTER-trigger-plus-explicit-set design; this
+-- file exists only so the migration history matches what was actually run
+-- against the hosted project, unmodified after the fact.
+-- ============================================================================
+select 1;

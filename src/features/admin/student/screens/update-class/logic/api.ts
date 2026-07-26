@@ -4,12 +4,15 @@ import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
 export type ClassSectionOption = { value: string; label_bn: string; label_en: string };
 
+// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
 export async function fetchClassSections(
   supabase: BrowserClient,
+  yearId: string,
 ): Promise<ClassSectionOption[]> {
   const { data, error } = await supabase
     .from("class_section")
     .select("id, class:class_id(name_bn, name_en, numeric_level), section:section_id(name)")
+    .eq("academic_year_id", yearId)
     .is("deleted_at", null).limit(MAX_OPTIONS);
   if (error) throw error;
 

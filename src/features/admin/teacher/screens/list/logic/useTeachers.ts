@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/shared/services/supabase/client";
 import { queryKeys } from "@/shared/services/queryKeys";
+import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 import { fetchTeachers } from "./api";
 
 /**
@@ -11,9 +12,10 @@ import { fetchTeachers } from "./api";
  * (audit H-5). See the note in queryKeys.ts for why they cannot live here.
  */
 export function useTeachers(page: number, search: string, department: string) {
+  const yearId = useCurrentYearId();
   return useQuery({
     queryKey: queryKeys.teachers.list({ page, search, department }),
-    queryFn: () => fetchTeachers(createClient(), { page, search, department }),
+    queryFn: () => fetchTeachers(createClient(), { page, search, department, yearId }),
     placeholderData: (prev) => prev,
   });
 }

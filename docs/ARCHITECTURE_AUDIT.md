@@ -1379,16 +1379,24 @@ That is a small change from what exists. It is also the difference between a dem
 **Delivered:** migrations `20260726043308` … `20260726044457` (6), plus `roleFromClaims()` + 4 middleware tests.
 **Design note:** rather than inventing an `<domain>.read` / `<domain>.write` catalogue, the policies reuse the 28 permission codes already seeded in `10_seed_global` (+ one new `audit.read`). Shared academic structure (class, section, subject, calendar) stays tenant-only on SELECT and `core.settings` on write — it carries no personal data and every screen needs it. `teacher`, `accountant` and `exam_controller` had **zero** `role_permission` rows since day one; they are now seeded, which is what turns fail-closed policies from a lockout into a working RBAC.
 
-### Phase 1 — Scale & correctness · 10 days
+### Phase 1 — Scale & correctness · 10 days — ✅ **COMPLETE (2026-07-26)**
 
-| # | Action | Finding | Days |
-|---|---|---|---|
-| 1.1 | Pagination on all 51 unbounded queries (reuse `shared/ui/Pagination`) | **A-H4** | 3 |
-| 1.2 | Partition `attendance` + `mark` by `academic_year_id` | **A-H5** | 2 |
-| 1.3 | Explicit academic-year scoping on every year-sensitive query | **A-M16** | 2 |
-| 1.4 | `ix_fee_payment_inst_paid` + `deleted_at` partial indexes | A-M9/10 | 0.5 |
-| 1.5 | Precise cache invalidation; `queryKeys` to 100% + lint ban on inline keys | A-M7/M8 | 1.5 |
-| 1.6 | `callRpc()` helper; delete 9 `RpcFn` + 67 `as unknown as` | A-M1 | 1 |
+| # | Action | Finding | Days | Status |
+|---|---|---|---|---|
+| 1.1 | Pagination on all 51 unbounded queries (reuse `shared/ui/Pagination`) | **A-H4** | 3 | ✅ |
+| 1.2 | Partition `attendance` + `mark` by `academic_year_id` | **A-H5** | 2 | ✅ |
+| 1.3 | Explicit academic-year scoping on every year-sensitive query | **A-M16** | 2 | ✅ |
+| 1.4 | `ix_fee_payment_inst_paid` + `deleted_at` partial indexes | A-M9/10 | 0.5 | ✅ |
+| 1.5 | Precise cache invalidation; `queryKeys` to 100% + lint ban on inline keys | A-M7/M8 | 1.5 | ✅ |
+| 1.6 | Delete 9 `RpcFn` + 67 `as unknown as` | A-M1 | 1 | ✅ |
+
+**1.6 landed differently than scoped.** The plan named a `callRpc()` helper to wrap the untyped `.rpc()` call. Root-caused instead: `database.types.ts` was stale (2 of 48 RPCs present) and `@supabase/ssr` was pinned to 0.5.2, whose `Schema` generic resolves to `any` under supabase-js 2.110 — so `.rpc()` and nested `.select()` were untyped for a version-skew reason, not a missing-wrapper reason. Regenerating the types and bumping `@supabase/ssr` to 0.12.3 fixed the root cause; a wrapper on top of untyped `.rpc()` would have kept the cast, just moved it. Result: 9 `RpcFn` → 0, 67 casts → 1 (documented: the RSC/browser client bridge in `prefetch.ts`). Real inference then surfaced three latent bugs the casts had been hiding: a nullable class-section id reaching `fn_attendance_summary`, `AuditLogRow.entityId` claiming NOT NULL when the column is nullable, and `AUDIT_ENTITIES` still listing the 6 pre-Phase-0 tables (16 of the 22 now-audited tables were invisible in the only screen that reads the log).
+
+**1.2 used LIST, not RANGE, partitioning.** The plan said "RANGE partition by `academic_year_id`" — `academic_year_id` is a `uuid`, and range bounds over a uuid are meaningless. LIST on the same column delivers the same intent (one partition per school year, `DETACH PARTITION` for archival, pruning on every year-scoped query) with a key that actually orders. Neither table carried the column; it is derived from `class_section`/`exam` and set at the two write paths (`fn_mark_attendance`, `fn_save_marks`) rather than by a BEFORE trigger, because Postgres does not support a BEFORE ROW trigger reassigning a partitioned table's partition key — caught by testing the real RPC against the live schema, not just checking the backfilled row count.
+
+**1.3 added a piece the plan didn't name**: `shared/services/academicYear/` (the `useCurrentYearId()` hook + `fetchCurrentYear()`), because "explicit scoping" needs a canonical source for "the current year" to scope against — reading `academic_year.is_current` once, not seven times differently.
+
+**Verification:** `npm run verify` (typecheck → lint → test → build) passes; pgTAP suite extended to 34 assertions (parent/teacher/admin scoping re-verified across the now-partitioned tables) and run live against the hosted project before being committed to disk.
 
 ### Phase 2 — The missing tiers · 12 days
 

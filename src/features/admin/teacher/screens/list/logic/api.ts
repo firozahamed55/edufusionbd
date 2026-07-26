@@ -1,6 +1,7 @@
 // Supabase data access for admin/teacher/list. RLS-scoped to the caller's institution.
 import type { BrowserClient } from "@/shared/services/supabase/types";
 import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
+import { fetchCurrentYear } from "@/shared/services/academicYear/api";
 
 export type TeacherRow = {
   id: string;
@@ -26,11 +27,19 @@ const PAGE_SIZE_DEFAULT = 20;
  */
 export const TEACHER_LIST_FIRST_PAINT = { page: 1, search: "", department: "" } as const;
 
+/**
+ * `yearId` is optional because this query is prefetched from a Server Component
+ * (`app/(admin)/admin/teacher/list/page.tsx`), which has no access to the
+ * `useCurrentYearId` hook. Omitted, it resolves the current year itself — one
+ * extra round trip on the server prefetch path only; the client hook always
+ * passes the id it already has cached.
+ */
 export async function fetchTeachers(
   supabase: BrowserClient,
-  { page = 1, perPage = PAGE_SIZE_DEFAULT, search = "", department = "" }:
-    { page?: number; perPage?: number; search?: string; department?: string } = {},
+  { page = 1, perPage = PAGE_SIZE_DEFAULT, search = "", department = "", yearId }:
+    { page?: number; perPage?: number; search?: string; department?: string; yearId?: string } = {},
 ): Promise<{ rows: TeacherRow[]; total: number }> {
+  const year = yearId ?? (await fetchCurrentYear(supabase))?.id ?? null;
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
 
@@ -50,7 +59,11 @@ export async function fetchTeachers(
       if (department) q = q.eq("department.name", department);
       return q.order("employee_code", { ascending: true }).range(from, to);
     })(),
-    supabase.from("class_section").select("class_teacher_id").not("class_teacher_id", "is", null).limit(MAX_OPTIONS),
+    // // Year-scoped (audit A-M16): see shared/services/academicYear/api.ts. The "class teacher" badge is about the CURRENT year: without this a
+    // teacher who led a section two years ago is still badged today.
+    supabase.from("class_section").select("class_teacher_id")
+      .eq("academic_year_id", year ?? "")
+      .not("class_teacher_id", "is", null).limit(MAX_OPTIONS),
   ]);
   if (teachersRes.error) throw teachersRes.error;
   if (csRes.error) throw csRes.error;

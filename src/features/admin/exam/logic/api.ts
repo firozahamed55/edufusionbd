@@ -8,8 +8,9 @@ const s = (v: unknown) => (v == null ? "" : String(v));
 /* --------------------------------------------------------------- exams */
 
 export type ExamRow = { id: string; name: string; type: string | null; status: string; start_date: string | null; end_date: string | null };
-export async function fetchExams(supabase: BrowserClient): Promise<ExamRow[]> {
-  const { data, error } = await supabase.from("exam").select("id, name, type, status, start_date, end_date").order("created_at", { ascending: false }).limit(MAX_OPTIONS);
+// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+export async function fetchExams(supabase: BrowserClient, yearId: string): Promise<ExamRow[]> {
+  const { data, error } = await supabase.from("exam").select("id, name, type, status, start_date, end_date").eq("academic_year_id", yearId).order("created_at", { ascending: false }).limit(MAX_OPTIONS);
   if (error) throw error;
   return (data ?? []);
 }

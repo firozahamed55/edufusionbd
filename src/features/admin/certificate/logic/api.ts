@@ -23,8 +23,9 @@ export async function deleteTemplate(s: BrowserClient, id: string): Promise<void
 }
 
 export type ExamOpt = { id: string; name: string };
-export async function fetchExamOptions(s: BrowserClient): Promise<ExamOpt[]> {
-  const { data, error } = await s.from("exam").select("id, name").order("created_at", { ascending: false }).limit(MAX_OPTIONS);
+// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+export async function fetchExamOptions(s: BrowserClient, yearId: string): Promise<ExamOpt[]> {
+  const { data, error } = await s.from("exam").select("id, name").eq("academic_year_id", yearId).order("created_at", { ascending: false }).limit(MAX_OPTIONS);
   if (error) throw error;
   return (data ?? []);
 }

@@ -4,10 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/shared/services/supabase/client";
 import * as api from "./api";
 import { queryKeys } from "@/shared/services/queryKeys";
+import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
 const c = () => createClient();
 
-export const useExams = () => useQuery({ queryKey: queryKeys.attendance.exams, queryFn: () => api.fetchExams(c()), staleTime: 5 * 60_000 });
+export const useExams = () => {
+  const yearId = useCurrentYearId();
+  return useQuery({ queryKey: queryKeys.attendance.exams(yearId), queryFn: () => api.fetchExams(c(), yearId as string), enabled: !!yearId, staleTime: 5 * 60_000 });
+};
 
 export const useSectionAttendance = (classSectionId: string | null, attDate: string, context: "daily" | "exam", examId?: string | null) =>
   useQuery({

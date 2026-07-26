@@ -5,10 +5,14 @@ import { createClient } from "@/shared/services/supabase/client";
 import type { RpcPayload } from "@/shared/services/supabase/types";
 import * as api from "./api";
 import { queryKeys } from "@/shared/services/queryKeys";
+import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
 const c = () => createClient();
 
-export const useExams = () => useQuery({ queryKey: queryKeys.exam.list, queryFn: () => api.fetchExams(c()), staleTime: 60_000 });
+export const useExams = () => {
+  const yearId = useCurrentYearId();
+  return useQuery({ queryKey: queryKeys.exam.list(yearId), queryFn: () => api.fetchExams(c(), yearId as string), enabled: !!yearId, staleTime: 60_000 });
+};
 export const useGradeSchemes = () => useQuery({ queryKey: queryKeys.exam.gradeSchemes, queryFn: () => api.fetchGradeSchemes(c()), staleTime: 5 * 60_000 });
 
 export const useSectionClassId = (sectionId: string | null) =>
@@ -29,7 +33,7 @@ export const useExamConfig = (kind: "mark" | "comment" | "marksheet" | "date") =
 
 export function useUpsertExam() {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (p: api.ExamPayload) => api.upsertExam(c(), p), onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.exam.list }) });
+  return useMutation({ mutationFn: (p: api.ExamPayload) => api.upsertExam(c(), p), onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.exam.listAll }) });
 }
 export function useSaveMarks() {
   const qc = useQueryClient();

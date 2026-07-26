@@ -15,6 +15,7 @@ import {
   type RunMigrationPayload,
 } from "./api";
 import { queryKeys } from "@/shared/services/queryKeys";
+import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
 const c = () => createClient();
 
@@ -59,7 +60,7 @@ export function useRunMigration() {
     mutationFn: (payload: RunMigrationPayload) => runMigration(c(), payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.students.all });
-      qc.invalidateQueries({ queryKey: queryKeys.migration.batches });
+      qc.invalidateQueries({ queryKey: queryKeys.migration.all });
       qc.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
@@ -71,13 +72,18 @@ export function usePushbackMigration() {
     mutationFn: (batchId: string) => pushbackMigration(c(), batchId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.students.all });
-      qc.invalidateQueries({ queryKey: queryKeys.migration.batches });
+      qc.invalidateQueries({ queryKey: queryKeys.migration.all });
     },
   });
 }
 
 export function useMigrationBatches() {
-  return useQuery({ queryKey: queryKeys.migration.batches, queryFn: () => fetchMigrationBatches(c()) });
+  const yearId = useCurrentYearId();
+  return useQuery({
+    queryKey: queryKeys.migration.batches(yearId),
+    queryFn: () => fetchMigrationBatches(c(), yearId as string),
+    enabled: !!yearId,
+  });
 }
 
 export function useMigrationBatchStudents(batchId: string | null) {

@@ -23,7 +23,7 @@ functions) and seed data all live here as versioned migrations.
 
 ## Migration files are IN THIS REPO (as of 2026-07-26)
 
-All **41** migrations are materialized under `migrations/`, byte-identical to the
+All **46** migrations are materialized under `migrations/`, byte-identical to the
 hosted project's `supabase_migrations.schema_migrations` history (verified by
 md5 per migration). The schema is therefore reproducible from source alone: a
 fresh project can be rebuilt with `supabase db push`, and the DR gap of
@@ -87,6 +87,11 @@ from the live schema.
 | 39 | 20260726043508 | parent_read_scoping | **Phase 0.4** — parent read-only access via `student_guardian` linkage |
 | 40 | 20260726043523 | audit_log_append_only_and_coverage | **Phase 0.5 (A-H6)** — audit log append-only; coverage 6 → 22 tables |
 | 41 | 20260726044457 | rpc_permission_guards | **Phase 0.2 (A-C1)** — all 48 `fn_*` moved to `private`, permission-checked wrappers in `public` |
+| 42 | 20260726050447 | hot_path_indexes | **Phase 1.4 (A-M9/M10)** — `ix_fee_payment_inst_paid` INCLUDE(amount); `deleted_at` partial indexes on student/teacher/fee_invoice/guardian |
+| 43 | 20260726051212 | add_fn_sms_campaign_totals | **Phase 1.1** — institution-wide SMS totals RPC, replaces summing the fetched page |
+| 44 | 20260726052914 | scope_unpaid_by_institute_to_current_year | **Phase 1.3 (A-M16)** — `fn_unpaid_by_institute` now filters `class_section` by the current year |
+| 45 | 20260726053505 | partition_attendance_and_mark_by_academic_year | **Phase 1.2 (A-H5)** — `attendance`/`mark` LIST-partitioned by `academic_year_id`, RLS/triggers/views recreated on the new tables |
+| 46 | 20260726053715 | set_partition_key_at_write_paths | Corrects migration 45's first attempt (BEFORE trigger cannot set a partition key) — folded into 45 on disk; kept as a version marker |
 
 ## RPC catalog (server-side business logic)
 

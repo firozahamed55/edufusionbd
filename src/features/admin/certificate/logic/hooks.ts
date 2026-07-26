@@ -5,11 +5,15 @@ import { createClient } from "@/shared/services/supabase/client";
 import type { RpcPayload } from "@/shared/services/supabase/types";
 import * as api from "./api";
 import { queryKeys } from "@/shared/services/queryKeys";
+import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
 const c = () => createClient();
 
 export const useTemplates = () => useQuery({ queryKey: queryKeys.cert.templates, queryFn: () => api.fetchTemplates(c()) });
-export const useExamOptions = () => useQuery({ queryKey: queryKeys.cert.exams, queryFn: () => api.fetchExamOptions(c()), staleTime: 60_000 });
+export const useExamOptions = () => {
+  const yearId = useCurrentYearId();
+  return useQuery({ queryKey: queryKeys.cert.exams(yearId), queryFn: () => api.fetchExamOptions(c(), yearId as string), enabled: !!yearId, staleTime: 60_000 });
+};
 export const useIdCardBatches = () => useQuery({ queryKey: queryKeys.cert.idBatches, queryFn: () => api.fetchIdCardBatches(c()) });
 export const useAdmitBatches = () => useQuery({ queryKey: queryKeys.cert.admitBatches, queryFn: () => api.fetchAdmitBatches(c()) });
 export const useTestimonials = () => useQuery({ queryKey: queryKeys.cert.testimonials, queryFn: () => api.fetchTestimonials(c()) });

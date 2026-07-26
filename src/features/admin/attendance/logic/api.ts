@@ -5,8 +5,9 @@ import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
 
 export type ExamOption = { id: string; name: string };
-export async function fetchExams(supabase: BrowserClient): Promise<ExamOption[]> {
-  const { data, error } = await supabase.from("exam").select("id, name").order("created_at", { ascending: false }).limit(MAX_OPTIONS);
+// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+export async function fetchExams(supabase: BrowserClient, yearId: string): Promise<ExamOption[]> {
+  const { data, error } = await supabase.from("exam").select("id, name").eq("academic_year_id", yearId).order("created_at", { ascending: false }).limit(MAX_OPTIONS);
   if (error) throw error;
   return (data ?? []);
 }

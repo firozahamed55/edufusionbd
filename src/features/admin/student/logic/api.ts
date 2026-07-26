@@ -212,6 +212,7 @@ function sectionLabel(cs: unknown): string {
  */
 export async function fetchMigrationBatches(
   supabase: BrowserClient,
+  yearId: string,
 ): Promise<MigrationBatchRow[]> {
   const { data, error } = await supabase
     .from("migration_batch")
@@ -219,6 +220,7 @@ export async function fetchMigrationBatches(
       "id, type, status, created_at, source:source_class_section_id(class:class_id(name_en), section:section_id(name)), target:target_class_section_id(class:class_id(name_en), section:section_id(name)), migration_student(count)",
     )
     .eq("status", "completed")
+    .eq("academic_year_id", yearId)
     .order("created_at", { ascending: false })
     .limit(RECENT_BATCHES);
   if (error) throw error;

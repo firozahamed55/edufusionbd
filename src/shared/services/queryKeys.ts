@@ -35,9 +35,15 @@ export const queryKeys = {
     overview: ["dashboard", "overview"] as const,
   },
 
+  /** The current academic year — every year-scoped query keys off its id. */
+  academicYear: {
+    all: ["academic-year"] as const,
+    current: ["academic-year", "current"] as const,
+  },
+
   attendance: {
     all: ["attendance"] as const,
-    exams: ["attendance", "exams"] as const,
+    exams: (yearId: Id) => ["attendance", "exams", yearId] as const,
     sectionAll: ["attendance", "section"] as const,
     section: (classSectionId: Id, attDate: string, context: string, examId?: Id) =>
       ["attendance", "section", classSectionId, attDate, context, examId ?? null] as const,
@@ -49,7 +55,7 @@ export const queryKeys = {
   cert: {
     all: ["cert"] as const,
     templates: ["cert", "templates"] as const,
-    exams: ["cert", "exams"] as const,
+    exams: (yearId: Id) => ["cert", "exams", yearId] as const,
     idBatches: ["cert", "id-batches"] as const,
     admitBatches: ["cert", "admit-batches"] as const,
     testimonials: ["cert", "testimonials"] as const,
@@ -68,14 +74,15 @@ export const queryKeys = {
     schemes: ["core", "schemes"] as const,
     signatures: ["core", "signatures"] as const,
     classSectionsAll: ["core", "classSections"] as const,
-    classSections: (classId: Id) => ["core", "classSections", classId] as const,
+    classSections: (classId: Id, yearId: Id) => ["core", "classSections", classId, yearId] as const,
     users: (page: number) => ["core", "users", "list", page] as const,
     setting: (key: string, scope: string) => ["core", "setting", key, scope] as const,
   },
 
   exam: {
     all: ["exam"] as const,
-    list: ["exam", "list"] as const,
+    listAll: ["exam", "list"] as const,
+    list: (yearId: Id) => ["exam", "list", yearId] as const,
     gradeSchemes: ["exam", "grade-schemes"] as const,
     sectionClass: (sectionId: Id) => ["exam", "section-class", sectionId] as const,
     marksAll: ["exam", "marks"] as const,
@@ -95,13 +102,13 @@ export const queryKeys = {
     accounts: ["fee", "accounts"] as const,
     mappings: ["fee", "mappings"] as const,
     invoicesAll: ["fee", "invoices"] as const,
-    invoices: (studentId: Id) => ["fee", "invoices", studentId] as const,
+    invoices: (studentId: Id, yearId: Id) => ["fee", "invoices", studentId, yearId] as const,
     profile: (studentId: Id) => ["fee", "profile", studentId] as const,
     unpaidSectionAll: ["fee", "unpaid-section"] as const,
     unpaidSection: (sectionId: Id) => ["fee", "unpaid-section", sectionId] as const,
     unpaidInstitute: ["fee", "unpaid-institute"] as const,
     appliedAll: ["fee", "applied"] as const,
-    applied: (page: number) => ["fee", "applied", page] as const,
+    applied: (page: number, yearId: Id) => ["fee", "applied", page, yearId] as const,
     digitalAll: ["fee", "digital"] as const,
     digital: (page: number) => ["fee", "digital", "list", page] as const,
     digitalStats: ["fee", "digital", "stats"] as const,
@@ -138,7 +145,7 @@ export const queryKeys = {
 
   migration: {
     all: ["migration-batches"] as const,
-    batches: ["migration-batches"] as const,
+    batches: (yearId: Id) => ["migration-batches", "list", yearId] as const,
     batchStudents: (batchId: Id) => ["migration-batches", "students", batchId] as const,
   },
 
@@ -156,7 +163,7 @@ export const queryKeys = {
     upazilas: (districtId: Id) => ["lookup", "upazilas", districtId] as const,
     years: ["lookup", "years"] as const,
     classes: ["lookup", "classes"] as const,
-    classSections: ["lookup", "class-sections"] as const,
+    classSections: (yearId: Id) => ["lookup", "class-sections", yearId] as const,
     studentCategories: ["lookup", "student-categories"] as const,
     designations: ["lookup", "designations"] as const,
     departments: ["lookup", "departments"] as const,

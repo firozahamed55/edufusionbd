@@ -5,6 +5,7 @@ import { createClient } from "@/shared/services/supabase/client";
 import type { RpcPayload } from "@/shared/services/supabase/types";
 import * as api from "./api";
 import { queryKeys } from "@/shared/services/queryKeys";
+import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
 const c = () => createClient();
 
@@ -19,8 +20,14 @@ export const useGradeSchemes = () => useQuery({ queryKey: queryKeys.core.schemes
 export const useSignatures = () => useQuery({ queryKey: queryKeys.core.signatures, queryFn: () => api.fetchSignatures(c()) });
 export const useUsers = (page: number) =>
   useQuery({ queryKey: queryKeys.core.users(page), queryFn: () => api.fetchUsers(c(), { page }), placeholderData: (prev) => prev });
-export const useClassSections = (classId: string | null) =>
-  useQuery({ queryKey: queryKeys.core.classSections(classId), queryFn: () => api.fetchClassSections(c(), classId as string), enabled: !!classId });
+export const useClassSections = (classId: string | null) => {
+  const yearId = useCurrentYearId();
+  return useQuery({
+    queryKey: queryKeys.core.classSections(classId, yearId),
+    queryFn: () => api.fetchClassSections(c(), classId as string, yearId as string),
+    enabled: !!classId && !!yearId,
+  });
+};
 
 function useMut<T>(fn: (v: T) => Promise<unknown>, keys: readonly (readonly unknown[])[]) {
   const qc = useQueryClient();

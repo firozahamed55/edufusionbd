@@ -330,6 +330,7 @@ export type Database = {
       }
       attendance: {
         Row: {
+          academic_year_id: string
           att_date: string
           class_section_id: string
           context: Database["public"]["Enums"]["attendance_context"]
@@ -344,6 +345,7 @@ export type Database = {
           student_id: string
         }
         Insert: {
+          academic_year_id: string
           att_date: string
           class_section_id: string
           context?: Database["public"]["Enums"]["attendance_context"]
@@ -358,6 +360,7 @@ export type Database = {
           student_id: string
         }
         Update: {
+          academic_year_id?: string
           att_date?: string
           class_section_id?: string
           context?: Database["public"]["Enums"]["attendance_context"]
@@ -373,48 +376,151 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "attendance_class_section_id_fkey"
+            foreignKeyName: "attendance_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_year"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_class_section_id_fkey1"
             columns: ["class_section_id"]
             isOneToOne: false
             referencedRelation: "class_section"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_exam_id_fkey"
+            foreignKeyName: "attendance_exam_id_fkey1"
             columns: ["exam_id"]
             isOneToOne: false
             referencedRelation: "exam"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_institution_id_fkey"
+            foreignKeyName: "attendance_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "institution"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_institution_id_fkey"
+            foreignKeyName: "attendance_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "v_dashboard_kpi"
             referencedColumns: ["institution_id"]
           },
           {
-            foreignKeyName: "attendance_marked_by_fkey"
+            foreignKeyName: "attendance_marked_by_fkey1"
             columns: ["marked_by"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_student_id_fkey"
+            foreignKeyName: "attendance_student_id_fkey1"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "student"
             referencedColumns: ["id"]
           },
         ]
+      }
+      attendance_default: {
+        Row: {
+          academic_year_id: string
+          att_date: string
+          class_section_id: string
+          context: Database["public"]["Enums"]["attendance_context"]
+          created_at: string
+          exam_id: string | null
+          exam_key: string | null
+          guardian_sms_sent: boolean
+          id: string
+          institution_id: string
+          marked_by: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          student_id: string
+        }
+        Insert: {
+          academic_year_id: string
+          att_date: string
+          class_section_id: string
+          context?: Database["public"]["Enums"]["attendance_context"]
+          created_at?: string
+          exam_id?: string | null
+          exam_key?: string | null
+          guardian_sms_sent?: boolean
+          id?: string
+          institution_id: string
+          marked_by?: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          student_id: string
+        }
+        Update: {
+          academic_year_id?: string
+          att_date?: string
+          class_section_id?: string
+          context?: Database["public"]["Enums"]["attendance_context"]
+          created_at?: string
+          exam_id?: string | null
+          exam_key?: string | null
+          guardian_sms_sent?: boolean
+          id?: string
+          institution_id?: string
+          marked_by?: string | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+          student_id?: string
+        }
+        Relationships: []
+      }
+      attendance_y5078e07fb9fc4497b0b8fd3237a5eaf7: {
+        Row: {
+          academic_year_id: string
+          att_date: string
+          class_section_id: string
+          context: Database["public"]["Enums"]["attendance_context"]
+          created_at: string
+          exam_id: string | null
+          exam_key: string | null
+          guardian_sms_sent: boolean
+          id: string
+          institution_id: string
+          marked_by: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          student_id: string
+        }
+        Insert: {
+          academic_year_id: string
+          att_date: string
+          class_section_id: string
+          context?: Database["public"]["Enums"]["attendance_context"]
+          created_at?: string
+          exam_id?: string | null
+          exam_key?: string | null
+          guardian_sms_sent?: boolean
+          id?: string
+          institution_id: string
+          marked_by?: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          student_id: string
+        }
+        Update: {
+          academic_year_id?: string
+          att_date?: string
+          class_section_id?: string
+          context?: Database["public"]["Enums"]["attendance_context"]
+          created_at?: string
+          exam_id?: string | null
+          exam_key?: string | null
+          guardian_sms_sent?: boolean
+          id?: string
+          institution_id?: string
+          marked_by?: string | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+          student_id?: string
+        }
+        Relationships: []
       }
       audit_log: {
         Row: {
@@ -2225,6 +2331,7 @@ export type Database = {
       }
       mark: {
         Row: {
+          academic_year_id: string
           created_at: string
           entered_by: string | null
           exam_subject_id: string
@@ -2237,6 +2344,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          academic_year_id: string
           created_at?: string
           entered_by?: string | null
           exam_subject_id: string
@@ -2249,6 +2357,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          academic_year_id?: string
           created_at?: string
           entered_by?: string | null
           exam_subject_id?: string
@@ -2262,42 +2371,49 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "mark_entered_by_fkey"
+            foreignKeyName: "mark_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_year"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mark_entered_by_fkey1"
             columns: ["entered_by"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "mark_exam_subject_id_fkey"
+            foreignKeyName: "mark_exam_subject_id_fkey1"
             columns: ["exam_subject_id"]
             isOneToOne: false
             referencedRelation: "exam_subject"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "mark_exam_subject_id_fkey"
+            foreignKeyName: "mark_exam_subject_id_fkey1"
             columns: ["exam_subject_id"]
             isOneToOne: false
             referencedRelation: "v_effective_subject_marks"
             referencedColumns: ["exam_subject_id"]
           },
           {
-            foreignKeyName: "mark_institution_id_fkey"
+            foreignKeyName: "mark_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "institution"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "mark_institution_id_fkey"
+            foreignKeyName: "mark_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "v_dashboard_kpi"
             referencedColumns: ["institution_id"]
           },
           {
-            foreignKeyName: "mark_student_id_fkey"
+            foreignKeyName: "mark_student_id_fkey1"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "student"
@@ -2337,6 +2453,90 @@ export type Database = {
             referencedColumns: ["institution_id"]
           },
         ]
+      }
+      mark_default: {
+        Row: {
+          academic_year_id: string
+          created_at: string
+          entered_by: string | null
+          exam_subject_id: string
+          id: string
+          institution_id: string
+          is_absent: boolean
+          marks_obtained: number | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_id: string
+          created_at?: string
+          entered_by?: string | null
+          exam_subject_id: string
+          id?: string
+          institution_id: string
+          is_absent?: boolean
+          marks_obtained?: number | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_id?: string
+          created_at?: string
+          entered_by?: string | null
+          exam_subject_id?: string
+          id?: string
+          institution_id?: string
+          is_absent?: boolean
+          marks_obtained?: number | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mark_y5078e07fb9fc4497b0b8fd3237a5eaf7: {
+        Row: {
+          academic_year_id: string
+          created_at: string
+          entered_by: string | null
+          exam_subject_id: string
+          id: string
+          institution_id: string
+          is_absent: boolean
+          marks_obtained: number | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_id: string
+          created_at?: string
+          entered_by?: string | null
+          exam_subject_id: string
+          id?: string
+          institution_id: string
+          is_absent?: boolean
+          marks_obtained?: number | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_id?: string
+          created_at?: string
+          entered_by?: string | null
+          exam_subject_id?: string
+          id?: string
+          institution_id?: string
+          is_absent?: boolean
+          marks_obtained?: number | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       marksheet_config: {
         Row: {
@@ -4857,6 +5057,7 @@ export type Database = {
       v_attendance_daily_summary: {
         Row: {
           absent: number | null
+          academic_year_id: string | null
           att_date: string | null
           class_section_id: string | null
           institution_id: string | null
@@ -4866,21 +5067,28 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "attendance_class_section_id_fkey"
+            foreignKeyName: "attendance_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_year"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_class_section_id_fkey1"
             columns: ["class_section_id"]
             isOneToOne: false
             referencedRelation: "class_section"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_institution_id_fkey"
+            foreignKeyName: "attendance_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "institution"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_institution_id_fkey"
+            foreignKeyName: "attendance_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "v_dashboard_kpi"
@@ -4890,6 +5098,7 @@ export type Database = {
       }
       v_attendance_student_summary: {
         Row: {
+          academic_year_id: string | null
           class_section_id: string | null
           institution_id: string | null
           present_days: number | null
@@ -4899,28 +5108,35 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "attendance_class_section_id_fkey"
+            foreignKeyName: "attendance_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_year"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_class_section_id_fkey1"
             columns: ["class_section_id"]
             isOneToOne: false
             referencedRelation: "class_section"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_institution_id_fkey"
+            foreignKeyName: "attendance_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "institution"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_institution_id_fkey"
+            foreignKeyName: "attendance_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "v_dashboard_kpi"
             referencedColumns: ["institution_id"]
           },
           {
-            foreignKeyName: "attendance_student_id_fkey"
+            foreignKeyName: "attendance_student_id_fkey1"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "student"
@@ -4931,6 +5147,7 @@ export type Database = {
       v_attendance_trend: {
         Row: {
           absent: number | null
+          academic_year_id: string | null
           class_section_id: string | null
           institution_id: string | null
           present: number | null
@@ -4939,21 +5156,28 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "attendance_class_section_id_fkey"
+            foreignKeyName: "attendance_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_year"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_class_section_id_fkey1"
             columns: ["class_section_id"]
             isOneToOne: false
             referencedRelation: "class_section"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_institution_id_fkey"
+            foreignKeyName: "attendance_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "institution"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_institution_id_fkey"
+            foreignKeyName: "attendance_institution_id_fkey1"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "v_dashboard_kpi"

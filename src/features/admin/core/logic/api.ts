@@ -46,11 +46,13 @@ export async function fetchTeacherOptions(s: BrowserClient): Promise<TeacherOpti
 
 /* class sections (Class Config master-detail) */
 export type ClassSectionRow = { id: string; sectionName: string; capacity: number | null; enrolled: number; classTeacherName: string | null };
-export async function fetchClassSections(s: BrowserClient, classId: string): Promise<ClassSectionRow[]> {
+// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+export async function fetchClassSections(s: BrowserClient, classId: string, yearId: string): Promise<ClassSectionRow[]> {
   const { data, error } = await s
     .from("class_section")
     .select("id, capacity, section:section_id(name), teacher:class_teacher_id(name_bn, name_en), enrollments:student_enrollment(count)")
     .eq("class_id", classId)
+    .eq("academic_year_id", yearId)
     .is("deleted_at", null).limit(MAX_OPTIONS);
   if (error) throw error;
   return (data ?? []).map((r) => ({
