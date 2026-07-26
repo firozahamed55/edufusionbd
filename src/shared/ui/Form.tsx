@@ -74,7 +74,7 @@ export function Field({
 }
 
 const controlBase =
-  "h-10.5 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-sunken disabled:text-text-muted";
+  "h-10.5 w-full rounded-lg border border-border-control bg-surface px-3 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-sunken disabled:text-text-muted";
 
 export function Input({
   className,
@@ -123,7 +123,7 @@ export function Textarea({
   return (
     <textarea
       className={cn(
-        "min-h-23 w-full rounded-lg border border-border-strong bg-surface p-3 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-primary focus:outline-none",
+        "min-h-23 w-full rounded-lg border border-border-control bg-surface p-3 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-primary focus:outline-none",
         className,
       )}
       {...props}
@@ -177,7 +177,7 @@ export function Checkbox({
     <input
       type="checkbox"
       className={cn(
-        "size-4 shrink-0 cursor-pointer rounded border border-border-strong bg-surface align-middle accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+        "size-4 shrink-0 cursor-pointer rounded border border-border-control bg-surface align-middle accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}

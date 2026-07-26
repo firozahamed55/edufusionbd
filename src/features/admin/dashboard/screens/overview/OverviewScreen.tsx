@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Users,
   UserCheck,
@@ -50,12 +51,18 @@ export function OverviewScreen() {
   ].map((d) => ({ label: t(d.bn, d.en), value: d.value, display: n(d.value) }));
 
   const quickActions = [
-    { icon: UserPlus, title: t("নতুন শিক্ষার্থী", "New Student"), desc: t("নতুন রেজিস্ট্রেশন", "New registration") },
-    { icon: CalendarCheck, title: t("উপস্থিতি নিন", "Take Attendance"), desc: t("দৈনিক উপস্থিতি", "Daily attendance") },
-    { icon: CreditCard, title: t("ফি সংগ্রহ", "Collect Fees"), desc: t("পেমেন্ট কালেকশন", "Payment collection") },
-    { icon: PenSquare, title: t("মার্কস এন্ট্রি", "Marks Entry"), desc: t("পরীক্ষার ফলাফল", "Exam results") },
-    { icon: Send, title: t("SMS পাঠান", "Send SMS"), desc: t("বাল্ক মেসেজিং", "Bulk messaging") },
+    { icon: UserPlus, title: t("নতুন শিক্ষার্থী", "New Student"), desc: t("নতুন রেজিস্ট্রেশন", "New registration"), href: "/admin/student/registration" },
+    { icon: CalendarCheck, title: t("উপস্থিতি নিন", "Take Attendance"), desc: t("দৈনিক উপস্থিতি", "Daily attendance"), href: "/admin/attendance/section" },
+    { icon: CreditCard, title: t("ফি সংগ্রহ", "Collect Fees"), desc: t("পেমেন্ট কালেকশন", "Payment collection"), href: "/admin/fee/quick-collection-list" },
+    { icon: PenSquare, title: t("মার্কস এন্ট্রি", "Marks Entry"), desc: t("পরীক্ষার ফলাফল", "Exam results"), href: "/admin/exam/mark-input" },
+    { icon: Send, title: t("SMS পাঠান", "Send SMS"), desc: t("বাল্ক মেসেজিং", "Bulk messaging"), href: "/admin/sms-notice/send" },
   ];
+
+  // Real secondary metric for the Teachers KPI — was showing the STUDENT count
+  // as the teacher delta (audit D-3). The dashboard view has no teacher-specific
+  // trend field yet, so this uses the one real, non-fabricated relationship the
+  // existing data supports; a true period-over-period delta is Phase 3 (§10.3).
+  const studentsPerTeacher = data?.activeTeachers ? Math.round((data.activeStudents ?? 0) / data.activeTeachers) : 0;
 
   if (isLoading) {
     return (
@@ -98,19 +105,19 @@ export function OverviewScreen() {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          <button className="rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-sunken">
+          <Link href="/admin/student/reports-summary" className="rounded-lg border border-border-control bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-sunken">
             {t("প্রতিবেদন", "Report")}
-          </button>
-          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover">
+          </Link>
+          <Link href="/admin/student/registration" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover">
             <Plus size={16} /> {t("নতুন শিক্ষার্থী", "New Student")}
-          </button>
+          </Link>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Kpi grad="grad-indigo" shadow="shadow-[0px_6px_16px_-4px_rgba(79,70,229,0.26)]" icon={Users} label={t("মোট শিক্ষার্থী", "Total Students")} value={n(data?.activeStudents ?? 0)} delta={n(data?.classSections ?? 0)} period={t("শ্রেণি-শাখা", "class-sections")} />
-        <Kpi grad="grad-emerald" shadow="shadow-[0px_6px_16px_-4px_rgba(5,150,105,0.26)]" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(data?.activeStudents ?? 0)} period={t("শিক্ষার্থী", "students")} />
+        <Kpi grad="grad-emerald" shadow="shadow-[0px_6px_16px_-4px_rgba(5,150,105,0.26)]" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(studentsPerTeacher)} period={t("শিক্ষার্থী/শিক্ষক", "students/teacher")} />
         <Kpi grad="grad-sky" shadow="shadow-[0px_6px_16px_-4px_rgba(2,132,199,0.26)]" icon={Wallet} label={t("এ মাসে আদায়", "Collected (month)")} value={bdt(collected)} delta={bdt(due)} period={t("বকেয়া", "due")} />
       </div>
 
@@ -152,8 +159,11 @@ export function OverviewScreen() {
         <Card className="gap-3">
           <div className="flex items-center">
             <h3 className="flex-1 text-base font-semibold text-text-primary">{t("অগ্রাধিকার ও সতর্কতা", "Priorities & Alerts")}</h3>
-            <button className="text-meta font-medium text-primary">{t("সব দেখুন", "View all")}</button>
           </div>
+          {/* Content below is still sample data pending the live "Needs Attention"
+              queries (audit D-1, closed in Phase 3 §10.2) — only the dead CTA
+              buttons (D-2) are in scope here; each now links to the real screen
+              the alert is about. */}
           <Alert
             tone="danger"
             icon={AlertTriangle}
@@ -161,6 +171,7 @@ export function OverviewScreen() {
             desc={t("শেষ তারিখ পেরিয়েছে ৩ দিন আগে", "Due date passed 3 days ago")}
             cta={t("তাগাদা পাঠান", "Send Reminder")}
             ctaTone="danger"
+            href="/admin/fee/unpaid-institute"
           />
           <Alert
             tone="warning"
@@ -168,6 +179,7 @@ export function OverviewScreen() {
             title={t("৩ জন শিক্ষার্থী ঝুঁকিতে", "3 students at risk")}
             desc={t("উপস্থিতি ৬২% এর নিচে নেমেছে", "Attendance dropped below 62%")}
             cta={t("দেখুন", "View")}
+            href="/admin/attendance/analytics"
           />
           <Alert
             tone="info"
@@ -175,6 +187,7 @@ export function OverviewScreen() {
             title={t("অর্ধবার্ষিক ফলাফল অনুমোদনের অপেক্ষায়", "Half-yearly results awaiting approval")}
             desc={t("৮ম শ্রেণি · প্রকাশের আগে লক করুন", "Class 8 · Lock before publishing")}
             cta={t("অনুমোদন", "Approve")}
+            href="/admin/exam/result-process"
           />
         </Card>
 
@@ -198,7 +211,7 @@ export function OverviewScreen() {
       <Card className="gap-1">
         <div className="flex items-center pb-1.5">
           <h3 className="flex-1 text-base font-semibold text-text-primary">{t("সাম্প্রতিক নোটিশ", "Recent Notices")}</h3>
-          <button className="text-meta font-medium text-primary">{t("+ নতুন", "+ New")}</button>
+          <Link href="/admin/sms-notice/notice-board" className="text-meta font-medium text-primary">{t("+ নতুন", "+ New")}</Link>
         </div>
         <div className="grid grid-cols-1 gap-3.5 pt-1.5 md:grid-cols-3">
           {(data?.notices ?? []).length === 0 ? (
@@ -209,7 +222,7 @@ export function OverviewScreen() {
             (data?.notices ?? []).map((no) => (
               <Notice
                 key={no.id}
-                tone={no.status === "urgent" ? "warning" : no.status === "published" ? "info" : "success"}
+                tone={no.status === "urgent" ? "danger" : no.status === "published" ? "info" : "neutral"}
                 icon={Megaphone}
                 title={no.title}
                 time={no.event_date ? n(no.event_date) : ""}
@@ -305,6 +318,7 @@ const toneMap = {
   warning: "bg-warning-bg text-warning-fg",
   info: "bg-info-bg text-info-fg",
   success: "bg-success-bg text-success-fg",
+  neutral: "bg-sunken text-text-secondary",
 } as const;
 
 function Alert({
@@ -314,6 +328,7 @@ function Alert({
   desc,
   cta,
   ctaTone,
+  href,
 }: {
   tone: keyof typeof toneMap;
   icon: LucideIcon;
@@ -321,6 +336,7 @@ function Alert({
   desc: string;
   cta: string;
   ctaTone?: "danger";
+  href: string;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-sunken p-3">
@@ -331,23 +347,24 @@ function Alert({
         <p className="truncate text-sm font-semibold text-text-primary">{title}</p>
         <p className="truncate text-xs text-text-muted">{desc}</p>
       </div>
-      <button
+      <Link
+        href={href}
         className={cn(
           "shrink-0 rounded-lg px-3 py-2 text-meta font-semibold",
           ctaTone === "danger"
-            ? "bg-danger-fg text-white"
-            : "border border-border-strong bg-surface text-text-primary hover:bg-sunken",
+            ? "bg-danger-solid text-white"
+            : "border border-border-control bg-surface text-text-primary hover:bg-sunken",
         )}
       >
         {cta}
-      </button>
+      </Link>
     </div>
   );
 }
 
-function QuickAction({ icon: Icon, title, desc }: { icon: LucideIcon; title: string; desc: string }) {
+function QuickAction({ icon: Icon, title, desc, href }: { icon: LucideIcon; title: string; desc: string; href: string }) {
   return (
-    <button className="flex items-center gap-3 rounded-xl bg-sunken py-2.5 pl-2.5 pr-3 text-left hover:brightness-95">
+    <Link href={href} className="flex items-center gap-3 rounded-xl bg-sunken py-2.5 pl-2.5 pr-3 text-left hover:brightness-95">
       <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary-subtle text-primary">
         <Icon size={20} />
       </span>
@@ -356,7 +373,7 @@ function QuickAction({ icon: Icon, title, desc }: { icon: LucideIcon; title: str
         <p className="truncate text-xs text-text-muted">{desc}</p>
       </div>
       <ChevronRight size={16} className="text-text-muted" />
-    </button>
+    </Link>
   );
 }
 

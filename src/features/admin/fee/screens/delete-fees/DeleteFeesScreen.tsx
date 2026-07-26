@@ -99,7 +99,7 @@ export function DeleteFeesScreen() {
             <div className="flex flex-wrap items-center gap-3 border-t border-border-default px-5 py-4">
               <span className="flex-1 text-meta text-text-secondary">{t(`${selected.size} টি ফি নির্বাচিত`, `${selected.size} selected`)} · {t("মোট", "Total")} ৳{n(selectedTotal)}</span>
               <button onClick={() => setConfirm(true)} disabled={selected.size === 0 || del.isPending}
-                className="flex items-center gap-2 rounded-lg bg-danger-fg px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+                className="flex items-center gap-2 rounded-lg bg-danger-solid px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                 <Trash2 size={16} /> {del.isPending ? t("মুছছে…", "Deleting…") : t("নির্বাচিত মুছুন", "Delete selected")}
               </button>
             </div>

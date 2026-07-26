@@ -25,7 +25,7 @@ const PAGE_SIZE_DEFAULT = 20;
  * the query can import it. A Server Component importing this from the hook file
  * would get `undefined` and silently prefetch the wrong key.
  */
-export const TEACHER_LIST_FIRST_PAINT = { page: 1, search: "", department: "" } as const;
+export const TEACHER_LIST_FIRST_PAINT = { page: 1, search: "", departmentId: "" } as const;
 
 /**
  * `yearId` is optional because this query is prefetched from a Server Component
@@ -36,8 +36,8 @@ export const TEACHER_LIST_FIRST_PAINT = { page: 1, search: "", department: "" } 
  */
 export async function fetchTeachers(
   supabase: BrowserClient,
-  { page = 1, perPage = PAGE_SIZE_DEFAULT, search = "", department = "", yearId }:
-    { page?: number; perPage?: number; search?: string; department?: string; yearId?: string } = {},
+  { page = 1, perPage = PAGE_SIZE_DEFAULT, search = "", departmentId = "", yearId }:
+    { page?: number; perPage?: number; search?: string; departmentId?: string; yearId?: string } = {},
 ): Promise<{ rows: TeacherRow[]; total: number }> {
   const year = yearId ?? (await fetchCurrentYear(supabase))?.id ?? null;
   const from = (page - 1) * perPage;
@@ -56,7 +56,10 @@ export async function fetchTeachers(
         const term = search.trim();
         q = q.or(`name_bn.ilike.%${term}%,name_en.ilike.%${term}%,email.ilike.%${term}%`);
       }
-      if (department) q = q.eq("department.name", department);
+      // Filtered by id, not the joined department.name — a name-based .eq() on a
+      // joined column can't use an index and silently drops rows if two
+      // departments ever share a display name.
+      if (departmentId) q = q.eq("department_id", departmentId);
       return q.order("employee_code", { ascending: true }).range(from, to);
     })(),
     // // Year-scoped (audit A-M16): see shared/services/academicYear/api.ts. The "class teacher" badge is about the CURRENT year: without this a

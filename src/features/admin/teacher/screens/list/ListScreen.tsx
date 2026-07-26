@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { UserPlus, Search, MoreVertical, Download } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { UserPlus, Search, Pencil, Download } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination, Breadcrumb } from "@/shared/ui";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { exportCsv } from "@/shared/lib/exportCsv";
+import { useDepartments } from "@/shared/services/lookups/hooks";
 import { useTeachers } from "./logic/useTeachers";
+import { fetchTeachers } from "./logic/api";
+import { createClient } from "@/shared/services/supabase/client";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
 /**
  * Teacher list — LIVE from Supabase (teacher + designation + main subject +
@@ -16,21 +21,48 @@ import { useTeachers } from "./logic/useTeachers";
  */
 export function ListScreen() {
   const { t, isBn } = useT();
+  const router = useRouter();
   const [q, setQ] = useState("");
-  const [dept, setDept] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
   const [page, setPage] = useState(1);
+  const [exportingAll, setExportingAll] = useState(false);
   const debouncedQ = useDebouncedValue(q, 300);
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedQ, dept]);
+  }, [debouncedQ, departmentId]);
 
-  const { data, isLoading, isError, refetch } = useTeachers(page, debouncedQ, dept);
+  const { data, isLoading, isError, refetch } = useTeachers(page, debouncedQ, departmentId);
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
   const perPage = 20;
   const pages = Math.max(1, Math.ceil(total / perPage));
-  const departments = Array.from(new Set(rows.map((r) => r.department).filter((d): d is string => Boolean(d))));
+  // Server-side distinct list — not derived from `rows`, which only ever holds
+  // the current page and silently shrinks the filter as you page (audit W-3).
+  const { data: departments = [] } = useDepartments();
+
+  const toCsvRow = (r: (typeof rows)[number]) => ({
+    Name: r.name_en,
+    Email: r.email ?? "",
+    Designation: r.designation ?? "",
+    Department: r.department ?? "",
+    Status: r.status,
+  });
+
+  const exportAll = async () => {
+    setExportingAll(true);
+    try {
+      const all = await fetchTeachers(createClient(), {
+        page: 1,
+        perPage: MAX_OPTIONS,
+        search: debouncedQ,
+        departmentId,
+      });
+      exportCsv(`teachers-all-${new Date().toISOString().slice(0, 10)}.csv`, all.rows.map(toCsvRow));
+    } finally {
+      setExportingAll(false);
+    }
+  };
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const toggleOne = (id: string) =>
@@ -70,7 +102,7 @@ export function ListScreen() {
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2.5">
-        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border-strong bg-surface px-3 py-2.5 sm:max-w-75 sm:flex-none">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border-control bg-surface px-3 py-2.5 sm:max-w-75 sm:flex-none">
           <Search size={16} className="text-text-muted" />
           <input
             value={q}
@@ -82,27 +114,30 @@ export function ListScreen() {
         </div>
         <div className="hidden flex-1 sm:block" />
         <select
-          value={dept}
-          onChange={(e) => setDept(e.target.value)}
+          value={departmentId}
+          onChange={(e) => setDepartmentId(e.target.value)}
           aria-label={t("বিভাগ ফিল্টার", "Filter by department")}
-          className="rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary"
+          className="rounded-lg border border-border-control bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary"
         >
           <option value="">{t("বিভাগ: সব", "Department: All")}</option>
           {departments.map((d) => (
-            <option key={d} value={d}>{d}</option>
+            <option key={d.value} value={d.value}>{isBn ? d.label_bn : d.label_en}</option>
           ))}
         </select>
         <button
-          onClick={() => exportCsv(`teachers-${new Date().toISOString().slice(0, 10)}.csv`, rows.map((r) => ({
-            Name: r.name_en,
-            Email: r.email ?? "",
-            Designation: r.designation ?? "",
-            Department: r.department ?? "",
-            Status: r.status,
-          })))}
-          className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary hover:bg-sunken"
+          onClick={() => exportCsv(`teachers-page${page}-${new Date().toISOString().slice(0, 10)}.csv`, rows.map(toCsvRow))}
+          disabled={rows.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-border-control bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary hover:bg-sunken disabled:pointer-events-none disabled:opacity-50"
         >
-          <Download size={14} /> {t("এক্সপোর্ট", "Export")}
+          <Download size={14} /> {t(`এই পাতা এক্সপোর্ট (${rows.length})`, `Export this page (${rows.length})`)}
+        </button>
+        <button
+          onClick={exportAll}
+          disabled={total === 0 || exportingAll}
+          className="flex items-center gap-1.5 rounded-lg border border-border-control bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary hover:bg-sunken disabled:pointer-events-none disabled:opacity-50"
+        >
+          <Download size={14} />
+          {exportingAll ? t("এক্সপোর্ট হচ্ছে…", "Exporting…") : t(`সব এক্সপোর্ট (${total})`, `Export all (${total})`)}
         </button>
       </div>
 
@@ -111,7 +146,7 @@ export function ListScreen() {
           <span>{t(`${selected.size} জন নির্বাচিত`, `${selected.size} selected`)}</span>
           <div className="ml-auto flex gap-2">
             <button
-              onClick={() => { window.location.href = `/admin/sms-notice/send?recipients=${Array.from(selected).join(",")}`; }}
+              onClick={() => router.push(`/admin/sms-notice/send?recipients=${Array.from(selected).join(",")}`)}
               className="rounded-md bg-surface px-3 py-1.5 text-text-primary hover:bg-sunken"
             >
               {t("এসএমএস পাঠান", "Send SMS")}
@@ -223,12 +258,13 @@ export function ListScreen() {
                       </Badge>
                     </TD>
                     <TD className="text-center">
-                      <button
-                        aria-label={t("অ্যাকশন", "Actions")}
-                        className="grid size-8 place-items-center rounded-md text-text-muted hover:bg-sunken"
+                      <Link
+                        href="/admin/teacher/update-profile"
+                        aria-label={t("প্রোফাইল সম্পাদনা", "Edit profile")}
+                        className="grid size-8 place-items-center rounded-md text-text-muted hover:bg-sunken hover:text-text-primary"
                       >
-                        <MoreVertical size={18} />
-                      </button>
+                        <Pencil size={16} />
+                      </Link>
                     </TD>
                   </TR>
                 );

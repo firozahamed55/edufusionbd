@@ -11,11 +11,11 @@ import { fetchTeachers } from "./api";
  * `./api` — both server-safe modules — because the page prefetches this query
  * (audit H-5). See the note in queryKeys.ts for why they cannot live here.
  */
-export function useTeachers(page: number, search: string, department: string) {
+export function useTeachers(page: number, search: string, departmentId: string) {
   const yearId = useCurrentYearId();
   return useQuery({
-    queryKey: queryKeys.teachers.list({ page, search, department }),
-    queryFn: () => fetchTeachers(createClient(), { page, search, department, yearId }),
+    queryKey: queryKeys.teachers.list({ page, search, departmentId }),
+    queryFn: () => fetchTeachers(createClient(), { page, search, departmentId, yearId }),
     placeholderData: (prev) => prev,
   });
 }

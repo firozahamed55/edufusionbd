@@ -5,12 +5,10 @@ import {
   CalendarCheck,
   ClipboardList,
   Wallet,
-  BarChart3,
   Award,
   MessageSquare,
   Settings,
   Sparkles,
-  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
 
@@ -161,7 +159,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
           { href: "/admin/fee/delete-fees", bn: "ফি মুছুন", en: "Delete Fees" },
         ]),
       },
-      { key: "report", href: "/admin/student/reports-summary", match: "/admin/student/reports-summary", icon: BarChart3, bn: "রিপোর্ট", en: "Reports" },
     ],
   },
   {
@@ -236,5 +233,4 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
 
 export const ADMIN_NAV_FOOTER: AdminNavItem[] = [
   { key: "edusathi", href: "/admin/edusathi", icon: Sparkles, bn: "এডুসাথী", en: "EduSathi" },
-  { key: "settings", href: "/admin/core/basic-config", match: "/admin/settings", icon: SlidersHorizontal, bn: "সেটিংস", en: "Settings" },
 ];
