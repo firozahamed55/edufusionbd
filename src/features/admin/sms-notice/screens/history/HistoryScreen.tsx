@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Download, History as HistoryIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState, PageHeader } from "@/shared/ui";
+import { Skeleton, EmptyState, ErrorState, PageHeader, Pagination } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
-import { useCampaigns } from "../../logic/hooks";
+import { createClient } from "@/shared/services/supabase/client";
+import { MAX_OPTIONS, PAGE_SIZE, pageCount } from "@/shared/services/supabase/paging";
+import { fetchCampaigns } from "../../logic/api";
+import { useCampaigns, useCampaignTotals } from "../../logic/hooks";
 
 const typeLabel: Record<string, { bn: string; en: string }> = {
   parent: { bn: "অভিভাবক", en: "Parents" }, student: { bn: "শিক্ষার্থী", en: "Students" }, teacher: { bn: "শিক্ষক", en: "Teachers" },
@@ -13,10 +17,31 @@ const typeLabel: Record<string, { bn: string; en: string }> = {
 
 export function HistoryScreen() {
   const { t, n, isBn } = useT();
-  const q = useCampaigns();
-  const rows = q.data ?? [];
-  const totalSent = rows.reduce((s, r) => s + (r.recipient_count ?? 0), 0);
-  const totalCost = rows.reduce((s, r) => s + (r.est_cost ?? 0), 0);
+  const [page, setPage] = useState(1);
+  const q = useCampaigns(page);
+  // Tiles read institution-wide totals from the DB. Summing `rows` would
+  // describe only the visible page and look authoritative doing it.
+  const totals = useCampaignTotals();
+  const rows = q.data?.rows ?? [];
+  const total = q.data?.total ?? 0;
+  const pages = pageCount(total);
+
+  // Export the whole history, not the page on screen — a CSV that silently
+  // contains 25 of 400 campaigns is worse than no export button.
+  async function exportAll() {
+    const all = await fetchCampaigns(createClient(), 1, MAX_OPTIONS);
+    exportCsv(
+      `sms-history-${new Date().toISOString().slice(0, 10)}.csv`,
+      all.rows.map((r) => ({
+        Date: r.sent_at ?? "",
+        RecipientType: r.recipient_type ?? "",
+        RecipientGroup: r.recipient_group ?? "",
+        Message: r.body ?? "",
+        Count: r.recipient_count ?? 0,
+        Cost: Math.round(r.est_cost ?? 0),
+      })),
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -28,18 +53,8 @@ export function HistoryScreen() {
           className="flex-1"
         />
         <button
-          onClick={() => exportCsv(
-            `sms-history-${new Date().toISOString().slice(0, 10)}.csv`,
-            rows.map((r) => ({
-              Date: r.sent_at ?? "",
-              RecipientType: r.recipient_type ?? "",
-              RecipientGroup: r.recipient_group ?? "",
-              Message: r.body ?? "",
-              Count: r.recipient_count ?? 0,
-              Cost: Math.round(r.est_cost ?? 0),
-            })),
-          )}
-          disabled={rows.length === 0}
+          onClick={exportAll}
+          disabled={total === 0}
           className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-sunken disabled:opacity-60"
         >
           <Download size={16} /> {t("এক্সপোর্ট", "Export")}
@@ -47,16 +62,16 @@ export function HistoryScreen() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("মোট ক্যাম্পেইন", "Campaigns")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(rows.length)}</p></div>
-        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("মোট প্রাপক", "Recipients")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(totalSent)}</p></div>
-        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("আনুমানিক খরচ", "Est. cost")}</p><p className="text-2xl font-bold text-text-primary tnum">৳{n(Math.round(totalCost))}</p></div>
+        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("মোট ক্যাম্পেইন", "Campaigns")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(totals.data?.campaigns ?? total)}</p></div>
+        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("মোট প্রাপক", "Recipients")}</p><p className="text-2xl font-bold text-text-primary tnum">{n(totals.data?.recipients ?? 0)}</p></div>
+        <div className="rounded-2xl bg-surface p-5 shadow-e3"><p className="text-meta text-text-muted">{t("আনুমানিক খরচ", "Est. cost")}</p><p className="text-2xl font-bold text-text-primary tnum">৳{n(Math.round(totals.data?.cost ?? 0))}</p></div>
       </div>
 
       {q.isLoading ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
       ) : q.isError ? (
         <ErrorState title={t("ইতিহাস লোড করা যায়নি", "Could not load history")} />
-      ) : rows.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState icon={<HistoryIcon size={22} />} title={t("এখনও কোনো ক্যাম্পেইন নেই", "No campaigns yet")} />
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-surface shadow-e3">
@@ -78,6 +93,16 @@ export function HistoryScreen() {
               </div>
             ))}
           </div>
+          <Pagination
+            label={t(
+              `${n((page - 1) * PAGE_SIZE + 1)}–${n((page - 1) * PAGE_SIZE + rows.length)} দেখানো হচ্ছে · মোট ${n(total)}`,
+              `Showing ${n((page - 1) * PAGE_SIZE + 1)}–${n((page - 1) * PAGE_SIZE + rows.length)} of ${n(total)}`,
+            )}
+            pages={pages}
+            current={page}
+            perPage={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>

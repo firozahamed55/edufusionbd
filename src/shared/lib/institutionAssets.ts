@@ -8,8 +8,6 @@ import type { BrowserClient } from "@/shared/services/supabase/types";
 
 const BUCKET = "institution-assets";
 
-type RpcFn = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-const rpc = (s: BrowserClient): RpcFn => (fn, args) => (s as unknown as { rpc: RpcFn }).rpc(fn, args);
 
 export async function uploadInstitutionAsset(
   s: BrowserClient,
@@ -19,7 +17,7 @@ export async function uploadInstitutionAsset(
   const { error: upErr } = await s.storage.from(BUCKET).upload(path, file, { upsert: true });
   if (upErr) throw upErr;
 
-  const { data, error } = await rpc(s)("fn_record_file_upload", {
+  const { data, error } = await s.rpc("fn_record_file_upload", {
     payload: { bucket: BUCKET, path, mime: file.type, size_bytes: file.size, entity, entity_id: entityId },
   });
   if (error) throw new Error(error.message);

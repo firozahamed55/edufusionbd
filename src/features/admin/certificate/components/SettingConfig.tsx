@@ -6,6 +6,8 @@ import { useT } from "@/shared/i18n/useT";
 import { Field, Input, Textarea, Button, useToast, PageHeader } from "@/shared/ui";
 import { useSetting, useSaveSetting } from "../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
+import type { RpcPayload } from "@/shared/services/supabase/types";
+import type { Json } from "@/shared/types/database.types";
 
 type Bilingual = { bn: string; en: string };
 export type SettingField = { key: string; label: Bilingual; type: "text" | "textarea" | "toggle" };
@@ -19,9 +21,9 @@ export function SettingConfig({ settingKey, scope, breadcrumb, title, subtitle, 
   const toast = useToast();
   const config = useSetting(settingKey, scope);
   const save = useSaveSetting(settingKey, scope);
-  const [form, setForm] = useState<Record<string, unknown>>({});
+  const [form, setForm] = useState<RpcPayload>({});
   useEffect(() => { if (config.data) setForm({ ...config.data }); }, [config.data]);
-  const set = (k: string, v: unknown) => setForm((p) => ({ ...p, [k]: v }));
+  const set = (k: string, v: Json) => setForm((p) => ({ ...p, [k]: v }));
 
   function onSave() {
     save.mutate(form, {

@@ -7,6 +7,8 @@ import { ExamToggle, type SettingsTabId } from "./SettingsShell";
 import { SettingsShell } from "./SettingsShell";
 import { useExamConfig, useSaveExamConfig } from "../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
+import type { RpcPayload } from "@/shared/services/supabase/types";
+import type { Json } from "@/shared/types/database.types";
 
 type Bilingual = { bn: string; en: string };
 export type ConfigField = { key: string; label: Bilingual; type: "text" | "number" | "toggle"; placeholder?: Bilingual };
@@ -26,11 +28,11 @@ export function ConfigTab({ kind, active, cardTitle, fields }: {
   const toast = useToast();
   const config = useExamConfig(kind);
   const save = useSaveExamConfig(kind);
-  const [form, setForm] = useState<Record<string, unknown>>({});
+  const [form, setForm] = useState<RpcPayload>({});
 
   useEffect(() => { if (config.data) setForm({ ...config.data }); }, [config.data]);
 
-  const set = (k: string, v: unknown) => setForm((p) => ({ ...p, [k]: v }));
+  const set = (k: string, v: Json) => setForm((p) => ({ ...p, [k]: v }));
 
   function onSave() {
     save.mutate(form, {

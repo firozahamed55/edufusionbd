@@ -6,7 +6,7 @@ import type { BrowserClient } from "@/shared/services/supabase/types";
 export type AuditLogRow = {
   id: string;
   entity: string;
-  entityId: string;
+  entityId: string | null;
   action: string;
   at: string;
   changedByName: string | null;
@@ -14,11 +14,32 @@ export type AuditLogRow = {
   after: unknown;
 };
 
+/**
+ * The entity filter offered by the UI. Must track the trigger list in
+ * `20260726043523_audit_log_append_only_and_coverage.sql` — a table that is
+ * audited but missing here is invisible to the only screen that reads the log.
+ */
 export const AUDIT_ENTITIES = [
   "mark",
   "exam_result",
   "fee_invoice",
+  "fee_payment",
+  "fee_mapping",
+  "digital_transaction",
+  "ledger_entry",
+  "student",
   "student_enrollment",
+  "teacher",
+  "guardian",
+  "profile",
+  "user_role",
+  "role",
+  "role_permission",
+  "institution",
+  "certificate_template",
+  "testimonial",
+  "transfer_certificate",
+  "sms_campaign",
   "migration_batch",
   "setting",
 ] as const;
@@ -45,17 +66,7 @@ export async function fetchAuditLog(
   const { data, error, count } = await query;
   if (error) throw error;
 
-  type Raw = {
-    id: string;
-    entity: string;
-    entity_id: string;
-    action: string;
-    at: string;
-    before: unknown;
-    after: unknown;
-    changed_by: { full_name: string | null } | null;
-  };
-  const rows = ((data ?? []) as unknown as Raw[]).map((r) => ({
+  const rows = (data ?? []).map((r) => ({
     id: r.id,
     entity: r.entity,
     entityId: r.entity_id,

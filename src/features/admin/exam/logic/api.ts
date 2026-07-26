@@ -1,32 +1,31 @@
 // Supabase data access for the Exam module. RLS-scoped; writes via
 // fn_upsert_exam / fn_save_marks / fn_process_exam_result / fn_save_exam_config.
-import type { BrowserClient } from "@/shared/services/supabase/types";
+import type { BrowserClient, RpcPayload } from "@/shared/services/supabase/types";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
-type RpcFn = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 const s = (v: unknown) => (v == null ? "" : String(v));
 
 /* --------------------------------------------------------------- exams */
 
 export type ExamRow = { id: string; name: string; type: string | null; status: string; start_date: string | null; end_date: string | null };
 export async function fetchExams(supabase: BrowserClient): Promise<ExamRow[]> {
-  const { data, error } = await supabase.from("exam").select("id, name, type, status, start_date, end_date").order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("exam").select("id, name, type, status, start_date, end_date").order("created_at", { ascending: false }).limit(MAX_OPTIONS);
   if (error) throw error;
-  return (data ?? []) as unknown as ExamRow[];
+  return (data ?? []);
 }
 
 export type ExamPayload = { id?: string; name: string; type?: string; grade_scheme_id?: string; start_date?: string; end_date?: string; status?: string };
 export async function upsertExam(supabase: BrowserClient, payload: ExamPayload): Promise<string> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_upsert_exam", { payload });
+  const { data, error } = await supabase.rpc("fn_upsert_exam", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
 
 export type GradeSchemeOption = { id: string; name: string; is_default: boolean };
 export async function fetchGradeSchemes(supabase: BrowserClient): Promise<GradeSchemeOption[]> {
-  const { data, error } = await supabase.from("grade_scheme").select("id, name, is_default").is("deleted_at", null).order("name");
+  const { data, error } = await supabase.from("grade_scheme").select("id, name, is_default").is("deleted_at", null).order("name").limit(MAX_OPTIONS);
   if (error) throw error;
-  return (data ?? []) as unknown as GradeSchemeOption[];
+  return (data ?? []);
 }
 
 /* --------------------------------------------------------------- marks */
@@ -44,10 +43,10 @@ export async function fetchExistingMarks(
   const { data, error } = await supabase
     .from("mark")
     .select("student_id, marks_obtained, is_absent, exam_subject:exam_subject_id!inner(exam_id, class_id, subject_id)")
-    .eq("exam_subject.exam_id", examId).eq("exam_subject.class_id", classId).eq("exam_subject.subject_id", subjectId);
+    .eq("exam_subject.exam_id", examId).eq("exam_subject.class_id", classId).eq("exam_subject.subject_id", subjectId).limit(MAX_OPTIONS);
   if (error) throw error;
   const map: Record<string, { marks: string; absent: boolean }> = {};
-  for (const r of (data ?? []) as unknown as { student_id: string; marks_obtained: number | null; is_absent: boolean }[]) {
+  for (const r of (data ?? [])) {
     map[r.student_id] = { marks: r.marks_obtained == null ? "" : String(r.marks_obtained), absent: r.is_absent };
   }
   return map;
@@ -58,15 +57,13 @@ export type SaveMarksPayload = {
   entries: { student_id: string; marks_obtained: string; is_absent: boolean }[];
 };
 export async function saveMarks(supabase: BrowserClient, payload: SaveMarksPayload): Promise<number> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_save_marks", { payload });
+  const { data, error } = await supabase.rpc("fn_save_marks", { payload });
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
 }
 
 export async function processExamResult(supabase: BrowserClient, examId: string): Promise<void> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { error } = await rpc("fn_process_exam_result", { p_exam_id: examId });
+  const { error } = await supabase.rpc("fn_process_exam_result", { p_exam_id: examId });
   if (error) throw new Error(error.message);
 }
 
@@ -77,11 +74,9 @@ export async function fetchExamResults(supabase: BrowserClient, examId: string, 
   const { data, error } = await supabase
     .from("exam_result")
     .select("total_marks, gpa, grade, merit_rank, result, status, student:student_id(student_code, name_bn, name_en, enr:current_enrollment_id(class_section_id, roll_no))")
-    .eq("exam_id", examId).order("merit_rank", { ascending: true });
+    .eq("exam_id", examId).order("merit_rank", { ascending: true }).limit(MAX_OPTIONS);
   if (error) throw error;
-  type Raw = { total_marks: number | null; gpa: number | null; grade: string | null; merit_rank: number | null; result: string | null; status: string;
-    student: { student_code: string | null; name_bn: string; name_en: string; enr: { class_section_id: string; roll_no: number | null } | null } | null };
-  let rows = (data ?? []) as unknown as Raw[];
+  let rows = (data ?? []);
   if (classSectionId) rows = rows.filter((r) => r.student?.enr?.class_section_id === classSectionId);
   return rows.map((r) => ({
     code: r.student?.student_code ?? null, roll: r.student?.enr?.roll_no ?? null,
@@ -92,16 +87,15 @@ export async function fetchExamResults(supabase: BrowserClient, examId: string, 
 
 /* --------------------------------------------------------------- config */
 
-export async function fetchExamConfig(supabase: BrowserClient, kind: "mark" | "comment" | "marksheet" | "date"): Promise<Record<string, unknown>> {
-  const table = { mark: "mark_config", comment: "comment_config", marksheet: "marksheet_config", date: "exam_date_config" }[kind];
+export async function fetchExamConfig(supabase: BrowserClient, kind: "mark" | "comment" | "marksheet" | "date"): Promise<RpcPayload> {
+  const table = ({ mark: "mark_config", comment: "comment_config", marksheet: "marksheet_config", date: "exam_date_config" } as const)[kind];
   const { data, error } = await supabase.from(table).select("config").limit(1).maybeSingle();
   if (error) throw error;
-  return ((data as { config: Record<string, unknown> } | null)?.config ?? {}) as Record<string, unknown>;
+  return ((data as { config: RpcPayload } | null)?.config ?? {}) as RpcPayload;
 }
 
-export async function saveExamConfig(supabase: BrowserClient, kind: "mark" | "comment" | "marksheet" | "date", config: Record<string, unknown>): Promise<void> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { error } = await rpc("fn_save_exam_config", { p_kind: kind, payload: config });
+export async function saveExamConfig(supabase: BrowserClient, kind: "mark" | "comment" | "marksheet" | "date", config: RpcPayload): Promise<void> {
+  const { error } = await supabase.rpc("fn_save_exam_config", { p_kind: kind, payload: config });
   if (error) throw new Error(error.message);
 }
 

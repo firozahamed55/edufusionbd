@@ -5,6 +5,8 @@ import { useT } from "@/shared/i18n/useT";
 import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast, Breadcrumb } from "@/shared/ui";
 import { useSetting, useSaveSetting, useGradeSchemes } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
+import type { RpcPayload } from "@/shared/services/supabase/types";
+import type { Json } from "@/shared/types/database.types";
 
 const SETTING_KEY = "basic_config";
 const SCOPE = "core";
@@ -50,11 +52,11 @@ export function BasicConfigScreen() {
   const config = useSetting(SETTING_KEY, SCOPE);
   const schemes = useGradeSchemes();
   const save = useSaveSetting(SETTING_KEY, SCOPE);
-  const [form, setForm] = useState<Record<string, unknown>>({});
+  const [form, setForm] = useState<RpcPayload>({});
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => { if (config.data) setForm({ ...config.data }); }, [config.data]);
-  const set = (k: string, v: unknown) => { setForm((p) => ({ ...p, [k]: v })); setDirty(true); };
+  const set = (k: string, v: Json) => { setForm((p) => ({ ...p, [k]: v })); setDirty(true); };
 
   function onSave() {
     save.mutate(form, {

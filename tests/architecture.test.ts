@@ -81,6 +81,41 @@ describe("layering policy is actually enforced", () => {
   });
 });
 
+describe("cache keys come from the factory (audit A-M8)", () => {
+  /** Same trick as `boundaryErrors`, for the inline-query-key ban. */
+  async function keyErrors(virtualPath: string, code: string) {
+    const [result] = await eslint.lintText(code, {
+      filePath: path.join(root, virtualPath),
+      warnIgnored: false,
+    });
+    return (result?.messages ?? []).filter((m) => m.ruleId === "no-restricted-syntax");
+  }
+
+  it("forbids an inline queryKey array in a feature", async () => {
+    const errors = await keyErrors(
+      "src/features/admin/probe.ts",
+      `export const q = { queryKey: ["fee", "heads"] };\n`,
+    );
+    expect(errors).toHaveLength(1);
+  });
+
+  it("allows a key taken from the factory", async () => {
+    const errors = await keyErrors(
+      "src/features/admin/probe.ts",
+      `import { queryKeys } from "@/shared/services/queryKeys";\nexport const q = { queryKey: queryKeys.fee.heads };\n`,
+    );
+    expect(errors).toHaveLength(0);
+  });
+
+  it("still allows the factory itself to write literals", async () => {
+    const errors = await keyErrors(
+      "src/shared/services/queryKeys.ts",
+      `export const queryKeys = { fee: { heads: ["fee", "heads"] as const } };\n`,
+    );
+    expect(errors).toHaveLength(0);
+  });
+});
+
 describe("the whole tree is clean", () => {
   it("reports zero errors and zero warnings across src/", async () => {
     const results = await eslint.lintFiles(["src/**/*.{ts,tsx}"]);

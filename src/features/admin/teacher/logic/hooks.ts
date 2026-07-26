@@ -16,7 +16,7 @@ const c = () => createClient();
 /** Existing-teacher options for the update-profile picker. */
 export function useTeacherOptions() {
   return useQuery({
-    queryKey: ["teachers", "options"],
+    queryKey: queryKeys.teachers.options,
     queryFn: () => fetchTeacherOptions(c()),
     staleTime: 60_000,
   });
@@ -37,8 +37,8 @@ export function useRegisterTeacher() {
     mutationFn: (payload: TeacherWritePayload) => registerTeacher(c(), payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.teachers.all });
-      qc.invalidateQueries({ queryKey: ["teachers", "options"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: queryKeys.teachers.options });
+      qc.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
 }
@@ -49,7 +49,7 @@ export function useUpdateTeacher() {
     mutationFn: (payload: TeacherWritePayload & { id: string }) => updateTeacher(c(), payload),
     onSuccess: (_id, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.teachers.all });
-      qc.invalidateQueries({ queryKey: ["teachers", "options"] });
+      qc.invalidateQueries({ queryKey: queryKeys.teachers.options });
       qc.invalidateQueries({ queryKey: queryKeys.teachers.detail(vars.id) });
     },
   });

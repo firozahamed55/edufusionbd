@@ -4038,9 +4038,12 @@ export type Database = {
           full_marks: number | null
           id: string
           institution_id: string
+          max_class_level: number | null
+          min_class_level: number | null
           name_bn: string
           name_en: string
           pass_marks: number | null
+          status: string
           type: string
         }
         Insert: {
@@ -4050,9 +4053,12 @@ export type Database = {
           full_marks?: number | null
           id?: string
           institution_id: string
+          max_class_level?: number | null
+          min_class_level?: number | null
           name_bn: string
           name_en: string
           pass_marks?: number | null
+          status?: string
           type?: string
         }
         Update: {
@@ -4062,9 +4068,12 @@ export type Database = {
           full_marks?: number | null
           id?: string
           institution_id?: string
+          max_class_level?: number | null
+          min_class_level?: number | null
           name_bn?: string
           name_en?: string
           pass_marks?: number | null
+          status?: string
           type?: string
         }
         Relationships: [
@@ -5152,11 +5161,82 @@ export type Database = {
       }
     }
     Functions: {
+      fn_attendance_summary: {
+        Args: { p_class_section_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      fn_collect_fee: { Args: { payload: Json }; Returns: string }
+      fn_create_admit_batch: { Args: { payload: Json }; Returns: string }
+      fn_create_id_card_batch: { Args: { payload: Json }; Returns: string }
+      fn_create_testimonial: { Args: { payload: Json }; Returns: string }
+      fn_create_transfer: { Args: { payload: Json }; Returns: string }
+      fn_delete_certificate_template: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      fn_delete_class: { Args: { p_id: string }; Returns: undefined }
+      fn_delete_class_section: { Args: { p_id: string }; Returns: undefined }
+      fn_delete_fee_invoice: { Args: { payload: Json }; Returns: number }
+      fn_delete_fee_mapping: { Args: { p_id: string }; Returns: undefined }
+      fn_delete_grade_scheme: { Args: { p_id: string }; Returns: undefined }
+      fn_delete_notice: { Args: { p_id: string }; Returns: undefined }
+      fn_delete_signature: { Args: { p_id: string }; Returns: undefined }
+      fn_delete_sms_template: { Args: { p_id: string }; Returns: undefined }
+      fn_delete_subject: { Args: { p_id: string }; Returns: undefined }
+      fn_delete_subject_group: { Args: { p_id: string }; Returns: undefined }
+      fn_digital_transaction_stats: { Args: never; Returns: Json }
+      fn_fee_income_statement: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       fn_generate_code: { Args: { p_entity: string }; Returns: string }
+      fn_mark_attendance: { Args: { payload: Json }; Returns: number }
       fn_process_exam_result: {
         Args: { p_exam_id: string }
         Returns: undefined
       }
+      fn_purchase_sms_package: {
+        Args: { p_package_id: string }
+        Returns: string
+      }
+      fn_pushback_migration: { Args: { p_batch_id: string }; Returns: number }
+      fn_record_file_upload: { Args: { payload: Json }; Returns: string }
+      fn_register_student: { Args: { payload: Json }; Returns: string }
+      fn_register_teacher: { Args: { payload: Json }; Returns: string }
+      fn_run_migration: { Args: { payload: Json }; Returns: string }
+      fn_save_exam_config: {
+        Args: { p_kind: string; payload: Json }
+        Returns: undefined
+      }
+      fn_save_marks: { Args: { payload: Json }; Returns: number }
+      fn_save_setting: {
+        Args: { p_key: string; p_scope: string; p_value: Json }
+        Returns: undefined
+      }
+      fn_send_sms_campaign: { Args: { payload: Json }; Returns: string }
+      fn_sms_campaign_totals: { Args: never; Returns: Json }
+      fn_student_report_summary: {
+        Args: { p_academic_year_id?: string }
+        Returns: Json
+      }
+      fn_unpaid_by_institute: { Args: never; Returns: Json }
+      fn_update_institution: { Args: { payload: Json }; Returns: undefined }
+      fn_update_student_basic: { Args: { payload: Json }; Returns: string }
+      fn_update_teacher: { Args: { payload: Json }; Returns: string }
+      fn_upsert_certificate_template: {
+        Args: { payload: Json }
+        Returns: string
+      }
+      fn_upsert_class: { Args: { payload: Json }; Returns: string }
+      fn_upsert_class_section: { Args: { payload: Json }; Returns: string }
+      fn_upsert_exam: { Args: { payload: Json }; Returns: string }
+      fn_upsert_fee_mapping: { Args: { payload: Json }; Returns: string }
+      fn_upsert_grade_scheme: { Args: { payload: Json }; Returns: string }
+      fn_upsert_notice: { Args: { payload: Json }; Returns: string }
+      fn_upsert_signature: { Args: { payload: Json }; Returns: string }
+      fn_upsert_sms_template: { Args: { payload: Json }; Returns: string }
+      fn_upsert_subject: { Args: { payload: Json }; Returns: string }
+      fn_upsert_subject_group: { Args: { payload: Json }; Returns: string }
     }
     Enums: {
       app_language: "bn" | "en"

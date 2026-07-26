@@ -4,11 +4,11 @@
 import { z } from "zod";
 import type { BrowserClient } from "@/shared/services/supabase/types";
 import { isoDate, shortText, uuid } from "@/shared/lib/validation";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
-type RpcFn = (
-  fn: string,
-  args: Record<string, unknown>,
-) => Promise<{ data: unknown; error: { message: string } | null }>;
+/** Migration batches offered for pushback (see `fetchMigrationBatches`). */
+const RECENT_BATCHES = 100;
+
 
 const s = (v: unknown): string => (v == null ? "" : String(v));
 
@@ -44,7 +44,7 @@ export async function fetchStudentBasic(
     .eq("id", studentId)
     .single();
   if (error) throw error;
-  const t = data as unknown as Record<string, unknown>;
+  const t = data;
   return {
     id: s(t.id),
     student_code: (t.student_code as string) ?? null,
@@ -90,8 +90,7 @@ export async function updateStudentBasic(
   supabase: BrowserClient,
   payload: StudentBasicPayload,
 ): Promise<string> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_update_student_basic", { payload: studentBasicSchema.parse(payload) });
+  const { data, error } = await supabase.rpc("fn_update_student_basic", { payload: studentBasicSchema.parse(payload) });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
@@ -121,9 +120,8 @@ export async function fetchStudentReport(
   supabase: BrowserClient,
   yearId?: string | null,
 ): Promise<StudentReport> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_student_report_summary", {
-    p_academic_year_id: yearId ?? null,
+  const { data, error } = await supabase.rpc("fn_student_report_summary", {
+    p_academic_year_id: yearId ?? undefined,
   });
   if (error) throw new Error(error.message);
   return data as StudentReport;
@@ -173,8 +171,7 @@ export async function runMigration(
   supabase: BrowserClient,
   payload: RunMigrationPayload,
 ): Promise<string> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_run_migration", { payload: runMigrationSchema.parse(payload) });
+  const { data, error } = await supabase.rpc("fn_run_migration", { payload: runMigrationSchema.parse(payload) });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
@@ -183,8 +180,7 @@ export async function pushbackMigration(
   supabase: BrowserClient,
   batchId: string,
 ): Promise<number> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_pushback_migration", { p_batch_id: batchId });
+  const { data, error } = await supabase.rpc("fn_pushback_migration", { p_batch_id: batchId });
   if (error) throw new Error(error.message);
   return (data as number) ?? 0;
 }
@@ -205,6 +201,15 @@ function sectionLabel(cs: unknown): string {
   return `${r.class?.name_en ?? ""}${r.section?.name ? " — " + r.section.name : ""}`.trim() || "—";
 }
 
+/**
+ * Completed migration batches, most recent first.
+ *
+ * Capped rather than paged on purpose: the result fills a `<Select>`, and a
+ * dropdown that needs paging is the wrong control. Pushback is an operation on
+ * a *recent* mistake — nobody reverses a promotion from four years ago — so the
+ * bound is honest about what the screen is for. Turn this into a paged table if
+ * "migration history" ever becomes a reporting surface.
+ */
 export async function fetchMigrationBatches(
   supabase: BrowserClient,
 ): Promise<MigrationBatchRow[]> {
@@ -214,18 +219,10 @@ export async function fetchMigrationBatches(
       "id, type, status, created_at, source:source_class_section_id(class:class_id(name_en), section:section_id(name)), target:target_class_section_id(class:class_id(name_en), section:section_id(name)), migration_student(count)",
     )
     .eq("status", "completed")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(RECENT_BATCHES);
   if (error) throw error;
-  type Raw = {
-    id: string;
-    type: string;
-    status: string;
-    created_at: string;
-    source: unknown;
-    target: unknown;
-    migration_student: { count: number }[] | null;
-  };
-  return ((data ?? []) as unknown as Raw[]).map((r) => ({
+  return (data ?? []).map((r) => ({
     id: r.id,
     type: r.type,
     status: r.status,
@@ -252,15 +249,9 @@ export async function fetchMigrationBatchStudents(
     .from("migration_student")
     .select("old_roll, new_roll, result, student:student_id(name_bn, name_en)")
     .eq("migration_batch_id", batchId)
-    .order("new_roll", { ascending: true });
+    .order("new_roll", { ascending: true }).limit(MAX_OPTIONS);
   if (error) throw error;
-  type Raw = {
-    old_roll: number | null;
-    new_roll: number | null;
-    result: string | null;
-    student: { name_bn: string; name_en: string } | null;
-  };
-  return ((data ?? []) as unknown as Raw[]).map((r) => ({
+  return (data ?? []).map((r) => ({
     name_bn: r.student?.name_bn ?? "",
     name_en: r.student?.name_en ?? "",
     old_roll: r.old_roll,

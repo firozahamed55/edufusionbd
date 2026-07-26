@@ -1,6 +1,7 @@
 // Shared "students in a section" roster — reused by Student, Fee, Attendance and
 // Exam modules (single source of truth). RLS-scoped to the caller's institution.
 import type { BrowserClient } from "@/shared/services/supabase/types";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
 export type SectionStudent = {
   enrollmentId: string;
@@ -24,8 +25,7 @@ export async function findStudentByCode(supabase: BrowserClient, code: string): 
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const r = data as unknown as { id: string; student_code: string | null; name_bn: string; name_en: string };
-  return { id: r.id, code: r.student_code, name_bn: r.name_bn, name_en: r.name_en };
+  return { id: data.id, code: data.student_code, name_bn: data.name_bn, name_en: data.name_en };
 }
 
 export async function fetchSectionStudents(
@@ -40,21 +40,10 @@ export async function fetchSectionStudents(
     .eq("class_section_id", classSectionId)
     .eq("status", "active")
     .is("deleted_at", null)
-    .order("roll_no", { ascending: true });
+    .order("roll_no", { ascending: true }).limit(MAX_OPTIONS);
   if (error) throw error;
 
-  type Raw = {
-    id: string;
-    roll_no: number | null;
-    student: {
-      id: string;
-      student_code: string | null;
-      name_bn: string;
-      name_en: string;
-      category: { name: string | null } | null;
-    } | null;
-  };
-  return ((data ?? []) as unknown as Raw[]).map((r) => ({
+  return (data ?? []).map((r) => ({
     enrollmentId: r.id,
     studentId: r.student?.id ?? "",
     code: r.student?.student_code ?? null,

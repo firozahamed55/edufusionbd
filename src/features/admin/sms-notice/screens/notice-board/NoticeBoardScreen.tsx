@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Plus, Trash2, Megaphone } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast, PageHeader } from "@/shared/ui";
+import { Field, Input, Select, Textarea, Button, EmptyState, ConfirmDialog, useToast, PageHeader, Pagination } from "@/shared/ui";
+import { PAGE_SIZE, pageCount } from "@/shared/services/supabase/paging";
 import { useNotices, useUpsertNotice, useDeleteNotice } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -26,7 +27,8 @@ export function NoticeBoardScreen() {
   const { t, n, isBn } = useT();
   const msg = useErrorMessage();
   const toast = useToast();
-  const notices = useNotices();
+  const [page, setPage] = useState(1);
+  const notices = useNotices(page);
   const upsert = useUpsertNotice();
   const del = useDeleteNotice();
   const [f, setF] = useState({ title: "", body: "", audience: "all_parents", event_date: "", status: "published" });
@@ -39,7 +41,9 @@ export function NoticeBoardScreen() {
   }
   function remove() { if (!delId) return; const id = delId; setDelId(null); del.mutate(id, { onSuccess: () => toast({ title: t("নোটিশ সরানো হয়েছে", "Notice archived"), variant: "success" }), onError: (e: unknown) => toast({ title: msg(e), variant: "error" }) }); }
 
-  const rows = notices.data ?? [];
+  const rows = notices.data?.rows ?? [];
+  const total = notices.data?.total ?? 0;
+  const pages = pageCount(total);
   return (
     <div className="flex flex-col gap-5 pb-6">
       <PageHeader
@@ -74,6 +78,17 @@ export function NoticeBoardScreen() {
               <button onClick={() => setDelId(r.id)} aria-label={t("মুছুন", "Delete")} className="grid size-8 shrink-0 place-items-center rounded-lg text-danger-fg hover:bg-sunken"><Trash2 size={16} /></button>
             </div>
           ))}
+          {pages > 1 ? (
+            <div className="rounded-2xl bg-surface shadow-e3">
+              <Pagination
+                label={t(`মোট ${n(total)} নোটিশ`, `${n(total)} notices`)}
+                pages={pages}
+                current={page}
+                perPage={PAGE_SIZE}
+                onPageChange={setPage}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 

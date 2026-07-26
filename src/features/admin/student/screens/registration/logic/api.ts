@@ -42,12 +42,7 @@ export async function registerStudent(
   supabase: BrowserClient,
   payload: RegisterPayload,
 ): Promise<string> {
-  // fn_register_student was added after the last type-gen; cast the rpc locally.
-  const rpc = supabase.rpc as unknown as (
-    fn: string,
-    args: { payload: RegisterPayload },
-  ) => Promise<{ data: string | null; error: { message: string } | null }>;
-  const { data, error } = await rpc("fn_register_student", { payload });
+  const { data, error } = await supabase.rpc("fn_register_student", { payload });
   if (error) throw new Error(error.message);
   return data ?? "";
 }

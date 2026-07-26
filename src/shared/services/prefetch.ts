@@ -36,6 +36,12 @@ export async function prefetchQueryState(
   const queryClient = new QueryClient();
   // The server client reads the same session cookie the middleware just
   // refreshed, so RLS scopes this to exactly the rows the user would have got.
+  //
+  // The cast is the LAST `as unknown as` in the codebase and it is structural,
+  // not a type-safety escape: `query` is written against `BrowserClient`
+  // because that is what the feature `api.ts` functions take, and the server
+  // and browser clients differ only in how they reach cookies. Both are
+  // `SupabaseClient<Database, "public">`.
   const supabase = (await createClient()) as unknown as BrowserClient;
   await queryClient.prefetchQuery({ queryKey: key, queryFn: () => query(supabase) });
   return dehydrate(queryClient);

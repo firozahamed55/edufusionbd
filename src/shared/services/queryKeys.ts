@@ -1,10 +1,7 @@
 /**
- * Central TanStack Query key factory. Prevents cache-key collisions across
- * features. Each feature composes on top of its domain namespace here.
- */
-type Filters = Record<string, unknown> | undefined;
-
-/**
+ * Central TanStack Query key factory — the single source of truth for every
+ * cache key in the app.
+ *
  * NOTE — this module must never gain a `"use client"` directive, and neither must
  * anything it imports.
  *
@@ -15,34 +12,159 @@ type Filters = Record<string, unknown> | undefined;
  * cache entry keyed `undefined`, which the client hook could never match — so the
  * prefetch ran, cost a query, and was thrown away in silence. Keys therefore live
  * here, in a server-safe module, not next to the hooks that consume them.
+ *
+ * WHY EVERY KEY, NOT JUST THE PREFETCHED ONES (audit A-M8). This factory used to
+ * hold 9 entries while 89 keys were written inline at the hooks, so the "single
+ * source of truth" was not one, and the prefetch contract ("the key must be
+ * byte-identical to the hook's") rested on discipline plus a runtime assert.
+ * `eslint.config.mjs` now forbids an inline `queryKey: [...]` array outside this
+ * file, which makes the contract structural.
+ *
+ * SHAPE. Every namespace exposes `all` — the prefix that invalidates the whole
+ * domain — plus one entry per query. Invalidate the narrowest key that covers
+ * what a mutation actually changed; `all` is a blunt instrument that refetches
+ * every mounted query in the domain (audit A-M7).
  */
+type Filters = Record<string, unknown> | undefined;
+type Id = string | number | null | undefined;
+
 export const queryKeys = {
   dashboard: {
+    all: ["dashboard"] as const,
     kpis: (institutionId: string) => ["dashboard", "kpis", institutionId] as const,
     overview: ["dashboard", "overview"] as const,
   },
+
+  attendance: {
+    all: ["attendance"] as const,
+    exams: ["attendance", "exams"] as const,
+    sectionAll: ["attendance", "section"] as const,
+    section: (classSectionId: Id, attDate: string, context: string, examId?: Id) =>
+      ["attendance", "section", classSectionId, attDate, context, examId ?? null] as const,
+    summaryAll: ["attendance", "summary"] as const,
+    summary: (classSectionId: Id, from: string, to: string) =>
+      ["attendance", "summary", classSectionId, from, to] as const,
+  },
+
+  cert: {
+    all: ["cert"] as const,
+    templates: ["cert", "templates"] as const,
+    exams: ["cert", "exams"] as const,
+    idBatches: ["cert", "id-batches"] as const,
+    admitBatches: ["cert", "admit-batches"] as const,
+    testimonials: ["cert", "testimonials"] as const,
+    transfers: ["cert", "transfers"] as const,
+    setting: (key: string, scope: string) => ["cert", "setting", key, scope] as const,
+  },
+
+  core: {
+    all: ["core"] as const,
+    institution: ["core", "institution"] as const,
+    boards: ["core", "boards"] as const,
+    teacherOptions: ["core", "teacherOptions"] as const,
+    classes: ["core", "classes"] as const,
+    subjects: ["core", "subjects"] as const,
+    groups: ["core", "groups"] as const,
+    schemes: ["core", "schemes"] as const,
+    signatures: ["core", "signatures"] as const,
+    classSectionsAll: ["core", "classSections"] as const,
+    classSections: (classId: Id) => ["core", "classSections", classId] as const,
+    users: (page: number) => ["core", "users", "list", page] as const,
+    setting: (key: string, scope: string) => ["core", "setting", key, scope] as const,
+  },
+
+  exam: {
+    all: ["exam"] as const,
+    list: ["exam", "list"] as const,
+    gradeSchemes: ["exam", "grade-schemes"] as const,
+    sectionClass: (sectionId: Id) => ["exam", "section-class", sectionId] as const,
+    marksAll: ["exam", "marks"] as const,
+    marks: (examId: Id, classId: Id, subjectId: Id) =>
+      ["exam", "marks", examId, classId, subjectId] as const,
+    resultsAll: ["exam", "results"] as const,
+    /** Prefix for every section's results of one exam — use to invalidate. */
+    resultsForExam: (examId: Id) => ["exam", "results", examId] as const,
+    results: (examId: Id, sectionId?: Id) =>
+      ["exam", "results", examId, sectionId ?? null] as const,
+    config: (kind: string) => ["exam", "config", kind] as const,
+  },
+
+  fee: {
+    all: ["fee"] as const,
+    heads: ["fee", "heads"] as const,
+    accounts: ["fee", "accounts"] as const,
+    mappings: ["fee", "mappings"] as const,
+    invoicesAll: ["fee", "invoices"] as const,
+    invoices: (studentId: Id) => ["fee", "invoices", studentId] as const,
+    profile: (studentId: Id) => ["fee", "profile", studentId] as const,
+    unpaidSectionAll: ["fee", "unpaid-section"] as const,
+    unpaidSection: (sectionId: Id) => ["fee", "unpaid-section", sectionId] as const,
+    unpaidInstitute: ["fee", "unpaid-institute"] as const,
+    appliedAll: ["fee", "applied"] as const,
+    applied: (page: number) => ["fee", "applied", page] as const,
+    digitalAll: ["fee", "digital"] as const,
+    digital: (page: number) => ["fee", "digital", "list", page] as const,
+    digitalStats: ["fee", "digital", "stats"] as const,
+    incomeAll: ["fee", "income"] as const,
+    income: (from: string, to: string) => ["fee", "income", from, to] as const,
+  },
+
+  sms: {
+    all: ["sms"] as const,
+    account: ["sms", "account"] as const,
+    packages: ["sms", "packages"] as const,
+    templates: ["sms", "templates"] as const,
+    campaignsAll: ["sms", "campaigns"] as const,
+    campaigns: (page: number) => ["sms", "campaigns", page] as const,
+    campaignTotals: ["sms", "campaign-totals"] as const,
+    noticesAll: ["sms", "notices"] as const,
+    notices: (page: number) => ["sms", "notices", page] as const,
+  },
+
   students: {
     all: ["students"] as const,
     list: (filters?: Filters) => ["students", "list", filters ?? {}] as const,
-    detail: (id: string | number) => ["students", "detail", id] as const,
+    detail: (id: Id) => ["students", "detail", id] as const,
+    bySection: (classSectionId: Id) => ["students", "by-section", classSectionId] as const,
+    report: (yearId?: string | null) => ["students", "report", yearId ?? "current"] as const,
   },
+
   teachers: {
     all: ["teachers"] as const,
     list: (filters?: Filters) => ["teachers", "list", filters ?? {}] as const,
-    detail: (id: string | number) => ["teachers", "detail", id] as const,
+    detail: (id: Id) => ["teachers", "detail", id] as const,
+    options: ["teachers", "options"] as const,
   },
-  attendance: {
-    section: (classSectionId: string, date: string) =>
-      ["attendance", "section", classSectionId, date] as const,
+
+  migration: {
+    all: ["migration-batches"] as const,
+    batches: ["migration-batches"] as const,
+    batchStudents: (batchId: Id) => ["migration-batches", "students", batchId] as const,
   },
-  exams: {
-    all: ["exams"] as const,
-    results: (examId: string | number) => ["exams", "results", examId] as const,
+
+  roster: {
+    all: ["roster"] as const,
+    sectionStudents: (classSectionId: Id) =>
+      ["roster", "section-students", classSectionId] as const,
   },
-  fees: {
-    invoices: (filters?: Filters) => ["fees", "invoices", filters ?? {}] as const,
+
+  /** Reference data. Long `staleTime`; effectively never invalidated. */
+  lookup: {
+    all: ["lookup"] as const,
+    divisions: ["lookup", "divisions"] as const,
+    districts: (divisionId: Id) => ["lookup", "districts", divisionId] as const,
+    upazilas: (districtId: Id) => ["lookup", "upazilas", districtId] as const,
+    years: ["lookup", "years"] as const,
+    classes: ["lookup", "classes"] as const,
+    classSections: ["lookup", "class-sections"] as const,
+    studentCategories: ["lookup", "student-categories"] as const,
+    designations: ["lookup", "designations"] as const,
+    departments: ["lookup", "departments"] as const,
+    subjects: ["lookup", "subjects"] as const,
   },
+
   auditLog: {
+    all: ["auditLog"] as const,
     list: (filters?: Filters) => ["auditLog", "list", filters ?? {}] as const,
   },
 } as const;

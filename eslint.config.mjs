@@ -92,6 +92,32 @@ const config = [
       ],
     },
   },
+
+  /**
+   * Audit A-M8 — cache keys come from the factory, never from a literal.
+   *
+   * `shared/services/queryKeys.ts` was the documented single source of truth
+   * while 89 of 106 queries wrote their key inline, so it was not one. The
+   * concrete failure that makes this worth a lint rule rather than a comment:
+   * `prefetchQueryState` requires the server's key to be byte-identical to the
+   * hook's, and a one-character drift produces a prefetch that runs, costs a
+   * query, and is silently discarded. `assertPrefetchKey` catches the
+   * undefined-key case at runtime; only this catches the typo case at build.
+   */
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/shared/services/queryKeys.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Property[key.name='queryKey'] > ArrayExpression",
+          message:
+            "Inline query keys are banned. Add the key to shared/services/queryKeys.ts and use `queryKeys.<domain>.<entry>` — see the note at the top of that file.",
+        },
+      ],
+    },
+  },
 ];
 
 export default config;

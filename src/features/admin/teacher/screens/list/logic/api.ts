@@ -1,5 +1,6 @@
 // Supabase data access for admin/teacher/list. RLS-scoped to the caller's institution.
 import type { BrowserClient } from "@/shared/services/supabase/types";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
 export type TeacherRow = {
   id: string;
@@ -49,23 +50,17 @@ export async function fetchTeachers(
       if (department) q = q.eq("department.name", department);
       return q.order("employee_code", { ascending: true }).range(from, to);
     })(),
-    supabase.from("class_section").select("class_teacher_id").not("class_teacher_id", "is", null),
+    supabase.from("class_section").select("class_teacher_id").not("class_teacher_id", "is", null).limit(MAX_OPTIONS),
   ]);
   if (teachersRes.error) throw teachersRes.error;
   if (csRes.error) throw csRes.error;
 
-  const csRows = (csRes.data ?? []) as unknown as { class_teacher_id: string | null }[];
+  const csRows = (csRes.data ?? []);
   const classTeacherIds = new Set(
     csRows.map((r) => r.class_teacher_id).filter((v): v is string => Boolean(v)),
   );
 
-  type Raw = {
-    id: string; name_bn: string; name_en: string; email: string | null; status: string;
-    designation: { name: string | null } | null;
-    subject: { name_bn: string | null; name_en: string | null } | null;
-    department: { name: string | null } | null;
-  };
-  const rows = ((teachersRes.data ?? []) as unknown as Raw[]).map((r) => ({
+  const rows = (teachersRes.data ?? []).map((r) => ({
     id: r.id,
     name_bn: r.name_bn,
     name_en: r.name_en,

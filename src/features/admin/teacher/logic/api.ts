@@ -3,6 +3,7 @@
 // writes go through transaction-safe RPCs (fn_register_teacher / fn_update_teacher).
 import type { BrowserClient } from "@/shared/services/supabase/types";
 import { BLOOD_LABEL } from "@/shared/constants/enums";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
 /** Full controlled-form shape. Enum fields hold DB values, except `blood_group`
  *  which holds the UI label ("A+"); it is mapped to the DB token on write. */
@@ -45,18 +46,13 @@ export type TeacherFormValues = {
 /** Payload sent to the write RPCs (blood_group already mapped to the DB token). */
 export type TeacherWritePayload = Omit<TeacherFormValues, "id" | "employee_code">;
 
-type RpcFn = (
-  fn: string,
-  args: Record<string, unknown>,
-) => Promise<{ data: unknown; error: { message: string } | null }>;
 
 /** Atomic teacher registration (teacher + present/permanent addresses). */
 export async function registerTeacher(
   supabase: BrowserClient,
   payload: TeacherWritePayload,
 ): Promise<string> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_register_teacher", { payload });
+  const { data, error } = await supabase.rpc("fn_register_teacher", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
@@ -66,8 +62,7 @@ export async function updateTeacher(
   supabase: BrowserClient,
   payload: TeacherWritePayload & { id: string },
 ): Promise<string> {
-  const rpc: RpcFn = (fn, args) => (supabase as unknown as { rpc: RpcFn }).rpc(fn, args);
-  const { data, error } = await rpc("fn_update_teacher", { payload });
+  const { data, error } = await supabase.rpc("fn_update_teacher", { payload });
   if (error) throw new Error(error.message);
   return (data as string) ?? "";
 }
@@ -82,14 +77,9 @@ export async function fetchTeacherOptions(
     .from("teacher")
     .select("id, employee_code, name_bn, name_en")
     .is("deleted_at", null)
-    .order("employee_code", { ascending: true });
+    .order("employee_code", { ascending: true }).limit(MAX_OPTIONS);
   if (error) throw error;
-  const list = (data ?? []) as unknown as {
-    id: string;
-    employee_code: string | null;
-    name_en: string;
-  }[];
-  return list.map((r) => ({ value: r.id, label: `${r.employee_code ?? "—"} · ${r.name_en}` }));
+  return (data ?? []).map((r) => ({ value: r.id, label: `${r.employee_code ?? "—"} · ${r.name_en}` }));
 }
 
 const s = (v: unknown): string => (v == null ? "" : String(v));
@@ -108,8 +98,8 @@ export async function fetchTeacherDetail(
     .single();
   if (error) throw error;
 
-  const t = data as unknown as Record<string, unknown>;
-  const addr = (t.teacher_address ?? []) as Array<Record<string, unknown>>;
+  const t = data;
+  const addr = t.teacher_address ?? [];
   const present = addr.find((a) => a.type === "present");
   const permanent = addr.find((a) => a.type === "permanent");
   const bloodToken = s(t.blood_group);

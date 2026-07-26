@@ -1,5 +1,6 @@
 // Supabase data access for admin/student/update-class (Class List). RLS-scoped.
 import type { BrowserClient } from "@/shared/services/supabase/types";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
 export type ClassSectionOption = { value: string; label_bn: string; label_en: string };
 
@@ -9,15 +10,10 @@ export async function fetchClassSections(
   const { data, error } = await supabase
     .from("class_section")
     .select("id, class:class_id(name_bn, name_en, numeric_level), section:section_id(name)")
-    .is("deleted_at", null);
+    .is("deleted_at", null).limit(MAX_OPTIONS);
   if (error) throw error;
 
-  type Raw = {
-    id: string;
-    class: { name_bn: string; name_en: string; numeric_level: number | null } | null;
-    section: { name: string } | null;
-  };
-  const rows = (data ?? []) as unknown as Raw[];
+  const rows = (data ?? []);
   const opts = rows.map((r) => ({
     value: r.id,
     label_bn: `${r.class?.name_bn ?? ""} — ${r.section?.name ?? ""}`,
@@ -51,24 +47,10 @@ export async function fetchStudentsBySection(
     )
     .eq("class_section_id", classSectionId)
     .eq("status", "active")
-    .order("roll_no", { ascending: true });
+    .order("roll_no", { ascending: true }).limit(MAX_OPTIONS);
   if (error) throw error;
 
-  type Guardian = { name: string | null; mobile: string | null };
-  type SG = { relationship: string; is_primary_contact: boolean; guardian: Guardian | null };
-  type Raw = {
-    id: string;
-    roll_no: number | null;
-    student: {
-      id: string;
-      student_code: string | null;
-      name_bn: string;
-      name_en: string;
-      dob: string;
-      student_guardian: SG[] | null;
-    } | null;
-  };
-  const rows = (data ?? []) as unknown as Raw[];
+  const rows = (data ?? []);
 
   return rows.map((r) => {
     const sgs = r.student?.student_guardian ?? [];
