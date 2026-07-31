@@ -5474,6 +5474,10 @@ export type Database = {
       fn_record_file_upload: { Args: { payload: Json }; Returns: string }
       fn_register_student: { Args: { payload: Json }; Returns: string }
       fn_register_teacher: { Args: { payload: Json }; Returns: string }
+      fn_resolve_sms_recipients: {
+        Args: { p_audience: string; p_class_section_id?: string }
+        Returns: Json
+      }
       fn_run_migration: { Args: { payload: Json }; Returns: string }
       fn_save_exam_config: {
         Args: { p_kind: string; payload: Json }

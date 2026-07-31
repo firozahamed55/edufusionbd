@@ -28,6 +28,14 @@ export const useExistingMarks = (examId: string | null, classId: string | null, 
 export const useExamResults = (examId: string | null, sectionId?: string | null) =>
   useQuery({ queryKey: queryKeys.exam.results(examId, sectionId), queryFn: () => api.fetchExamResults(c(), examId as string, sectionId), enabled: !!examId });
 
+export const useSubjectMarks = (subjectId: string | null) =>
+  useQuery({
+    queryKey: queryKeys.exam.subjectMarks(subjectId),
+    queryFn: () => api.fetchSubjectMarks(c(), subjectId as string),
+    enabled: !!subjectId,
+    staleTime: 5 * 60_000,
+  });
+
 export const useExamConfig = (kind: "mark" | "comment" | "marksheet" | "date") =>
   useQuery({ queryKey: queryKeys.exam.config(kind), queryFn: () => api.fetchExamConfig(c(), kind) });
 

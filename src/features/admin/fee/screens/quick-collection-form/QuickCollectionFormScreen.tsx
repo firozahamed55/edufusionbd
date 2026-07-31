@@ -49,10 +49,38 @@ export function QuickCollectionFormScreen() {
   function collectOne(invoiceId: string, due: number) {
     const raw = amounts[invoiceId];
     const amt = raw && raw.trim() ? raw : String(due);
-    collect.mutate({ fee_invoice_id: invoiceId, amount: amt, method, account_id: accountId || undefined }, {
-      onSuccess: () => { toast({ title: t("ফি আদায় সম্পন্ন হয়েছে", "Fee collected"), variant: "success" }); setAmounts((p) => ({ ...p, [invoiceId]: "" })); },
-      onError: (e: unknown) => toast({ title: msg(e, { bn: "আদায় ব্যর্থ", en: "Collection failed" }), variant: "error" }),
-    });
+    const value = Number(amt);
+
+    if (!Number.isFinite(value) || value <= 0) {
+      toast({ title: t("সঠিক পরিমাণ দিন", "Enter a valid amount"), variant: "error" });
+      return;
+    }
+    /**
+     * The RPC caps an over-payment to the remaining due — silently. A clerk who
+     * typed 5000 against a 3000 due saw "Fee collected" and never learned that
+     * 2000 of what the parent handed over is unaccounted for. Say so first.
+     */
+    if (value > due) {
+      toast({
+        title: t(
+          `বকেয়া ৳${n(due)} — এর বেশি আদায় করা যাবে না`,
+          `Due is ৳${n(due)} — cannot collect more than that`,
+        ),
+        variant: "error",
+      });
+      return;
+    }
+
+    // A fresh key per ATTEMPT, held for the life of this mutation. Retrying the
+    // same click reuses it (safe); a genuine second payment gets a new one.
+    const key = crypto.randomUUID();
+    collect.mutate(
+      { fee_invoice_id: invoiceId, amount: amt, method, account_id: accountId || undefined, idempotency_key: key },
+      {
+        onSuccess: () => { toast({ title: t("ফি আদায় সম্পন্ন হয়েছে", "Fee collected"), variant: "success" }); setAmounts((p) => ({ ...p, [invoiceId]: "" })); },
+        onError: (e: unknown) => toast({ title: msg(e, { bn: "আদায় ব্যর্থ", en: "Collection failed" }), variant: "error" }),
+      },
+    );
   }
 
   const rows = invoices.data ?? [];
@@ -131,7 +159,10 @@ export function QuickCollectionFormScreen() {
                     <div className="w-25 text-right text-meta text-text-secondary tnum">৳{n(r.total)}</div>
                     <div className="w-25 text-right text-meta font-semibold text-danger-fg tnum">৳{n(r.due)}</div>
                     <div className="w-32">
-                      <Input type="number" min={0} value={amounts[r.id] ?? ""} onChange={(e) => setAmounts((p) => ({ ...p, [r.id]: e.target.value }))} placeholder={String(r.due)} disabled={r.due <= 0} className="h-9 text-right font-latin" />
+                      <Input type="number" min={0} max={r.due} value={amounts[r.id] ?? ""}
+                        aria-invalid={Number(amounts[r.id] ?? 0) > r.due}
+                        aria-label={t("আদায়ের পরিমাণ", "Collection amount")}
+                        onChange={(e) => setAmounts((p) => ({ ...p, [r.id]: e.target.value }))} placeholder={String(r.due)} disabled={r.due <= 0} className="h-9 text-right font-latin" />
                     </div>
                     <div className="flex w-24 justify-end">
                       <Button variant="primary" className="h-9 px-3" onClick={() => collectOne(r.id, r.due)} disabled={r.due <= 0 || collect.isPending}>{t("আদায়", "Collect")}</Button>

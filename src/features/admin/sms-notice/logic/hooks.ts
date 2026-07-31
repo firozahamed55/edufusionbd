@@ -11,6 +11,17 @@ const c = () => createClient();
 export const useSmsAccount = () => useQuery({ queryKey: queryKeys.sms.account, queryFn: () => api.fetchSmsAccount(c()) });
 export const usePackages = () => useQuery({ queryKey: queryKeys.sms.packages, queryFn: () => api.fetchPackages(c()) });
 export const useTemplates = () => useQuery({ queryKey: queryKeys.sms.templates, queryFn: () => api.fetchTemplates(c()) });
+/**
+ * Live recipient resolution for the Send screen's cost preview. Same RPC the
+ * send itself bills from, so the quoted number and the charged number cannot
+ * diverge.
+ */
+export const useResolvedRecipients = (audience: string, sectionId: string) =>
+  useQuery({
+    queryKey: queryKeys.sms.recipients(audience, sectionId),
+    queryFn: () => api.resolveRecipients(c(), audience, sectionId),
+    enabled: Boolean(audience),
+  });
 export const useCampaignTotals = () => useQuery({ queryKey: queryKeys.sms.campaignTotals, queryFn: () => api.fetchCampaignTotals(c()) });
 export const useCampaigns = (page = 1) =>
   useQuery({ queryKey: queryKeys.sms.campaigns(page), queryFn: () => api.fetchCampaigns(c(), page), placeholderData: (prev) => prev });

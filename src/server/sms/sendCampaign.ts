@@ -50,6 +50,11 @@ export async function sendCampaignUseCase(payload: unknown): Promise<SendCampaig
     // `42501` is the permission-guard wrapper's (migration 41).
     if (error.code === "RLIM1") return { ok: false, kind: "rate_limited", message: error.message };
     if (error.code === "42501") return { ok: false, kind: "forbidden", message: error.message };
+    // `SMS01` (audience resolved to nobody) and `SMS02` (balance below the
+    // campaign's true cost) are both the caller asking for something the data
+    // does not support — a 400 with the RPC's own message, not a 500.
+    if (error.code === "SMS01" || error.code === "SMS02")
+      return { ok: false, kind: "validation", message: error.message };
     return { ok: false, kind: "unknown", message: error.message };
   }
   return { ok: true, id: (data as string) ?? "" };

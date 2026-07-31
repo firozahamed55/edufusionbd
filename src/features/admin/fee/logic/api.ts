@@ -213,6 +213,14 @@ export const collectPayloadSchema = z
     txn_ref: shortText(64).optional(),
     paid_by: shortText(120).optional(),
     paid_at: z.string().optional(),
+    /**
+     * One key per collection ATTEMPT (SRA A-6.1). `fn_collect_fee` stores it
+     * under a unique constraint and returns the original payment when it sees
+     * the same key again, so a double-click at the counter — or a retry over
+     * the flaky connection a school actually has — cannot post twice. Optional
+     * because the constraint is partial and an older client must still work.
+     */
+    idempotency_key: uuid.optional(),
   })
   .strict();
 

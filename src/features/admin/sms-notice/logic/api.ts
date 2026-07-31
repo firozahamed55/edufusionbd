@@ -61,11 +61,48 @@ export async function fetchCampaigns(s: BrowserClient, page = 1, size = PAGE_SIZ
   return { rows: data ?? [], total: count ?? 0 };
 }
 /**
- * SMS send. `recipient_count` is the field that spends money: `fn_send_sms_campaign`
- * debits `balance - recipient_count` and bills `recipient_count * per_sms_rate`
- * straight from it, with no cross-check against an actual recipient list. So a
- * malformed count is a billing error, and a negative one would *credit* the
- * account. `nonnegative().max()` is the cheapest possible guard on that.
+ * Who a campaign will actually reach, resolved from the roster (SRA F-2a).
+ *
+ * The Send screen used to ask the operator to TYPE the recipient count, and
+ * that typed number was what the balance was debited by. The system holds the
+ * roster — it knows how many guardians are in section 9-A — so this replaces a
+ * guess with the answer. The same function backs `fn_send_sms_campaign`'s own
+ * billing, which is what makes the previewed number and the charged number the
+ * same number rather than two numbers that agree by convention.
+ */
+export type ResolvedRecipients = {
+  count: number;
+  /** Bounded preview so the operator can check WHO, not just how many. */
+  sample: { name: string; mobile: string }[];
+};
+export async function resolveRecipients(
+  s: BrowserClient,
+  audience: string,
+  classSectionId?: string | null,
+): Promise<ResolvedRecipients> {
+  const { data, error } = await s.rpc("fn_resolve_sms_recipients", {
+    p_audience: audience,
+    p_class_section_id: classSectionId || undefined,
+  });
+  if (error) throw new Error(error.message);
+  const r = (data ?? {}) as Partial<ResolvedRecipients>;
+  return { count: num(r.count), sample: r.sample ?? [] };
+}
+
+/**
+ * SMS send.
+ *
+ * `recipient_count` is deliberately ABSENT from this schema. It used to be the
+ * field that spent money — the RPC debited `balance - recipient_count` straight
+ * from the payload, with no cross-check against an actual recipient list, so a
+ * typo was a billing error in either direction and a negative one would have
+ * *credited* the account. It is now computed server-side from the resolved
+ * roster and returned, not accepted. A client cannot influence what it is
+ * charged, which is the only durable form of this fix.
+ *
+ * `class_section_id` replaces the free-text `recipient_group` as the thing that
+ * actually selects recipients; the text field survives only as a human label on
+ * the campaign record.
  *
  * `body.max(1000)` mirrors the practical SMS ceiling — a longer body is silently
  * truncated by every gateway, after being paid for in full.
@@ -74,36 +111,20 @@ export const sendCampaignSchema = z
   .object({
     recipient_type: z.string().min(1),
     recipient_group: optionalText(120),
+    class_section_id: optionalUuid,
     language: z.enum(["bn", "en"]),
     template_id: optionalUuid,
     body: z.string().trim().min(1, "Message body is required").max(1000),
-    // `coerce` because the count comes from an `<input type="number">`, i.e. a
-    // string. `min(1)` is the bug fix: the field starts empty, `""` casts to 0 in
-    // both JS and the RPC's `nullif(...)::int`, and a 0-recipient campaign was
-    // recorded as sent, billed nothing, and reported nothing.
-    recipient_count: z.coerce
-      .number()
-      .int()
-      .min(1, "Recipient count must be at least 1")
-      .max(100_000),
   })
   .strict();
 
-/**
- * The PRE-parse shape — i.e. what the form holds, all strings.
- *
- * Written out rather than derived with `z.input<>` because zod 3 types a
- * `z.coerce` field's input as its *output* (`number`), which is exactly the
- * string this schema exists to coerce. Deriving it would make the compiler reject
- * the only caller there is.
- */
 export type SendCampaignPayload = {
   recipient_type: string;
   recipient_group?: string;
+  class_section_id?: string;
   language: string;
   template_id?: string;
   body: string;
-  recipient_count: string | number;
 };
 
 /**

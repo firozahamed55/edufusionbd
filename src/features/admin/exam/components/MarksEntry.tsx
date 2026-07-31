@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Save, ClipboardList } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Save, ClipboardList, Info } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, SaveBar, UnsavedDot, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
+import { Field, Select, Input, Checkbox, Button, SaveBar, UnsavedDot, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
 import { useClassSectionsLookup, useSubjects } from "@/shared/services/lookups/hooks";
 import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
-import { useExams, useSectionClassId, useExistingMarks, useSaveMarks } from "../logic/hooks";
+import { useExams, useSectionClassId, useExistingMarks, useSaveMarks, useSubjectMarks, useExamConfig } from "../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
 /** Live mark entry/update — pick exam + section + subject, enter marks, save. */
@@ -19,7 +19,6 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   const [examId, setExamId] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [subjectId, setSubjectId] = useState("");
-  const [full, setFull] = useState("100");
   const [marks, setMarks] = useState<Record<string, { marks: string; absent: boolean }>>({});
 
   const exams = useExams();
@@ -28,10 +27,34 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   const students = useSectionStudents(sectionId || null);
   const classId = useSectionClassId(sectionId || null);
   const existing = useExistingMarks(examId || null, classId.data ?? null, subjectId || null);
+  const subjectMarks = useSubjectMarks(subjectId || null);
+  const markConfig = useExamConfig("mark");
   const save = useSaveMarks();
 
+  /**
+   * Full marks are DERIVED, never typed (SRA A-5.1 item 1).
+   *
+   * The field used to be a free-text input defaulting to "100", and nothing
+   * consulted the subject's configured marks or `mark_config` — the screen that
+   * exists to set exactly this. Entering 100 for a subject configured at 50
+   * silently produced a wrong GPA for the entire section, and the marksheet
+   * looked perfectly normal.
+   *
+   * Precedence is most-specific-first: the subject's own value, else the
+   * institution-wide mark config, else 100 as a declared last resort.
+   */
+  const full = useMemo(() => {
+    const fromSubject = subjectMarks.data?.full_marks;
+    if (fromSubject != null && fromSubject > 0) return { value: fromSubject, source: "subject" as const };
+    const fromConfig = Number((markConfig.data as { full_marks?: unknown } | undefined)?.full_marks ?? NaN);
+    if (Number.isFinite(fromConfig) && fromConfig > 0) return { value: fromConfig, source: "config" as const };
+    return { value: 100, source: "fallback" as const };
+  }, [subjectMarks.data, markConfig.data]);
+
   const opt = (list?: Option[]) => (list ?? []).map((o) => ({ value: o.value, label: isBn ? o.label_bn : o.label_en }));
-  const rows = students.data ?? [];
+  // Memoised: `?? []` is a fresh array each render, which would make the
+  // validity useMemo below recompute forever.
+  const rows = useMemo(() => students.data ?? [], [students.data]);
 
   useEffect(() => {
     if (!rows.length) return;
@@ -42,10 +65,31 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   const ready = Boolean(examId && sectionId && subjectId);
   const setMark = (id: string, patch: Partial<{ marks: string; absent: boolean }>) => setMarks((p) => ({ ...p, [id]: { ...(p[id] ?? { marks: "", absent: false }), ...patch } }));
 
+  /**
+   * `max` on a number input is a browser hint, not a constraint — a pasted or
+   * programmatically-set value above full marks was accepted and saved. This is
+   * the check that actually holds, and it names how many entries are at fault
+   * instead of failing with a generic toast.
+   */
+  const invalid = useMemo(
+    () =>
+      rows.filter((r) => {
+        const m = marks[r.studentId];
+        if (!m || m.absent || m.marks === "") return false;
+        const v = Number(m.marks);
+        return !Number.isFinite(v) || v < 0 || v > full.value;
+      }),
+    [rows, marks, full.value],
+  );
+
   function submit() {
     if (!ready || !rows.length) { toast({ title: t("পরীক্ষা, শাখা ও বিষয় নির্বাচন করুন", "Select exam, section and subject"), variant: "error" }); return; }
+    if (invalid.length > 0) {
+      toast({ title: t(`${n(invalid.length)} জনের নম্বর ০–${n(full.value)} সীমার বাইরে`, `${invalid.length} entries fall outside 0–${full.value}`), variant: "error" });
+      return;
+    }
     save.mutate(
-      { exam_id: examId, class_section_id: sectionId, subject_id: subjectId, full_marks: full,
+      { exam_id: examId, class_section_id: sectionId, subject_id: subjectId, full_marks: String(full.value),
         entries: rows.map((r) => ({ student_id: r.studentId, marks_obtained: marks[r.studentId]?.absent ? "" : (marks[r.studentId]?.marks ?? ""), is_absent: marks[r.studentId]?.absent ?? false })) },
       {
         onSuccess: (count) => toast({ title: t(`${count} জনের নম্বর সংরক্ষিত হয়েছে`, `Saved marks for ${count}`), variant: "success" }),
@@ -71,8 +115,24 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
         <Field label={t("বিষয়", "Subject")} required className="w-55 max-w-full">
           <Select value={subjectId} placeholder={t("নির্বাচন", "Select")} options={opt(subjects.data)} onChange={(e) => setSubjectId(e.target.value)} />
         </Field>
-        <Field label={t("পূর্ণ নম্বর", "Full marks")} className="w-28"><Input type="number" min={1} value={full} onChange={(e) => setFull(e.target.value)} className="font-latin" /></Field>
+        {/* Read-only: derived above, so the grid and the GPA cannot disagree. */}
+        <Field label={t("পূর্ণ নম্বর", "Full marks")} className="w-28">
+          <Input type="number" value={String(full.value)} readOnly disabled className="font-latin" />
+        </Field>
       </div>
+
+      {ready ? (
+        <div className="flex items-start gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-meta text-info-fg">
+          <Info size={15} className="mt-px shrink-0" />
+          <span>
+            {full.source === "subject"
+              ? t(`পূর্ণ নম্বর ${n(full.value)} — বিষয়ের নিজস্ব সেটিং থেকে।`, `Full marks ${full.value} — from this subject's own setting.`)
+              : full.source === "config"
+                ? t(`পূর্ণ নম্বর ${n(full.value)} — প্রতিষ্ঠানের মার্ক কনফিগ থেকে।`, `Full marks ${full.value} — from the institution mark config.`)
+                : t(`পূর্ণ নম্বর ${n(full.value)} — কোথাও নির্ধারিত নেই, ডিফল্ট ব্যবহার হচ্ছে। বিষয় সেটিংস বা মার্ক কনফিগে নির্ধারণ করুন।`, `Full marks ${full.value} — not configured anywhere, using the default. Set it in Subject settings or Mark config.`)}
+          </span>
+        </div>
+      ) : null}
 
       {!ready ? (
         <EmptyState icon={<ClipboardList size={22} />} title={t("পরীক্ষা, শাখা ও বিষয় নির্বাচন করুন", "Select exam, section and subject")} />
@@ -88,21 +148,26 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
             <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
               <div className="w-15">{t("রোল", "Roll")}</div>
               <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
-              <div className="w-40 text-center">{t("প্রাপ্ত নম্বর", "Marks obtained")} ({n(full)})</div>
+              <div className="w-40 text-center">{t("প্রাপ্ত নম্বর", "Marks obtained")} ({n(full.value)})</div>
               <div className="w-24 text-center">{t("অনুপস্থিত", "Absent")}</div>
             </div>
             {rows.map((r, i) => {
               const m = marks[r.studentId] ?? { marks: "", absent: false };
+              const over = !m.absent && m.marks !== "" && !(Number(m.marks) >= 0 && Number(m.marks) <= full.value);
               return (
                 <div key={r.enrollmentId} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
                   <div className="w-15 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
                   <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
                   <div className="w-40 px-2">
-                    <Input type="number" min={0} max={Number(full) || undefined} value={m.marks} disabled={m.absent}
+                    <Input type="number" min={0} max={full.value} value={m.marks} disabled={m.absent}
+                      aria-invalid={over}
+                      aria-label={t(`${r.name_bn} এর নম্বর`, `Marks for ${r.name_en}`)}
                       onChange={(e) => setMark(r.studentId, { marks: e.target.value })} className="h-9 text-center font-latin" />
+                    {over ? <p role="alert" className="mt-0.5 text-xs text-danger-fg">{t(`০–${n(full.value)}`, `0–${full.value}`)}</p> : null}
                   </div>
                   <div className="flex w-24 justify-center">
-                    <input type="checkbox" checked={m.absent} onChange={(e) => setMark(r.studentId, { absent: e.target.checked, marks: e.target.checked ? "" : m.marks })} className="size-4 accent-primary" />
+                    <Checkbox checked={m.absent} aria-label={t(`${r.name_bn} অনুপস্থিত`, `${r.name_en} absent`)}
+                      onChange={(e) => setMark(r.studentId, { absent: e.target.checked, marks: e.target.checked ? "" : m.marks })} />
                   </div>
                 </div>
               );
@@ -112,7 +177,7 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
       )}
 
       <SaveBar status={<><UnsavedDot /><span>{ready && rows.length ? t(`${rows.length} জন শিক্ষার্থী`, `${rows.length} students`) : t("নির্বাচন করুন", "Make a selection")}</span></>}>
-        <Button variant="primary" onClick={submit} disabled={!ready || !rows.length || save.isPending}><Save size={16} /> {save.isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("জমা দিন", "Submit")}</Button>
+        <Button variant="primary" onClick={submit} disabled={!ready || !rows.length || save.isPending || invalid.length > 0}><Save size={16} /> {save.isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("জমা দিন", "Submit")}</Button>
       </SaveBar>
     </div>
   );

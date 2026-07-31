@@ -86,6 +86,29 @@ export async function fetchExamResults(supabase: BrowserClient, examId: string, 
   }));
 }
 
+/**
+ * Per-subject full/pass marks (SRA A-5.1 item 1).
+ *
+ * The Marks Entry grid used a free-text "Full marks" input defaulting to the
+ * string "100", and consulted neither the subject's own configured marks nor
+ * `mark_config` — the screen that exists to configure exactly this. An operator
+ * entering 100 for a subject configured at 50 produced a wrong GPA for the whole
+ * section, with nothing anywhere to catch it.
+ */
+export type SubjectMarks = { full_marks: number | null; pass_marks: number | null };
+export async function fetchSubjectMarks(
+  supabase: BrowserClient,
+  subjectId: string,
+): Promise<SubjectMarks> {
+  const { data, error } = await supabase
+    .from("subject")
+    .select("full_marks, pass_marks")
+    .eq("id", subjectId)
+    .maybeSingle();
+  if (error) throw error;
+  return { full_marks: data?.full_marks ?? null, pass_marks: data?.pass_marks ?? null };
+}
+
 /* --------------------------------------------------------------- config */
 
 export async function fetchExamConfig(supabase: BrowserClient, kind: "mark" | "comment" | "marksheet" | "date"): Promise<RpcPayload> {

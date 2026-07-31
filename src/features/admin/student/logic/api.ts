@@ -14,7 +14,8 @@ const s = (v: unknown): string => (v == null ? "" : String(v));
 
 /* --------------------------------------------- students (shared roster) */
 // Single source of truth lives in the shared roster service.
-export { fetchSectionStudents, type SectionStudent } from "@/shared/services/roster/api";
+import { fetchSectionStudents, type SectionStudent } from "@/shared/services/roster/api";
+export { fetchSectionStudents, type SectionStudent };
 
 /* --------------------------------------------------------- update basic info */
 
@@ -141,6 +142,91 @@ export async function fetchStudentReport(
  *  - source ≠ target — promoting a section into itself passes every DB constraint
  *    and produces duplicate enrolments that are painful to unpick by hand.
  */
+/**
+ * Exams available as a promotion basis for the current year.
+ *
+ * "With merit" promotion has to rank students by SOMETHING, and until this
+ * existed it ranked them by their position in the source roster — see
+ * `fetchMigrationCandidates` below.
+ */
+export type ExamOption = { id: string; name: string; status: string };
+export async function fetchMigrationExams(
+  supabase: BrowserClient,
+  yearId: string,
+): Promise<ExamOption[]> {
+  const { data, error } = await supabase
+    .from("exam")
+    .select("id, name, status")
+    .eq("academic_year_id", yearId)
+    .order("created_at", { ascending: false })
+    .limit(MAX_OPTIONS);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** A student in the source section, carrying their real result for the chosen exam. */
+export type MigrationCandidate = SectionStudent & {
+  merit_rank: number | null;
+  result: string | null;
+  gpa: number | null;
+  /** No processed result for this exam — cannot be ranked or judged. */
+  unprocessed: boolean;
+};
+
+/**
+ * The roster, ordered and annotated by an actual exam result (SRA F-5).
+ *
+ * WHAT THIS REPLACES. `MigrationRunner` sent `merit_rank: idx + 1`, where `idx`
+ * was the index of the student in the source roster *as returned by the query* —
+ * i.e. roll order. So "Migration — With Merit" wrote a merit ordering that had
+ * nothing to do with merit. It also hardcoded `result: "pass"` for every
+ * student, promoting failures as passes. Both values land in a student's
+ * permanent academic history through a transactional write that leaves no
+ * pre-state, so the damage is not reversible without a manual audit.
+ *
+ * The results come from `exam_result`, which `fn_process_exam_result` computes
+ * set-based in Postgres — the ranking already exists and was simply never read.
+ *
+ * Two round trips rather than a join: `student_enrollment` and `exam_result`
+ * have no FK between them (results key on `student_id`, enrolments on both), and
+ * PostgREST cannot express the join without one. Both reads are bounded by the
+ * section size.
+ */
+export async function fetchMigrationCandidates(
+  supabase: BrowserClient,
+  classSectionId: string,
+  examId: string | null,
+): Promise<MigrationCandidate[]> {
+  const roster = await fetchSectionStudents(supabase, classSectionId);
+  if (!examId || roster.length === 0) {
+    return roster.map((r) => ({ ...r, merit_rank: null, result: null, gpa: null, unprocessed: Boolean(examId) }));
+  }
+
+  const { data, error } = await supabase
+    .from("exam_result")
+    .select("student_id, merit_rank, result, gpa")
+    .eq("exam_id", examId)
+    .in("student_id", roster.map((r) => r.studentId))
+    .limit(MAX_OPTIONS);
+  if (error) throw error;
+
+  const byStudent = new Map((data ?? []).map((r) => [r.student_id, r]));
+  return roster
+    .map((r) => {
+      const res = byStudent.get(r.studentId);
+      return {
+        ...r,
+        merit_rank: res?.merit_rank ?? null,
+        result: res?.result ?? null,
+        gpa: res?.gpa ?? null,
+        unprocessed: !res,
+      };
+    })
+    // Ranked students first in rank order; everyone without a result sinks to
+    // the bottom where the operator can see they are the exceptions.
+    .sort((a, b) => (a.merit_rank ?? Number.MAX_SAFE_INTEGER) - (b.merit_rank ?? Number.MAX_SAFE_INTEGER));
+}
+
 export const runMigrationSchema = z
   .object({
     academic_year_id: uuid,

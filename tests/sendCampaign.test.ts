@@ -21,13 +21,26 @@ const validPayload = {
   recipient_type: "parent",
   language: "bn",
   body: "Test message",
-  recipient_count: 5,
 };
 
 describe("sendCampaignUseCase", () => {
   it("rejects an invalid payload before touching the network", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     const result = await sendCampaignUseCase({ ...validPayload, body: "" });
+    expect(result).toEqual(expect.objectContaining({ ok: false, kind: "validation" }));
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  /**
+   * SRA F-2a regression guard. `recipient_count` used to be an INPUT, and it
+   * was what the balance was debited by — so a caller could name its own price.
+   * It is now computed server-side from the resolved roster, and `.strict()` is
+   * what keeps a stale or hostile client from reintroducing it.
+   */
+  it("refuses a caller-supplied recipient_count", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    rpc.mockClear();
+    const result = await sendCampaignUseCase({ ...validPayload, recipient_count: 99999 });
     expect(result).toEqual(expect.objectContaining({ ok: false, kind: "validation" }));
     expect(rpc).not.toHaveBeenCalled();
   });
@@ -51,6 +64,20 @@ describe("sendCampaignUseCase", () => {
     rpc.mockResolvedValue({ data: null, error: { code: "42501", message: "permission denied: sms.send" } });
     const result = await sendCampaignUseCase(validPayload);
     expect(result).toEqual({ ok: false, kind: "forbidden", message: "permission denied: sms.send" });
+  });
+
+  it("maps an empty audience to kind: validation", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    rpc.mockResolvedValue({ data: null, error: { code: "SMS01", message: "no reachable recipients for this audience" } });
+    const result = await sendCampaignUseCase(validPayload);
+    expect(result).toEqual(expect.objectContaining({ ok: false, kind: "validation" }));
+  });
+
+  it("maps an insufficient balance to kind: validation", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    rpc.mockResolvedValue({ data: null, error: { code: "SMS02", message: "insufficient SMS balance: 600 messages needed" } });
+    const result = await sendCampaignUseCase(validPayload);
+    expect(result).toEqual(expect.objectContaining({ ok: false, kind: "validation" }));
   });
 
   it("returns the new campaign id on success", async () => {

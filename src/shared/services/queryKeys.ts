@@ -99,6 +99,7 @@ export const queryKeys = {
     resultsForExam: (examId: Id) => ["exam", "results", examId] as const,
     results: (examId: Id, sectionId?: Id) =>
       ["exam", "results", examId, sectionId ?? null] as const,
+    subjectMarks: (subjectId: Id) => ["exam", "subject-marks", subjectId] as const,
     config: (kind: string) => ["exam", "config", kind] as const,
   },
 
@@ -130,6 +131,8 @@ export const queryKeys = {
     campaignsAll: ["sms", "campaigns"] as const,
     campaigns: (page: number) => ["sms", "campaigns", page] as const,
     campaignTotals: ["sms", "campaign-totals"] as const,
+    recipients: (audience: string, sectionId: string) =>
+      ["sms", "recipients", audience, sectionId] as const,
     noticesAll: ["sms", "notices"] as const,
     notices: (page: number) => ["sms", "notices", page] as const,
   },
@@ -151,6 +154,9 @@ export const queryKeys = {
 
   migration: {
     all: ["migration-batches"] as const,
+    exams: (yearId: Id) => ["migration-batches", "exams", yearId] as const,
+    candidates: (classSectionId: Id, examId: Id) =>
+      ["migration-batches", "candidates", classSectionId, examId] as const,
     batches: (yearId: Id) => ["migration-batches", "list", yearId] as const,
     batchStudents: (batchId: Id) => ["migration-batches", "students", batchId] as const,
   },

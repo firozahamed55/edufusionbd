@@ -11,6 +11,8 @@ import {
   pushbackMigration,
   fetchMigrationBatches,
   fetchMigrationBatchStudents,
+  fetchMigrationExams,
+  fetchMigrationCandidates,
   type StudentBasicPayload,
   type RunMigrationPayload,
 } from "./api";
@@ -51,6 +53,26 @@ export function useStudentReport(yearId?: string | null) {
     queryKey: queryKeys.students.report(yearId),
     queryFn: () => fetchStudentReport(c(), yearId ?? null),
     staleTime: 60_000,
+  });
+}
+
+/** Exams that can serve as the ranking basis for a merit promotion. */
+export function useMigrationExams() {
+  const yearId = useCurrentYearId();
+  return useQuery({
+    queryKey: queryKeys.migration.exams(yearId),
+    queryFn: () => fetchMigrationExams(c(), yearId as string),
+    enabled: !!yearId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** The source roster annotated with each student's real result for `examId`. */
+export function useMigrationCandidates(classSectionId: string | null, examId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.migration.candidates(classSectionId, examId),
+    queryFn: () => fetchMigrationCandidates(c(), classSectionId as string, examId),
+    enabled: !!classSectionId,
   });
 }
 

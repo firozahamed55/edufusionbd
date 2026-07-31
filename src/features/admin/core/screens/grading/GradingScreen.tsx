@@ -6,6 +6,7 @@ import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Input, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader } from "@/shared/ui";
 import { useGradeSchemes, useUpsertScheme, useDeleteScheme } from "../../logic/hooks";
+import { validateGradeScale } from "../../logic/gradeScale";
 import type { GradeScale } from "../../logic/api";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -62,8 +63,21 @@ export function GradingScreen() {
   }
   const setScale = (i: number, k: keyof GradeScale, v: string) => setScales((p) => p.map((r, j) => j === i ? { ...r, [k]: k === "grade_letter" ? v : Number(v) } : r));
 
+  /**
+   * A scheme with an overlap, a hole, or a range that misses 0–100 produces
+   * silently wrong grades for an entire cohort, because this table is the input
+   * to `fn_process_exam_result` (SRA A-9.1). Nothing checked it before. Shown
+   * live in the editor and enforced at save — the operator sees the defect while
+   * they are still looking at the row that caused it.
+   */
+  const scaleProblems = useMemo(() => validateGradeScale(scales), [scales]);
+
   function save() {
     if (!name.trim()) { toast({ title: t("স্কিমের নাম আবশ্যক", "Scheme name required"), variant: "error" }); return; }
+    if (scaleProblems.length > 0) {
+      toast({ title: t("গ্রেড পরিসরে সমস্যা আছে", "Fix the grade ranges first"), variant: "error" });
+      return;
+    }
     upsert.mutate({ id: id || undefined, name, is_default: isDefault, scales }, {
       onSuccess: (savedId) => { toast({ title: t("গ্রেডিং স্কিম সংরক্ষিত", "Grading scheme saved"), variant: "success" }); setOpen(false); if (!id) setActiveId(savedId as string); },
       onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
@@ -136,7 +150,7 @@ export function GradingScreen() {
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title={id ? t("স্কিম সম্পাদনা", "Edit scheme") : t("নতুন গ্রেডিং স্কিম", "New grading scheme")}
-        footer={<><Button variant="secondary" onClick={() => setOpen(false)}>{t("বাতিল", "Cancel")}</Button><Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button></>}
+        footer={<><Button variant="secondary" onClick={() => setOpen(false)}>{t("বাতিল", "Cancel")}</Button><Button variant="primary" onClick={save} disabled={upsert.isPending || scaleProblems.length > 0}>{upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button></>}
       >
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -160,6 +174,15 @@ export function GradingScreen() {
             </div>
           </div>
           <button onClick={() => setScales((p) => [...p, { grade_letter: "", gpa_point: 0, min_marks: 0, max_marks: 0 }])} className="flex items-center gap-1.5 self-start rounded-md px-1 py-0.5 text-meta font-semibold text-primary hover:underline"><Plus size={14} /> {t("গ্রেড যোগ করুন", "Add grade")}</button>
+
+          {scaleProblems.length > 0 ? (
+            <div role="alert" className="flex flex-col gap-1 rounded-xl border border-danger-fg/30 bg-danger-bg px-4 py-3 text-meta text-danger-fg">
+              <p className="font-semibold">{t("এই স্কিম দিয়ে ফলাফল প্রসেস করলে ভুল গ্রেড আসবে:", "Processing results with this scheme would produce wrong grades:")}</p>
+              <ul className="list-disc pl-4">
+                {scaleProblems.map((pr, i) => <li key={i}>{t(pr.bn, pr.en)}</li>)}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </Modal>
 
