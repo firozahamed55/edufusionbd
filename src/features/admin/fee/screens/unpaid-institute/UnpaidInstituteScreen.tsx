@@ -1,34 +1,64 @@
 "use client";
 
-import { Download, Wallet } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
+import { Wallet } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState, PageHeader } from "@/shared/ui";
+import {
+  Skeleton, EmptyState, ErrorState, PageHeader, Pagination, LiveRegion,
+  Table, THead, TBody, TR, TD, TableEmpty, SortableTH, DataToolbar,
+} from "@/shared/ui";
+import { useDataScreen, applyClientList } from "@/shared/lib/useDataScreen";
 import { exportCsv } from "@/shared/lib/exportCsv";
+import { localDay } from "@/shared/lib/format";
 import { useUnpaidByInstitute } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
-/** Fee · Dues (by Institute) — live class/section-wise dues summary. */
+/**
+ * Fee · Dues (by Institute) — class/section-wise dues summary.
+ *
+ * One row per class-section, so the set is bounded and `applyClientList` is the
+ * right tool. Sorting by amount owed is the point of the screen and it could
+ * not do it (SRA A-0.1); the totals row still describes the WHOLE institution,
+ * not the visible page.
+ */
 export function UnpaidInstituteScreen() {
   const { t, n, isBn } = useT();
   const msg = useErrorMessage();
+  const ds = useDataScreen();
   const q = useUnpaidByInstitute();
   const d = q.data;
 
+  const { rows, total } = applyClientList(d?.rows ?? [], ds, {
+    search: (r) => [r.cls_bn, r.cls_en, r.sec_name],
+    sort: {
+      cls: (r) => r.numeric_level,
+      section: (r) => r.sec_name,
+      students: (r) => r.total_students,
+      dueStudents: (r) => r.due_students,
+      due: (r) => r.due_amount,
+    },
+  });
+
   return (
     <div className="flex flex-col gap-5">
+      <LiveRegion message={q.isLoading ? t("লোড হচ্ছে", "Loading dues") : t(`${n(total)} সারি`, `${total} rows`)} />
+
       <PageHeader
         crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("বকেয়া তথ্য", "Dues") }]}
         title={t("বকেয়া তথ্য", "Dues")}
         subtitle={t("প্রতিষ্ঠান অনুযায়ী বকেয়ার সারসংক্ষেপ", "Institute-wide dues summary")}
       />
 
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface p-5 shadow-e1">
-        <span className="text-meta text-text-muted">{t("শিক্ষাবর্ষ", "Academic Year")}: <b className="text-text-secondary tnum">{n(2026)}</b></span>
-        <div className="flex-1" />
-        <button
-          onClick={() => d && exportCsv(
-            `dues-by-institute-${new Date().toISOString().slice(0, 10)}.csv`,
+      <DataToolbar
+        q={ds.q}
+        onQChange={ds.setQ}
+        placeholder={t("শ্রেণি বা শাখা খুঁজুন", "Search class or section")}
+        searchLabel={t("শ্রেণি খুঁজুন", "Search classes")}
+        isFiltered={ds.isFiltered}
+        onReset={ds.reset}
+        onExportAll={() =>
+          d &&
+          exportCsv(
+            `dues-by-institute-${localDay()}.csv`,
             d.rows.map((r) => ({
               Class: r.cls_en,
               Section: r.sec_name ?? "",
@@ -36,52 +66,70 @@ export function UnpaidInstituteScreen() {
               DueStudents: r.due_students,
               DueAmount: r.due_amount,
             })),
-          )}
-          disabled={!d}
-          className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-sunken disabled:opacity-60"
-        >
-          <Download size={16} /> {t("এক্সপোর্ট", "Export")}
-        </button>
-      </div>
+          )
+        }
+        exportAllCount={d?.rows.length ?? 0}
+      />
 
-      {q.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
-      ) : q.isError ? (
+      {q.isError ? (
         <ErrorState title={t("সারসংক্ষেপ লোড করা যায়নি", "Could not load summary")} description={msg(q.error)} />
-      ) : !d || d.rows.length === 0 ? (
+      ) : !q.isLoading && (!d || d.rows.length === 0) ? (
         <EmptyState icon={<Wallet size={22} />} title={t("কোনো বকেয়া তথ্য নেই", "No dues data")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
-          <div className="min-w-180">
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
-              <p className="flex-1 text-base font-semibold text-text-primary">{t("শ্রেণি-ভিত্তিক বকেয়ার সারসংক্ষেপ", "Class-wise dues summary")}</p>
-              <span className="text-meta font-semibold text-primary">{t("মোট সারি", "Rows")}: {n(d.rows.length)}</span>
+        <>
+          <Table minWidth={760}>
+            <THead>
+              <TR>
+                <SortableTH sortKey="cls" sort={ds.sort} onSort={ds.setSort}>{t("শ্রেণি", "Class")}</SortableTH>
+                <SortableTH sortKey="section" sort={ds.sort} onSort={ds.setSort}>{t("শাখা", "Section")}</SortableTH>
+                <SortableTH sortKey="students" sort={ds.sort} onSort={ds.setSort} className="text-right">{t("মোট শিক্ষার্থী", "Total")}</SortableTH>
+                <SortableTH sortKey="dueStudents" sort={ds.sort} onSort={ds.setSort} className="text-right">{t("বকেয়া শিক্ষার্থী", "Due students")}</SortableTH>
+                <SortableTH sortKey="due" sort={ds.sort} onSort={ds.setSort} className="text-right">{t("মোট বকেয়া", "Total due")}</SortableTH>
+              </TR>
+            </THead>
+            <TBody>
+              {q.isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TR key={i}>{Array.from({ length: 5 }).map((__, j) => <TD key={j}><Skeleton className="h-5" /></TD>)}</TR>
+                ))
+              ) : rows.length === 0 ? (
+                <TableEmpty colSpan={5} title={t("কোনো মিল পাওয়া যায়নি", "No matches")} />
+              ) : (
+                rows.map((r, i) => (
+                  <TR key={`${r.numeric_level}-${r.sec_name}-${i}`}>
+                    <TD className="text-sm font-semibold text-text-primary">{isBn ? r.cls_bn : r.cls_en}</TD>
+                    <TD className="text-meta text-text-secondary">{r.sec_name ?? "—"}</TD>
+                    <TD className="text-right text-meta text-text-secondary tnum">{n(r.total_students)}</TD>
+                    <TD className="text-right text-meta font-semibold text-danger-fg tnum">{n(r.due_students)}</TD>
+                    <TD className="text-right text-sm font-bold text-text-primary tnum">৳{n(r.due_amount)}</TD>
+                  </TR>
+                ))
+              )}
+            </TBody>
+          </Table>
+
+          {/* Institution-wide, from the RPC — never a sum of the visible page. */}
+          {d ? (
+            <div className="flex items-center gap-3 rounded-xl bg-primary px-5 py-3.5 text-text-on-primary">
+              <span className="flex-1 text-sm font-semibold">{t("সর্বমোট (পুরো প্রতিষ্ঠান)", "Grand total (whole institution)")}</span>
+              <span className="w-32 text-right text-sm font-bold tnum">{n(d.total_students)}</span>
+              <span className="w-32 text-right text-sm font-bold tnum">{n(d.due_students)}</span>
+              <span className="w-32 text-right text-sm font-bold tnum">৳{n(d.total_due)}</span>
             </div>
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
-              <div className="flex-1">{t("শ্রেণি", "Class")}</div>
-              <div className="w-35">{t("শাখা", "Section")}</div>
-              <div className="w-32.5 text-right">{t("মোট শিক্ষার্থী", "Total")}</div>
-              <div className="w-32.5 text-right">{t("বকেয়া শিক্ষার্থী", "Due students")}</div>
-              <div className="w-32.5 text-right">{t("মোট বকেয়া", "Total due")}</div>
-            </div>
-            {d.rows.map((r, i) => (
-              <div key={`${r.numeric_level}-${r.sec_name}-${i}`} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                <div className="flex-1 text-sm font-semibold text-text-primary">{isBn ? r.cls_bn : r.cls_en}</div>
-                <div className="w-35 text-meta text-text-secondary">{r.sec_name ?? "—"}</div>
-                <div className="w-32.5 text-right text-meta text-text-secondary tnum">{n(r.total_students)}</div>
-                <div className="w-32.5 text-right text-meta font-semibold text-danger-fg tnum">{n(r.due_students)}</div>
-                <div className="w-32.5 text-right text-sm font-bold text-text-primary tnum">৳{n(r.due_amount)}</div>
-              </div>
-            ))}
-            <div className="flex items-center gap-3 bg-primary px-5 py-3.5 text-text-on-primary">
-              <div className="flex-1 text-sm font-semibold">{t("সর্বমোট", "Grand total")}</div>
-              <div className="w-35" />
-              <div className="w-32.5 text-right text-sm font-bold tnum">{n(d.total_students)}</div>
-              <div className="w-32.5 text-right text-sm font-bold tnum">{n(d.due_students)}</div>
-              <div className="w-32.5 text-right text-sm font-bold tnum">৳{n(d.total_due)}</div>
-            </div>
-          </div>
-        </div>
+          ) : null}
+
+          {total > ds.perPage ? (
+            <Pagination
+              label={t(
+                `${n(ds.from)}–${n(ds.to(total))} দেখানো হচ্ছে · মোট ${n(total)} সারি`,
+                `Showing ${ds.from}-${ds.to(total)} of ${total}`,
+              )}
+              pages={ds.pages(total)}
+              current={ds.page}
+              onPageChange={ds.setPage}
+            />
+          ) : null}
+        </>
       )}
     </div>
   );

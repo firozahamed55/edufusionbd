@@ -1,28 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import { Download, Wallet } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
+import { Wallet } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Skeleton, EmptyState, ErrorState, PageHeader } from "@/shared/ui";
+import {
+  Field, Select, Skeleton, EmptyState, ErrorState, PageHeader, Pagination, LiveRegion,
+  Table, THead, TBody, TR, TH, TD, TableEmpty, SortableTH, DataToolbar,
+} from "@/shared/ui";
+import { useDataScreen, applyClientList } from "@/shared/lib/useDataScreen";
 import { exportCsv } from "@/shared/lib/exportCsv";
+import { localDay } from "@/shared/lib/format";
 import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useUnpaidBySection } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
-/** Fee · Dues (by Section) — live per-student outstanding dues for a section. */
+/**
+ * Fee · Dues (by Section) — live per-student outstanding dues.
+ *
+ * "Find who owes, sort by amount, act on them" is the loop this screen exists
+ * for, and sorting by amount was the one thing it could not do (SRA A-0.1). Now
+ * URL-addressable, sortable, searchable, paged and exportable, with the roster
+ * as a real `<Table>` rather than nested flex `<div>`s (A-0.7).
+ */
 export function UnpaidSectionScreen() {
   const { t, n, isBn } = useT();
   const msg = useErrorMessage();
-  const [sectionId, setSectionId] = useState("");
+
+  const ds = useDataScreen({ filters: { sectionId: "" } });
+  const { sectionId } = ds.filters;
+
   const sections = useClassSectionsLookup();
   const q = useUnpaidBySection(sectionId || null);
   const opt = (list?: Option[]) => (list ?? []).map((o) => ({ value: o.value, label: isBn ? o.label_bn : o.label_en }));
-  const total = (q.data ?? []).reduce((s, r) => s + r.due, 0);
+
+  const all = q.data ?? [];
+  // The grand total is of the WHOLE section, not the visible page — a footer
+  // that silently sums one page is the defect this module has been bitten by
+  // before (see the client-side-filter note in fee/logic/api.ts).
+  const grandTotal = all.reduce((s, r) => s + r.due, 0);
+
+  const { rows, total } = applyClientList(all, ds, {
+    search: (r) => [r.name_bn, r.name_en, r.code, r.roll, r.detail],
+    sort: {
+      due: (r) => r.due,
+      roll: (r) => r.roll,
+      name: (r) => (isBn ? r.name_bn : r.name_en),
+      code: (r) => r.code,
+    },
+  });
 
   return (
     <div className="flex flex-col gap-5">
+      <LiveRegion
+        message={
+          !sectionId
+            ? ""
+            : q.isLoading
+              ? t("লোড হচ্ছে", "Loading dues")
+              : t(`${n(total)} জনের বকেয়া পাওয়া গেছে`, `${total} students with dues`)
+        }
+      />
+
       <PageHeader
         crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("বকেয়া তথ্য", "Dues") }]}
         title={t("বকেয়া তথ্য", "Dues")}
@@ -31,64 +69,95 @@ export function UnpaidSectionScreen() {
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("শ্রেণি ও শাখা", "Class & Section")} required className="w-75 max-w-full">
-          <Select value={sectionId} placeholder={sections.isLoading ? t("লোড হচ্ছে…", "Loading…") : t("নির্বাচন করুন", "Select")} options={opt(sections.data)} onChange={(e) => setSectionId(e.target.value)} />
+          <Select
+            value={sectionId}
+            placeholder={sections.isLoading ? t("লোড হচ্ছে…", "Loading…") : t("নির্বাচন করুন", "Select")}
+            options={opt(sections.data)}
+            onChange={(e) => ds.setFilter("sectionId", e.target.value)}
+          />
         </Field>
-        <div className="flex-1" />
-        <button
-          onClick={() => exportCsv(
-            `dues-by-section-${new Date().toISOString().slice(0, 10)}.csv`,
-            (q.data ?? []).map((r) => ({
-              StudentId: r.code ?? "",
-              Roll: r.roll ?? "",
-              Name: r.name_en,
-              Detail: r.detail ?? "",
-              Due: r.due,
-            })),
-          )}
-          disabled={!sectionId || (q.data ?? []).length === 0}
-          className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-sunken disabled:opacity-60"
-        >
-          <Download size={16} /> {t("এক্সপোর্ট", "Export")}
-        </button>
       </div>
+
+      {sectionId ? (
+        <DataToolbar
+          q={ds.q}
+          onQChange={ds.setQ}
+          placeholder={t("নাম, আইডি বা রোল খুঁজুন", "Search name, ID or roll")}
+          searchLabel={t("বকেয়া শিক্ষার্থী খুঁজুন", "Search students with dues")}
+          isFiltered={ds.isFiltered}
+          onReset={ds.reset}
+          onExportAll={() =>
+            exportCsv(
+              `dues-by-section-${localDay()}.csv`,
+              all.map((r) => ({
+                StudentId: r.code ?? "",
+                Roll: r.roll ?? "",
+                Name: r.name_en,
+                Detail: r.detail ?? "",
+                Due: r.due,
+              })),
+            )
+          }
+          exportAllCount={all.length}
+        />
+      ) : null}
 
       {!sectionId ? (
         <EmptyState icon={<Wallet size={22} />} title={t("একটি শাখা নির্বাচন করুন", "Select a section")} />
-      ) : q.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : q.isError ? (
         <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(q.error)} />
-      ) : (q.data ?? []).length === 0 ? (
+      ) : !q.isLoading && all.length === 0 ? (
         <EmptyState icon={<Wallet size={22} />} title={t("এই শাখায় কোনো বকেয়া নেই", "No dues in this section")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
-          <div className="min-w-240">
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
-              <p className="flex-1 text-base font-semibold text-text-primary">{t("বকেয়া শিক্ষার্থী তালিকা", "Unpaid student list")}</p>
-              <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n((q.data ?? []).length)}</span>
-            </div>
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
-              <div className="w-30">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
-              <div className="w-15">{t("রোল", "Roll")}</div>
-              <div className="w-37.5">{t("নাম", "Name")}</div>
-              <div className="flex-1">{t("বকেয়ার বিবরণ", "Dues detail")}</div>
-              <div className="w-25 text-right">{t("মোট বকেয়া", "Total due")}</div>
-            </div>
-            {(q.data ?? []).map((r, i) => (
-              <div key={r.studentId} className={cn("flex items-start gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                <div className="w-30 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
-                <div className="w-15 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
-                <div className="w-37.5 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                <div className="flex-1 text-meta leading-relaxed text-text-muted">{r.detail || "—"}</div>
-                <div className="w-25 text-right text-sm font-bold text-text-primary tnum">৳{n(r.due)}</div>
-              </div>
-            ))}
-            <div className="flex items-center gap-3 border-t border-border-strong bg-primary-subtle px-5 py-3.5 text-sm font-bold text-primary">
-              <div className="flex-1">{t("সর্বমোট", "Grand total")}</div>
-              <div className="w-25 text-right tnum">৳{n(total)}</div>
-            </div>
+        <>
+          <Table minWidth={800}>
+            <THead>
+              <TR>
+                <SortableTH sortKey="code" sort={ds.sort} onSort={ds.setSort}>{t("শিক্ষার্থী আইডি", "Student ID")}</SortableTH>
+                <SortableTH sortKey="roll" sort={ds.sort} onSort={ds.setSort}>{t("রোল", "Roll")}</SortableTH>
+                <SortableTH sortKey="name" sort={ds.sort} onSort={ds.setSort}>{t("নাম", "Name")}</SortableTH>
+                <TH>{t("বকেয়ার বিবরণ", "Dues detail")}</TH>
+                <SortableTH sortKey="due" sort={ds.sort} onSort={ds.setSort} className="text-right">{t("মোট বকেয়া", "Total due")}</SortableTH>
+              </TR>
+            </THead>
+            <TBody>
+              {q.isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TR key={i}>{Array.from({ length: 5 }).map((__, j) => <TD key={j}><Skeleton className="h-5" /></TD>)}</TR>
+                ))
+              ) : rows.length === 0 ? (
+                <TableEmpty colSpan={5} title={t("কোনো মিল পাওয়া যায়নি", "No matches")} />
+              ) : (
+                rows.map((r) => (
+                  <TR key={r.studentId}>
+                    <TD className="font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</TD>
+                    <TD className="text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</TD>
+                    <TD className="text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</TD>
+                    <TD className="text-meta leading-relaxed text-text-muted">{r.detail || "—"}</TD>
+                    <TD className="text-right text-sm font-bold text-text-primary tnum">৳{n(r.due)}</TD>
+                  </TR>
+                ))
+              )}
+            </TBody>
+          </Table>
+
+          <div className="flex items-center gap-3 rounded-xl border border-border-strong bg-primary-subtle px-5 py-3.5 text-sm font-bold text-primary">
+            <span className="flex-1">{t("সর্বমোট (পুরো শাখা)", "Grand total (whole section)")}</span>
+            <span className="tnum">৳{n(grandTotal)}</span>
           </div>
-        </div>
+
+          {total > ds.perPage ? (
+            <Pagination
+              label={t(
+                `${n(ds.from)}–${n(ds.to(total))} দেখানো হচ্ছে · মোট ${n(total)} জন`,
+                `Showing ${ds.from}-${ds.to(total)} of ${total}`,
+              )}
+              pages={ds.pages(total)}
+              current={ds.page}
+              onPageChange={ds.setPage}
+            />
+          ) : null}
+        </>
       )}
     </div>
   );
