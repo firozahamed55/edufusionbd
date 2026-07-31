@@ -6,7 +6,6 @@ import { cn } from "@/shared/lib/cn";
 import type {
   ReactNode,
   ComponentPropsWithRef,
-  InputHTMLAttributes,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
@@ -125,8 +124,11 @@ const controlBase =
 export function Input({
   className,
   ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+}: ComponentPropsWithRef<"input">) {
   const invalid = useFieldError();
+  // `ComponentPropsWithRef`, not `InputHTMLAttributes`: React 19 passes `ref`
+  // as an ordinary prop, and grid screens need one to move focus between cells
+  // (`useGridNavigation`).
   return <input className={cn(controlBase, className)} {...invalid} {...props} />;
 }
 
@@ -237,13 +239,24 @@ export function UnsavedDot() {
 export function Checkbox({
   className,
   indeterminate,
+  ref,
   ...props
 }: ComponentPropsWithRef<"input"> & { indeterminate?: boolean }) {
   return (
     <input
       type="checkbox"
+      /*
+       * `ref` is destructured out and merged here on purpose. It used to sit in
+       * `...props`, which is spread AFTER this attribute — so any caller that
+       * passed a ref silently replaced the one setting `indeterminate`, and the
+       * mixed-selection state stopped rendering. Only two call sites did, and
+       * both happened to set `indeterminate` themselves, which is exactly why
+       * nobody noticed.
+       */
       ref={(el) => {
         if (el) el.indeterminate = Boolean(indeterminate);
+        if (typeof ref === "function") ref(el);
+        else if (ref) ref.current = el;
       }}
       className={cn(
         "size-4 shrink-0 cursor-pointer rounded border border-border-control bg-surface align-middle accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",

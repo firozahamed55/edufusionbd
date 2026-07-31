@@ -176,7 +176,7 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
           </div>
           <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-meta font-semibold text-text-muted">
             <div className="flex w-10 items-center">
-              <Checkbox checked={allSelected} ref={(el) => { if (el) el.indeterminate = someSelected; }} onChange={toggleAll} aria-label={t("সব নির্বাচন করুন", "Select all")} />
+              <Checkbox checked={allSelected} indeterminate={someSelected} onChange={toggleAll} aria-label={t("সব নির্বাচন করুন", "Select all")} />
             </div>
             <div className="w-37.5">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
             <div className="w-20">{t("রোল", "Roll")}</div>

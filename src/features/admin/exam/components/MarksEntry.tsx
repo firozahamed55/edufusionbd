@@ -13,6 +13,7 @@ import { useErrorMessage } from "@/shared/services/errors";
 import { useDraft } from "@/shared/lib/useDraft";
 import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import { formatDateTime } from "@/shared/lib/format";
+import { useGridNavigation } from "@/shared/lib/useGridNavigation";
 
 /** Live mark entry/update — pick exam + section + subject, enter marks, save. */
 export function MarksEntry({ mode }: { mode: "input" | "update" }) {
@@ -82,6 +83,12 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   const draft = useDraft(draftKey, marks, entered > 0);
   // Only warn once something is actually at stake.
   useUnsavedGuard(entered > 0);
+
+  /**
+   * 60 students used to be 60 Tab presses with no way back up (SRA A-5.1
+   * item 4). Two columns: the mark input, then the absent checkbox.
+   */
+  const grid = useGridNavigation({ rows: rows.length, cols: 2 });
   const setMark = (id: string, patch: Partial<{ marks: string; absent: boolean }>) => setMarks((p) => ({ ...p, [id]: { ...(p[id] ?? { marks: "", absent: false }), ...patch } }));
 
   /**
@@ -205,11 +212,15 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
                     <Input type="number" min={0} max={full.value} value={m.marks} disabled={m.absent}
                       aria-invalid={over}
                       aria-label={t(`${r.name_bn} এর নম্বর`, `Marks for ${r.name_en}`)}
+                      ref={grid.register(i, 0)}
+                      onKeyDown={grid.onKeyDown(i, 0)}
                       onChange={(e) => setMark(r.studentId, { marks: e.target.value })} className="h-9 text-center font-latin" />
                     {over ? <p role="alert" className="mt-0.5 text-xs text-danger-fg">{t(`০–${n(full.value)}`, `0–${full.value}`)}</p> : null}
                   </div>
                   <div className="flex w-24 justify-center">
                     <Checkbox checked={m.absent} aria-label={t(`${r.name_bn} অনুপস্থিত`, `${r.name_en} absent`)}
+                      ref={grid.register(i, 1)}
+                      onKeyDown={grid.onKeyDown(i, 1)}
                       onChange={(e) => setMark(r.studentId, { absent: e.target.checked, marks: e.target.checked ? "" : m.marks })} />
                   </div>
                 </div>

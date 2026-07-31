@@ -26,20 +26,47 @@ const tintTone = {
 
 export type AttTone = keyof typeof solidTone;
 
+/**
+ * One status choice for one student.
+ *
+ * It IS the interactive element now. It used to render its own `<button>` and
+ * every call site wrapped it in a second `<button>` — invalid nesting, which
+ * browsers recover from unpredictably and screen readers announce as two
+ * controls where there is one.
+ *
+ * `role="radio"` inside the caller's `role="radiogroup"`, because "exactly one
+ * of present/absent/late/leave" is precisely what a radio group means. That
+ * also buys the roving-tabindex behaviour assistive tech already expects: one
+ * tab stop per student, not four.
+ */
 export function StatusPill({
   tone,
   label,
   active,
+  onSelect,
+  ref,
+  onKeyDown,
 }: {
   tone: AttTone;
   label: string;
   active: boolean;
+  onSelect: () => void;
+  ref?: React.Ref<HTMLButtonElement>;
+  onKeyDown?: React.KeyboardEventHandler;
 }) {
   return (
     <button
       type="button"
+      role="radio"
+      aria-checked={active}
+      // Roving tabindex: Tab reaches the row's current answer, arrows move
+      // between rows, digits pick a status.
+      tabIndex={active ? 0 : -1}
+      ref={ref}
+      onClick={onSelect}
+      onKeyDown={onKeyDown}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-meta font-semibold transition-colors",
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-meta font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         active ? solidTone[tone] : cn(tintTone[tone], "hover:brightness-95"),
       )}
     >

@@ -15,6 +15,7 @@ import { localDay, formatDateTime } from "@/shared/lib/format";
 import { useDraft } from "@/shared/lib/useDraft";
 import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import { smsCost } from "@/shared/lib/sms";
+import { useGridNavigation } from "@/shared/lib/useGridNavigation";
 import { useSmsAccount } from "@/features/admin/sms-notice/logic/hooks";
 
 // Institution-time day. Attendance taken at 19:00 local belongs to *today*, and
@@ -77,6 +78,13 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
   const draftKey = sectionId && date ? `attendance:${context}:${sectionId}:${date}:${examId || "-"}` : null;
   const draft = useDraft(draftKey, statuses, rows.length > 0);
   useUnsavedGuard(rows.length > 0);
+
+  /**
+   * Marking a section was 60 mouse clicks (SRA A-4 item 6). One column of
+   * status pickers, arrow-navigable, with 1..n selecting a status directly —
+   * the shortcut a teacher actually wants at 8am.
+   */
+  const grid = useGridNavigation({ rows: rows.length, cols: 1 });
 
   const setOne = (id: string, v: string) => setStatuses((p) => ({ ...p, [id]: v }));
   const markAll = (v: string) => setStatuses(Object.fromEntries(rows.map((r) => [r.studentId, v])));
@@ -197,12 +205,48 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
                 <div className="w-37.5 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
                 <div className="w-17.5 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
                 <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                <div className="flex items-center gap-2">
-                  {STATUSES.map((s) => (
-                    <button key={s.value} type="button" onClick={() => setOne(r.studentId, s.value)} className="appearance-none border-0 bg-transparent p-0">
-                      <StatusPill tone={s.tone} label={t(s.bn, s.en)} active={statuses[r.studentId] === s.value} />
-                    </button>
-                  ))}
+                {/*
+                  One tab stop per student, arrows between students, and 1..4
+                  to pick a status outright — marking a section was 60 mouse
+                  clicks (SRA A-4 item 6).
+                */}
+                <div
+                  role="radiogroup"
+                  aria-label={t(`${r.name_bn} এর উপস্থিতি`, `Attendance for ${r.name_en}`)}
+                  className="flex items-center gap-2"
+                >
+                  {STATUSES.map((s, si) => {
+                    const active = (statuses[r.studentId] ?? "present") === s.value;
+                    return (
+                      <StatusPill
+                        key={s.value}
+                        tone={s.tone}
+                        label={t(s.bn, s.en)}
+                        active={active}
+                        onSelect={() => setOne(r.studentId, s.value)}
+                        // Only the active pill is a tab stop and only it is
+                        // registered, so arrow-up/down lands on the row's answer.
+                        ref={active ? grid.register(i, 0) : undefined}
+                        onKeyDown={(e) => {
+                          const digit = Number(e.key);
+                          if (digit >= 1 && digit <= STATUSES.length) {
+                            e.preventDefault();
+                            setOne(r.studentId, STATUSES[digit - 1].value);
+                            return;
+                          }
+                          // Left/right pick within the row; up/down and
+                          // Home/End move between students.
+                          if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                            e.preventDefault();
+                            const next = (si + (e.key === "ArrowRight" ? 1 : STATUSES.length - 1)) % STATUSES.length;
+                            setOne(r.studentId, STATUSES[next].value);
+                            return;
+                          }
+                          grid.onKeyDown(i, 0)(e);
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             ))}
