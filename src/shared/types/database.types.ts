@@ -5432,7 +5432,10 @@ export type Database = {
     }
     Functions: {
       fn_attendance_summary: {
-        Args: { p_class_section_id: string; p_from: string; p_to: string }
+        // `p_class_section_id` is nullable and means institution-wide. The
+        // generator emits every uuid argument as non-null; keep this hand
+        // widened, or the Analytics screen cannot express its own default.
+        Args: { p_class_section_id: string | null; p_from: string; p_to: string }
         Returns: Json
       }
       fn_collect_fee: { Args: { payload: Json }; Returns: string }
@@ -5462,6 +5465,10 @@ export type Database = {
       fn_generate_code: { Args: { p_entity: string }; Returns: string }
       fn_generate_monthly_invoices: { Args: never; Returns: number }
       fn_mark_attendance: { Args: { payload: Json }; Returns: number }
+      fn_my_permissions: { Args: never; Returns: string[] }
+      fn_permission_matrix: { Args: never; Returns: Json }
+      fn_set_user_roles: { Args: { payload: Json }; Returns: undefined }
+      fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
       fn_process_exam_result: {
         Args: { p_exam_id: string }
         Returns: undefined

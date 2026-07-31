@@ -135,7 +135,19 @@ export const upsertSignature = (s: BrowserClient, payload: RpcPayload) => call(s
 export const deleteSignature = (s: BrowserClient, id: string) => call(s, "fn_delete_signature", { p_id: id });
 
 /* users (read-only list) */
-export type UserRow = { id: string; full_name: string | null; phone: string | null; status: string; roles: string };
+export type UserRow = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  status: string;
+  /** Display string, comma-joined. */
+  roles: string;
+  /** Role ids, for the assignment editor. */
+  roleIds: string[];
+  /** Was absent entirely — "has this account ever been used" is the first
+   *  question anyone asks of a user list (SRA A-0.4). */
+  lastLoginAt: string | null;
+};
 
 const USERS_PAGE_SIZE = 25;
 
@@ -147,10 +159,62 @@ export async function fetchUsers(
   const to = from + perPage - 1;
   const { data, error, count } = await s
     .from("profile")
-    .select("id, full_name, phone, status, roles:user_role(role:role_id(name))", { count: "exact" })
+    .select("id, full_name, phone, status, last_login_at, roles:user_role(role_id, role:role_id(name))", { count: "exact" })
     .order("created_at")
     .range(from, to);
   if (error) throw error;
-  const rows = (data ?? []).map((r) => ({ id: r.id, full_name: r.full_name, phone: r.phone, status: r.status, roles: (r.roles ?? []).map((x) => x.role?.name).filter(Boolean).join(", ") }));
+  const rows = (data ?? []).map((r) => ({
+    id: r.id,
+    full_name: r.full_name,
+    phone: r.phone,
+    status: r.status,
+    roles: (r.roles ?? []).map((x) => x.role?.name).filter(Boolean).join(", "),
+    roleIds: (r.roles ?? []).map((x) => x.role_id).filter(Boolean),
+    lastLoginAt: r.last_login_at,
+  }));
   return { rows, total: count ?? 0 };
+}
+
+/* ------------------------------------------------------------------ RBAC */
+
+/**
+ * Roles, permissions and grants — the model that shipped in migration
+ * 20260726043308 and had no way into the product (SRA F-4).
+ */
+export type RoleRow = { id: string; code: string; name: string; is_system: boolean };
+export type PermissionRow = { id: string; code: string; label: string; module: string };
+export type PermissionMatrix = {
+  roles: RoleRow[];
+  permissions: PermissionRow[];
+  grants: { role_id: string; permission_id: string }[];
+};
+
+export async function fetchPermissionMatrix(s: BrowserClient): Promise<PermissionMatrix> {
+  const { data, error } = await s.rpc("fn_permission_matrix");
+  if (error) throw new Error(error.message);
+  const m = (data ?? {}) as Partial<PermissionMatrix>;
+  return { roles: m.roles ?? [], permissions: m.permissions ?? [], grants: m.grants ?? [] };
+}
+
+/** The caller's own permission codes. Drives what the rail shows. */
+export async function fetchMyPermissions(s: BrowserClient): Promise<string[]> {
+  const { data, error } = await s.rpc("fn_my_permissions");
+  if (error) throw new Error(error.message);
+  return (data as string[]) ?? [];
+}
+
+/**
+ * Set semantics: the screen sends the complete intended role list, so a role
+ * unticked in the UI is revoked. The RPC refuses to let an operator strip their
+ * own last admin role.
+ */
+export async function setUserRoles(s: BrowserClient, profileId: string, roleIds: string[]): Promise<void> {
+  const { error } = await s.rpc("fn_set_user_roles", { payload: { profile_id: profileId, role_ids: roleIds } });
+  if (error) throw new Error(error.message);
+}
+
+/** Suspend/reactivate. Never a delete — a profile carries audit attribution. */
+export async function setUserStatus(s: BrowserClient, profileId: string, status: "active" | "suspended"): Promise<void> {
+  const { error } = await s.rpc("fn_set_user_status", { payload: { profile_id: profileId, status } });
+  if (error) throw new Error(error.message);
 }
