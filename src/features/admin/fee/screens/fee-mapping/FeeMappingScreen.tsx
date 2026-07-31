@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Plus, List, CheckCircle2, PauseCircle, Tag, Trash2, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Select, Input, Button, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast, PageHeader } from "@/shared/ui";
+import {
+  Field, Select, Input, Button, Skeleton, ErrorState, ConfirmDialog, useToast, PageHeader,
+  Table, THead, TBody, TR, TH, TD, TableEmpty,
+} from "@/shared/ui";
 import { useClasses, useStudentCategories } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useFeeMappings, useFeeHeads, useUpsertFeeMapping, useDeleteFeeMapping } from "../../logic/hooks";
@@ -87,47 +90,60 @@ export function FeeMappingScreen() {
           <Button variant="primary" onClick={add} disabled={upsert.isPending}><Plus size={16} /> {upsert.isPending ? t("যোগ হচ্ছে…", "Adding…") : t("ম্যাপিং যোগ করুন", "Add mapping")}</Button>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
-          <div className="min-w-160">
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
-              <p className="flex-1 text-base font-semibold text-text-primary">{t("ফি ম্যাপিং তালিকা", "Fee mappings")}</p>
-              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
-            </div>
-            {mappings.isLoading ? (
-              <div className="flex flex-col gap-2 p-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
-            ) : mappings.isError ? (
-              <div className="p-5"><ErrorState title={t("লোড করা যায়নি", "Could not load")} /></div>
-            ) : rows.length === 0 ? (
-              <div className="p-5"><EmptyState icon={<Tag size={22} />} title={t("কোনো ম্যাপিং নেই", "No mappings yet")} /></div>
-            ) : (
-              <>
-                <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
-                  <div className="flex-1">{t("শ্রেণি", "Class")}</div>
-                  <div className="w-27.5">{t("ফি হেড", "Head")}</div>
-                  <div className="w-20 text-right">{t("পরিমাণ", "Amount")}</div>
-                  <div className="w-30">{t("ফ্রিকোয়েন্সি", "Frequency")}</div>
-                  <div className="w-17.5 text-center">{t("স্ট্যাটাস", "Status")}</div>
-                  <div className="w-14 text-right">{t("অ্যাকশন", "Action")}</div>
-                </div>
-                {rows.map((m, i) => (
-                  <div key={m.id} className={cn("flex items-center gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
-                    <div className="flex-1 text-meta font-medium text-text-primary">{isBn ? m.class_bn : m.class_en}{m.category ? ` · ${m.category}` : ""}</div>
-                    <div className="w-27.5"><span className="inline-block rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">{m.head}</span></div>
-                    <div className="w-20 text-right text-sm font-bold text-text-primary tnum">৳{n(m.amount)}</div>
-                    <div className="w-30 text-meta text-text-secondary">{freqLabel(m.frequency, isBn)}</div>
-                    <div className="flex w-17.5 justify-center">
-                      <button onClick={() => toggle(m.id, !m.is_active)} aria-label={t("টগল", "Toggle")} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", m.is_active ? "bg-primary" : "bg-border-strong")}>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <p className="flex-1 text-base font-semibold text-text-primary">{t("ফি ম্যাপিং তালিকা", "Fee mappings")}</p>
+            <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(rows.length)}</span>
+          </div>
+          {mappings.isError ? (
+            <ErrorState title={t("লোড করা যায়নি", "Could not load")} />
+          ) : (
+            <Table minWidth={820}>
+              <THead>
+                <TR>
+                  <TH>{t("শ্রেণি", "Class")}</TH>
+                  <TH className="w-27.5">{t("ফি হেড", "Head")}</TH>
+                  <TH className="w-20 text-right">{t("পরিমাণ", "Amount")}</TH>
+                  <TH className="w-30">{t("ফ্রিকোয়েন্সি", "Frequency")}</TH>
+                  <TH className="w-17.5 text-center">{t("স্ট্যাটাস", "Status")}</TH>
+                  <TH className="w-14 text-right">{t("অ্যাকশন", "Action")}</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {mappings.isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <TR key={i}>{Array.from({ length: 6 }).map((__, j) => <TD key={j}><Skeleton className="h-5" /></TD>)}</TR>
+                  ))
+                ) : rows.length === 0 ? (
+                  <TableEmpty colSpan={6} icon={<Tag size={22} />} title={t("কোনো ম্যাপিং নেই", "No mappings yet")} />
+                ) : rows.map((m) => (
+                  <TR key={m.id}>
+                    <TD className="text-meta font-medium text-text-primary">{isBn ? m.class_bn : m.class_en}{m.category ? ` · ${m.category}` : ""}</TD>
+                    <TD><span className="inline-block rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">{m.head}</span></TD>
+                    <TD className="text-right text-sm font-bold text-text-primary tnum">৳{n(m.amount)}</TD>
+                    <TD className="text-meta text-text-secondary">{freqLabel(m.frequency, isBn)}</TD>
+                    <TD className="text-center">
+                      {/* role=switch + aria-checked: it was a bare <button>
+                          labelled "Toggle", which announces neither what it
+                          toggles nor whether it is currently on. */}
+                      <button
+                        onClick={() => toggle(m.id, !m.is_active)}
+                        role="switch"
+                        aria-checked={m.is_active}
+                        aria-label={t(`${m.head} সক্রিয়`, `${m.head} active`)}
+                        className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", m.is_active ? "bg-primary" : "bg-border-strong")}
+                      >
                         <span className={cn("absolute size-4 rounded-full bg-white transition-all", m.is_active ? "right-0.5" : "left-0.5")} />
                       </button>
-                    </div>
-                    <div className="flex w-14 items-center justify-end">
-                      <button onClick={() => setDelId(m.id)} aria-label={t("মুছুন", "Delete")} className="grid size-7 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
-                    </div>
-                  </div>
+                    </TD>
+                    <TD className="text-right">
+                      <button onClick={() => setDelId(m.id)} aria-label={t(`${m.head} ম্যাপিং মুছুন`, `Delete ${m.head} mapping`)} className="grid size-7 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
+                    </TD>
+                  </TR>
                 ))}
-              </>
-            )}
-          </div>
+              </TBody>
+            </Table>
+          )}
         </div>
       </div>
 

@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, Award, X } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader } from "@/shared/ui";
+import {
+  Field, Input, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader,
+  Table, THead, TBody, TR, TH, TD,
+} from "@/shared/ui";
 import { useGradeSchemes, useUpsertScheme, useDeleteScheme } from "../../logic/hooks";
 import { validateGradeScale } from "../../logic/gradeScale";
 import type { GradeScale } from "../../logic/api";
@@ -121,26 +123,34 @@ export function GradingScreen() {
           </div>
 
           {active ? (
-            <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
-              <div className="flex items-center gap-3 bg-sunken px-5 py-3 text-meta font-semibold text-text-muted">
-                <div className="w-30">{t("গ্রেড", "Grade")}</div>
-                <div className="flex-1">{t("নম্বর সীমা", "Mark range")}</div>
-                <div className="w-50">{t("গ্রেড পয়েন্ট (GP)", "Grade Point (GP)")}</div>
-                <div className="flex-1">{t("মন্তব্য", "Remark")}</div>
-                <div className="w-11" />
-              </div>
-              {sortedScales.map((s, i) => (
-                <div key={i} className={cn("flex items-center gap-3 border-t border-border-default px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                  <div className="w-30"><Badge tone={gradeTone(s.grade_letter)}>{s.grade_letter}</Badge></div>
-                  <div className="flex-1 text-sm text-text-secondary tnum">{n(s.min_marks)} – {n(s.max_marks)}</div>
-                  <div className="w-50 text-sm font-semibold text-text-primary tnum">{n(s.gpa_point.toFixed(2))}</div>
-                  <div className="flex-1 text-meta text-text-secondary">{t(...(REMARKS[s.grade_letter] ?? ["—", "—"]))}</div>
-                  <div className="flex w-11 justify-end">
-                    <button onClick={openEdit} aria-label={t("সম্পাদনা", "Edit")} className="grid size-8 place-items-center rounded-md text-text-muted hover:bg-sunken"><Pencil size={15} /></button>
-                  </div>
-                </div>
-              ))}
-              <div className="flex items-center justify-between border-t border-border-default px-5 py-3">
+            <div className="flex flex-col gap-3">
+              {/* Grade / range / GP / remark is a four-column lookup table and
+                  is read as one — exactly the case <th scope> exists for. */}
+              <Table minWidth={760}>
+                <THead>
+                  <TR>
+                    <TH className="w-30">{t("গ্রেড", "Grade")}</TH>
+                    <TH>{t("নম্বর সীমা", "Mark range")}</TH>
+                    <TH className="w-50">{t("গ্রেড পয়েন্ট (GP)", "Grade Point (GP)")}</TH>
+                    <TH>{t("মন্তব্য", "Remark")}</TH>
+                    <TH className="w-11"><span className="sr-only">{t("অ্যাকশন", "Actions")}</span></TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {sortedScales.map((s, i) => (
+                    <TR key={i}>
+                      <TD><Badge tone={gradeTone(s.grade_letter)}>{s.grade_letter}</Badge></TD>
+                      <TD className="text-sm text-text-secondary tnum">{n(s.min_marks)} – {n(s.max_marks)}</TD>
+                      <TD className="text-sm font-semibold text-text-primary tnum">{n(s.gpa_point.toFixed(2))}</TD>
+                      <TD className="text-meta text-text-secondary">{t(...(REMARKS[s.grade_letter] ?? ["—", "—"]))}</TD>
+                      <TD className="text-right">
+                        <button onClick={openEdit} aria-label={t(`${s.grade_letter} সম্পাদনা`, `Edit ${s.grade_letter}`)} className="grid size-8 place-items-center rounded-md text-text-muted hover:bg-sunken"><Pencil size={15} /></button>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+              <div className="flex items-center justify-between rounded-xl border border-border-default bg-surface px-5 py-3">
                 <span className="text-meta text-text-muted">{active.is_default ? <Badge tone="success">{t("ডিফল্ট স্কিম", "Default scheme")}</Badge> : null}</span>
                 <button onClick={() => setDelId(active.id)} className="flex items-center gap-1.5 text-meta font-semibold text-danger-fg hover:underline"><Trash2 size={14} /> {t("স্কিম মুছুন", "Delete scheme")}</button>
               </div>
@@ -157,22 +167,33 @@ export function GradingScreen() {
             <Field label={t("স্কিমের নাম", "Scheme name")} required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="GPA 5.0" /></Field>
             <label className="flex items-center gap-2 self-end pb-2.5 text-meta text-text-secondary"><input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="size-4 accent-primary" /> {t("ডিফল্ট স্কিম", "Default scheme")}</label>
           </div>
-          <div className="overflow-x-auto rounded-xl border border-border-default">
-            <div className="min-w-140">
-              <div className="flex items-center gap-2 border-b border-border-default bg-sunken px-3 py-2 text-xs font-semibold text-text-muted">
-                <div className="w-24">{t("গ্রেড", "Grade")}</div><div className="w-24">{t("GPA", "GPA")}</div><div className="w-28">{t("সর্বনিম্ন", "Min")}</div><div className="w-28">{t("সর্বোচ্চ", "Max")}</div><div className="w-10" />
-              </div>
+          {/* The editable band grid. A <table> here is what makes the column
+              header the accessible name of every input under it — the inputs
+              carry no visible label of their own. */}
+          <Table minWidth={560} className="text-xs">
+            <THead>
+              <TR>
+                <TH className="w-24">{t("গ্রেড", "Grade")}</TH>
+                <TH className="w-24">{t("GPA", "GPA")}</TH>
+                <TH className="w-28">{t("সর্বনিম্ন", "Min")}</TH>
+                <TH className="w-28">{t("সর্বোচ্চ", "Max")}</TH>
+                <TH className="w-10"><span className="sr-only">{t("সরান", "Remove")}</span></TH>
+              </TR>
+            </THead>
+            <TBody>
               {scales.map((s, i) => (
-                <div key={i} className="flex items-center gap-2 border-b border-border-default px-3 py-1.5 last:border-0">
-                  <Input value={s.grade_letter} onChange={(e) => setScale(i, "grade_letter", e.target.value)} className="h-8 w-24 font-latin" />
-                  <Input type="number" value={String(s.gpa_point)} onChange={(e) => setScale(i, "gpa_point", e.target.value)} className="h-8 w-24 font-latin" />
-                  <Input type="number" value={String(s.min_marks)} onChange={(e) => setScale(i, "min_marks", e.target.value)} className="h-8 w-28 font-latin" />
-                  <Input type="number" value={String(s.max_marks)} onChange={(e) => setScale(i, "max_marks", e.target.value)} className="h-8 w-28 font-latin" />
-                  <button onClick={() => setScales((p) => p.filter((_, j) => j !== i))} className="grid size-8 place-items-center rounded-md text-danger-fg hover:bg-sunken"><X size={15} /></button>
-                </div>
+                <TR key={i}>
+                  <TD className="px-3 py-1.5"><Input value={s.grade_letter} onChange={(e) => setScale(i, "grade_letter", e.target.value)} aria-label={t("গ্রেড", "Grade")} className="h-8 font-latin" /></TD>
+                  <TD className="px-3 py-1.5"><Input type="number" value={String(s.gpa_point)} onChange={(e) => setScale(i, "gpa_point", e.target.value)} aria-label={t("GPA", "GPA")} className="h-8 font-latin" /></TD>
+                  <TD className="px-3 py-1.5"><Input type="number" value={String(s.min_marks)} onChange={(e) => setScale(i, "min_marks", e.target.value)} aria-label={t("সর্বনিম্ন নম্বর", "Min marks")} className="h-8 font-latin" /></TD>
+                  <TD className="px-3 py-1.5"><Input type="number" value={String(s.max_marks)} onChange={(e) => setScale(i, "max_marks", e.target.value)} aria-label={t("সর্বোচ্চ নম্বর", "Max marks")} className="h-8 font-latin" /></TD>
+                  <TD className="px-3 py-1.5">
+                    <button onClick={() => setScales((p) => p.filter((_, j) => j !== i))} aria-label={t("এই গ্রেড সরান", "Remove this grade")} className="grid size-8 place-items-center rounded-md text-danger-fg hover:bg-sunken"><X size={15} /></button>
+                  </TD>
+                </TR>
               ))}
-            </div>
-          </div>
+            </TBody>
+          </Table>
           <button onClick={() => setScales((p) => [...p, { grade_letter: "", gpa_point: 0, min_marks: 0, max_marks: 0 }])} className="flex items-center gap-1.5 self-start rounded-md px-1 py-0.5 text-meta font-semibold text-primary hover:underline"><Plus size={14} /> {t("গ্রেড যোগ করুন", "Add grade")}</button>
 
           {scaleProblems.length > 0 ? (

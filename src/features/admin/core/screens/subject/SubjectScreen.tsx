@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, BookOpen, Search } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Select, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader } from "@/shared/ui";
+import {
+  Field, Input, Select, Button, Badge, ConfirmDialog, Modal, useToast, PageHeader, Skeleton,
+  Table, THead, TBody, TR, TH, TD, TableEmpty,
+} from "@/shared/ui";
 import { useSubjects, useUpsertSubject, useDeleteSubject, useClasses } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -85,46 +88,53 @@ export function SubjectScreen() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
-        {subjects.isLoading ? (
-          <div className="flex flex-col gap-2 p-5">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-11 animate-pulse rounded bg-sunken" />)}</div>
-        ) : rows.length === 0 ? (
-          <div className="p-5"><EmptyState icon={<BookOpen size={22} />} title={t("কোনো বিষয় নেই", "No subjects yet")} /></div>
-        ) : (
-          <>
-            <div className="flex items-center gap-3 bg-sunken px-5 py-3 text-meta font-semibold text-text-muted">
-              <div className="w-22.5">{t("কোড", "Code")}</div>
-              <div className="flex-1">{t("বিষয়", "Subject")}</div>
-              <div className="w-32.5">{t("ধরন", "Type")}</div>
-              <div className="w-25 text-right">{t("পূর্ণমান", "Full marks")}</div>
-              <div className="w-25 text-right">{t("পাস নম্বর", "Pass marks")}</div>
-              <div className="w-40">{t("প্রযোজ্য শ্রেণি", "Applicable classes")}</div>
-              <div className="w-27.5">{t("স্ট্যাটাস", "Status")}</div>
-              <div className="w-14" />
-            </div>
-            {rows.map((r, i) => (
-              <div key={r.id} className={cn("flex items-center gap-3 border-t border-border-default px-5 py-3", i % 2 === 1 && "bg-sunken")}>
-                <div className="w-22.5"><span className="rounded-md bg-sunken px-2 py-0.5 font-latin text-meta font-semibold text-text-secondary">{r.code ?? "—"}</span></div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-text-primary">{isBn ? r.name_bn : r.name_en}</p>
-                  <p className="text-xs text-text-muted">{r.name_bn} — {r.name_en}</p>
+      {/* Seven columns of subject data. It was nested flex <div>s with no
+          <th scope>, so nothing told a screen reader which number was the
+          full mark and which the pass mark (SRA A-0.7 / WCAG 1.3.1). */}
+      <Table minWidth={1040}>
+        <THead>
+          <TR>
+            <TH className="w-22.5">{t("কোড", "Code")}</TH>
+            <TH>{t("বিষয়", "Subject")}</TH>
+            <TH className="w-32.5">{t("ধরন", "Type")}</TH>
+            <TH className="w-25 text-right">{t("পূর্ণমান", "Full marks")}</TH>
+            <TH className="w-25 text-right">{t("পাস নম্বর", "Pass marks")}</TH>
+            <TH className="w-40">{t("প্রযোজ্য শ্রেণি", "Applicable classes")}</TH>
+            <TH className="w-27.5">{t("স্ট্যাটাস", "Status")}</TH>
+            <TH className="w-20"><span className="sr-only">{t("অ্যাকশন", "Actions")}</span></TH>
+          </TR>
+        </THead>
+        <TBody>
+          {subjects.isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <TR key={i}>{Array.from({ length: 8 }).map((__, j) => <TD key={j}><Skeleton className="h-5" /></TD>)}</TR>
+            ))
+          ) : rows.length === 0 ? (
+            <TableEmpty colSpan={8} icon={<BookOpen size={22} />} title={t("কোনো বিষয় নেই", "No subjects yet")} />
+          ) : rows.map((r) => (
+            <TR key={r.id}>
+              <TD><span className="rounded-md bg-sunken px-2 py-0.5 font-latin text-meta font-semibold text-text-secondary">{r.code ?? "—"}</span></TD>
+              <TD>
+                <p className="text-sm font-semibold text-text-primary">{isBn ? r.name_bn : r.name_en}</p>
+                <p className="text-xs text-text-muted">{r.name_bn} — {r.name_en}</p>
+              </TD>
+              <TD className="text-meta text-text-secondary">{TYPES.find((x) => x.value === r.type)?.[isBn ? "bn" : "en"] ?? r.type}</TD>
+              <TD className="text-right text-meta font-semibold text-text-primary tnum">{r.full_marks != null ? n(r.full_marks) : "—"}</TD>
+              <TD className="text-right text-meta text-text-secondary tnum">{r.pass_marks != null ? n(r.pass_marks) : "—"}</TD>
+              <TD className="text-meta text-text-secondary">
+                {r.min_class_level != null && r.max_class_level != null ? t(`${levelLabel(r.min_class_level)} – ${levelLabel(r.max_class_level)}`, `${levelLabel(r.min_class_level)} – ${levelLabel(r.max_class_level)}`) : "—"}
+              </TD>
+              <TD><Badge tone={r.status === "inactive" ? "warning" : "success"}>{r.status === "inactive" ? t("নিষ্ক্রিয়", "Inactive") : t("সক্রিয়", "Active")}</Badge></TD>
+              <TD>
+                <div className="flex items-center justify-end gap-1">
+                  <button onClick={() => openEdit(r)} aria-label={t(`${r.name_bn} সম্পাদনা`, `Edit ${r.name_en}`)} className="grid size-8 place-items-center rounded-md text-text-muted hover:bg-sunken"><Pencil size={15} /></button>
+                  <button onClick={() => setDelId(r.id)} aria-label={t(`${r.name_bn} মুছুন`, `Delete ${r.name_en}`)} className="grid size-8 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
                 </div>
-                <div className="w-32.5 text-meta text-text-secondary">{TYPES.find((x) => x.value === r.type)?.[isBn ? "bn" : "en"] ?? r.type}</div>
-                <div className="w-25 text-right text-meta font-semibold text-text-primary tnum">{r.full_marks != null ? n(r.full_marks) : "—"}</div>
-                <div className="w-25 text-right text-meta text-text-secondary tnum">{r.pass_marks != null ? n(r.pass_marks) : "—"}</div>
-                <div className="w-40 text-meta text-text-secondary">
-                  {r.min_class_level != null && r.max_class_level != null ? t(`${levelLabel(r.min_class_level)} – ${levelLabel(r.max_class_level)}`, `${levelLabel(r.min_class_level)} – ${levelLabel(r.max_class_level)}`) : "—"}
-                </div>
-                <div className="w-27.5"><Badge tone={r.status === "inactive" ? "warning" : "success"}>{r.status === "inactive" ? t("নিষ্ক্রিয়", "Inactive") : t("সক্রিয়", "Active")}</Badge></div>
-                <div className="flex w-14 items-center justify-end gap-1">
-                  <button onClick={() => openEdit(r)} aria-label={t("সম্পাদনা", "Edit")} className="grid size-8 place-items-center rounded-md text-text-muted hover:bg-sunken"><Pencil size={15} /></button>
-                  <button onClick={() => setDelId(r.id)} aria-label={t("মুছুন", "Delete")} className="grid size-8 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
+              </TD>
+            </TR>
+          ))}
+        </TBody>
+      </Table>
 
       <Modal open={open} onClose={() => setOpen(false)} title={f.id ? t("বিষয় সম্পাদনা", "Edit subject") : t("নতুন বিষয়", "New subject")}
         footer={<><Button variant="secondary" onClick={() => setOpen(false)}>{t("বাতিল", "Cancel")}</Button><Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button></>}

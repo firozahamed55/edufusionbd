@@ -4,8 +4,12 @@ import { Download, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { RELIGION, STUDENT_STATUS } from "@/shared/constants/enums";
-import { Skeleton, ErrorState, EmptyState } from "@/shared/ui";
+import {
+  Skeleton, ErrorState, EmptyState, Button, PageHeader,
+  Table, THead, TBody, TR, TH, TD,
+} from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
+import { localDay } from "@/shared/lib/format";
 import { useStudentReport } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -34,13 +38,17 @@ export function ReportsSummaryScreen() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start gap-3">
-        <div className="flex-1">
-          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary")}</h1>
-          <p className="mt-1 text-meta text-text-muted">{t("ভর্তিভুক্তি, লিঙ্গ ও শ্রেণিভিত্তিক পরিসংখ্যান", "Enrollment, gender & class-wise statistics")}</p>
-        </div>
-        <button
+        <PageHeader
+          className="flex-1"
+          crumbs={[{ label: t("শিক্ষার্থী", "Students"), href: "/admin/student/update-class" }, { label: t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary") }]}
+          title={t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary")}
+          subtitle={t("ভর্তিভুক্তি, লিঙ্গ ও শ্রেণিভিত্তিক পরিসংখ্যান", "Enrollment, gender & class-wise statistics")}
+        />
+        <Button
           onClick={() => report.data && exportCsv(
-            `student-summary-${new Date().toISOString().slice(0, 10)}.csv`,
+            // Institution time. `toISOString().slice(0,10)` names the file
+            // "yesterday" for anyone exporting after 18:00 in Dhaka (A-0.8).
+            `student-summary-${localDay()}.csv`,
             report.data.by_class.map((c) => ({
               Class: c.name_en,
               Sections: c.sections,
@@ -50,10 +58,9 @@ export function ReportsSummaryScreen() {
             })),
           )}
           disabled={!report.data}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60"
         >
           <Download size={16} /> {t("এক্সপোর্ট", "Export")}
-        </button>
+        </Button>
       </div>
 
       {report.isLoading ? (
@@ -134,41 +141,46 @@ export function ReportsSummaryScreen() {
                 </div>
               </div>
 
-              <Card className="p-0">
-                <div className="px-5 pt-5">
-                  <CardHead title={t("শ্রেণিভিত্তিক বিন্যাস (লিঙ্গসহ)", "Class Distribution (by gender)")} subtitle={t("প্রতি শ্রেণিতে শাখা, ছেলে, মেয়ে ও মোট শিক্ষার্থী", "Sections, boys, girls & total per class")} />
-                </div>
-                <div className="mt-3 overflow-x-auto">
-                  <div className="min-w-160">
-                    <div className="flex items-center gap-3 px-5 py-3 text-meta font-semibold text-text-muted">
-                      <div className="flex-1">{t("শ্রেণি", "Class")}</div>
-                      <div className="w-22.5 text-right">{t("শাখা", "Sections")}</div>
-                      <div className="w-22.5 text-right">{t("ছেলে", "Boys")}</div>
-                      <div className="w-22.5 text-right">{t("মেয়ে", "Girls")}</div>
-                      <div className="w-22.5 text-right">{t("মোট", "Total")}</div>
-                      <div className="w-22.5 text-right">{t("শতকরা", "Percent")}</div>
-                    </div>
-                    {d.by_class.map((c, i) => (
-                      <div key={c.numeric_level} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
-                        <div className="flex-1 text-sm font-semibold text-text-primary">{isBn ? c.name_bn : c.name_en}</div>
-                        <div className="w-22.5 text-right text-meta text-text-secondary tnum">{n(c.sections)}</div>
-                        <div className="w-22.5 text-right text-meta text-text-secondary tnum">{n(c.boys)}</div>
-                        <div className="w-22.5 text-right text-meta text-text-secondary tnum">{n(c.girls)}</div>
-                        <div className="w-22.5 text-right text-meta font-semibold text-text-primary tnum">{n(c.total)}</div>
-                        <div className="w-22.5 text-right text-meta font-medium text-primary">{pct(c.total, d.total)}%</div>
-                      </div>
+              <div className="flex flex-col gap-3">
+                <CardHead title={t("শ্রেণিভিত্তিক বিন্যাস (লিঙ্গসহ)", "Class Distribution (by gender)")} subtitle={t("প্রতি শ্রেণিতে শাখা, ছেলে, মেয়ে ও মোট শিক্ষার্থী", "Sections, boys, girls & total per class")} />
+                {/* Six numeric columns per class, with a grand total. It was
+                    nested flex <div>s, so nothing associated a number with its
+                    column or marked the total row as a total (SRA A-0.7). */}
+                <Table minWidth={720}>
+                  <THead>
+                    <TR>
+                      <TH>{t("শ্রেণি", "Class")}</TH>
+                      <TH className="w-22.5 text-right">{t("শাখা", "Sections")}</TH>
+                      <TH className="w-22.5 text-right">{t("ছেলে", "Boys")}</TH>
+                      <TH className="w-22.5 text-right">{t("মেয়ে", "Girls")}</TH>
+                      <TH className="w-22.5 text-right">{t("মোট", "Total")}</TH>
+                      <TH className="w-22.5 text-right">{t("শতকরা", "Percent")}</TH>
+                    </TR>
+                  </THead>
+                  <TBody>
+                    {d.by_class.map((c) => (
+                      <TR key={c.numeric_level}>
+                        <TH scope="row" className="text-left text-sm font-semibold text-text-primary">{isBn ? c.name_bn : c.name_en}</TH>
+                        <TD className="text-right text-meta text-text-secondary tnum">{n(c.sections)}</TD>
+                        <TD className="text-right text-meta text-text-secondary tnum">{n(c.boys)}</TD>
+                        <TD className="text-right text-meta text-text-secondary tnum">{n(c.girls)}</TD>
+                        <TD className="text-right text-meta font-semibold text-text-primary tnum">{n(c.total)}</TD>
+                        <TD className="text-right text-meta font-medium text-primary">{pct(c.total, d.total)}%</TD>
+                      </TR>
                     ))}
-                    <div className="flex items-center gap-3 border-t border-border-strong bg-sunken px-5 py-3 text-meta font-bold text-text-primary">
-                      <div className="flex-1">{t("সর্বমোট", "Grand total")}</div>
-                      <div className="w-22.5 text-right">—</div>
-                      <div className="w-22.5 text-right tnum">{n(d.boys)}</div>
-                      <div className="w-22.5 text-right tnum">{n(d.girls)}</div>
-                      <div className="w-22.5 text-right tnum">{n(d.total)}</div>
-                      <div className="w-22.5 text-right">100%</div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                  </TBody>
+                  <tfoot>
+                    <tr className="border-t border-border-strong bg-sunken text-meta font-bold text-text-primary">
+                      <th scope="row" className="px-5 py-3 text-left">{t("সর্বমোট", "Grand total")}</th>
+                      <td className="px-5 py-3 text-right">—</td>
+                      <td className="px-5 py-3 text-right tnum">{n(d.boys)}</td>
+                      <td className="px-5 py-3 text-right tnum">{n(d.girls)}</td>
+                      <td className="px-5 py-3 text-right tnum">{n(d.total)}</td>
+                      <td className="px-5 py-3 text-right">100%</td>
+                    </tr>
+                  </tfoot>
+                </Table>
+              </div>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {religionEntries.length > 0 && (

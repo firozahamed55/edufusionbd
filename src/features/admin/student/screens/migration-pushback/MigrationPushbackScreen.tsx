@@ -4,7 +4,10 @@ import { useState } from "react";
 import { ChevronRight, AlertTriangle, RotateCcw, History } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Button, FormCard, Field, Select, SaveBar, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast } from "@/shared/ui";
+import {
+  Button, FormCard, Field, Select, SaveBar, Skeleton, EmptyState, ErrorState, ConfirmDialog, useToast,
+  Table, THead, TBody, TR, TH, TD, TableEmpty,
+} from "@/shared/ui";
 import { useMigrationBatches, useMigrationBatchStudents, usePushbackMigration } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -77,38 +80,42 @@ export function MigrationPushbackScreen() {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
-            <div className="border-b border-border-default px-5 py-4">
-              <p className="text-base font-semibold text-text-primary">
-                {t("প্রভাবিত শিক্ষার্থী", "Affected Students")} — {selectedBatch.target_label} → {selectedBatch.source_label}
-              </p>
-            </div>
-            {affected.isLoading ? (
-              <div className="flex flex-col gap-2 p-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
-            ) : (affected.data ?? []).length === 0 ? (
-              <div className="p-5"><EmptyState title={t("কোনো রেকর্ড নেই", "No records")} /></div>
-            ) : (
-              <>
-                <div className="flex items-center gap-3 px-5 pt-4 pb-2 text-meta font-semibold text-text-muted">
-                  <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
-                  <div className="w-24 text-right">{t("পুরাতন রোল", "Old Roll")}</div>
-                  <div className="w-24 text-right">{t("নতুন রোল", "New Roll")}</div>
-                  <div className="w-28">{t("ফলাফল", "Result")}</div>
-                </div>
-                {(affected.data ?? []).map((r, i) => (
-                  <div key={i} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                    <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                    <div className="w-24 text-right text-meta text-text-secondary tnum">{r.old_roll != null ? n(r.old_roll) : "—"}</div>
-                    <div className="w-24 text-right text-meta text-text-secondary tnum">{r.new_roll != null ? n(r.new_roll) : "—"}</div>
-                    <div className="w-28">
+          <div className="flex flex-col gap-3">
+            <p className="text-base font-semibold text-text-primary">
+              {t("প্রভাবিত শিক্ষার্থী", "Affected Students")} — {selectedBatch.target_label} → {selectedBatch.source_label}
+            </p>
+            {/* Old roll vs new roll is the whole point of this preview, and it
+                was two unlabelled numbers in a flex row. */}
+            <Table minWidth={620}>
+              <THead>
+                <TR>
+                  <TH>{t("শিক্ষার্থী", "Student")}</TH>
+                  <TH className="w-24 text-right">{t("পুরাতন রোল", "Old Roll")}</TH>
+                  <TH className="w-24 text-right">{t("নতুন রোল", "New Roll")}</TH>
+                  <TH className="w-28">{t("ফলাফল", "Result")}</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {affected.isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <TR key={i}>{Array.from({ length: 4 }).map((__, j) => <TD key={j}><Skeleton className="h-5" /></TD>)}</TR>
+                  ))
+                ) : (affected.data ?? []).length === 0 ? (
+                  <TableEmpty colSpan={4} title={t("কোনো রেকর্ড নেই", "No records")} />
+                ) : (affected.data ?? []).map((r, i) => (
+                  <TR key={i}>
+                    <TD className="text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</TD>
+                    <TD className="text-right text-meta text-text-secondary tnum">{r.old_roll != null ? n(r.old_roll) : "—"}</TD>
+                    <TD className="text-right text-meta text-text-secondary tnum">{r.new_roll != null ? n(r.new_roll) : "—"}</TD>
+                    <TD>
                       <span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", r.result === "pass" || !r.result ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg")}>
                         {r.result === "fail" ? t("অকৃতকার্য", "Failed") : t("উত্তীর্ণ", "Passed")}
                       </span>
-                    </div>
-                  </div>
+                    </TD>
+                  </TR>
                 ))}
-              </>
-            )}
+              </TBody>
+            </Table>
           </div>
 
           <SaveBar status={<span>{t(`${selectedBatch.count} জন শিক্ষার্থী পূর্ববর্তী শ্রেণিতে ফিরে যাবে`, `${selectedBatch.count} students will return to their previous class`)}</span>}>

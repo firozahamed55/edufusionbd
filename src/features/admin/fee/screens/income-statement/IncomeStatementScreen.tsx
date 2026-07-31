@@ -1,27 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, Search } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Button, Skeleton, ErrorState, PageHeader } from "@/shared/ui";
+import {
+  Field, Input, Button, Skeleton, ErrorState, PageHeader,
+  Table, THead, TBody, TR, TH, TD, TableEmpty,
+} from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
+import { useQueryState } from "@/shared/lib/useQueryState";
 import { useIncomeStatement } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
-import { localDay } from "@/shared/lib/format";
+import { localDay, dayOffset } from "@/shared/lib/format";
 
-// Institution-time day boundaries (UTC would report yesterday after 18:00 local).
-const iso = (d: Date) => localDay(d);
-
-/** Fee · Income Statement — live income/expenditure over a date range. */
+/**
+ * Fee · Income Statement — income and expenditure over a date range.
+ *
+ * The range lives in the URL (SRA A-0.1): a statement is the one artefact in
+ * the finance module that gets *sent* to someone, and "last quarter" was
+ * previously a set of controls the recipient had to be told how to reproduce.
+ * The explicit Search button stays — A-0.3 kept exactly this pattern, because a
+ * range is only meaningful once both ends are set.
+ */
 export function IncomeStatementScreen() {
   const { t, n } = useT();
   const msg = useErrorMessage();
-  const today = new Date();
-  const monthAgo = new Date(today.getTime() - 30 * 864e5);
-  const [from, setFrom] = useState(iso(monthAgo));
-  const [to, setTo] = useState(iso(today));
-  const [range, setRange] = useState<{ from: string; to: string }>({ from: iso(monthAgo), to: iso(today) });
+
+  const [range, setRange] = useQueryState({ from: dayOffset(-30), to: localDay() });
+  const [draft, setDraft] = useState(range);
+  // The URL is the source of truth — a shared link must move the controls too.
+  useEffect(() => setDraft(range), [range]);
+  const { from, to } = draft;
 
   const q = useIncomeStatement(range.from, range.to, Boolean(range.from && range.to));
   const d = q.data;
@@ -35,11 +44,17 @@ export function IncomeStatementScreen() {
       />
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
-        <Field label={t("শুরুর তারিখ", "From")} required className="w-50"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
-        <Field label={t("শেষ তারিখ", "To")} required className="w-50"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
-        <Button variant="primary" className="h-10.5 px-6" onClick={() => setRange({ from, to })}><Search size={16} /> {t("অনুসন্ধান", "Search")}</Button>
+        <Field label={t("শুরুর তারিখ", "From")} required className="w-50">
+          <Input type="date" value={from} max={to} onChange={(e) => setDraft((p) => ({ ...p, from: e.target.value }))} />
+        </Field>
+        <Field label={t("শেষ তারিখ", "To")} required className="w-50">
+          <Input type="date" value={to} min={from} onChange={(e) => setDraft((p) => ({ ...p, to: e.target.value }))} />
+        </Field>
+        <Button variant="primary" className="h-10.5 px-6" onClick={() => setRange(draft)}><Search size={16} /> {t("অনুসন্ধান", "Search")}</Button>
         {d ? (
-          <button
+          <Button
+            variant="secondary"
+            className="h-10.5 px-6"
             onClick={() => exportCsv(
               `income-statement-${range.from}-to-${range.to}.csv`,
               [
@@ -48,10 +63,9 @@ export function IncomeStatementScreen() {
                 { Section: "Net", Head: "Excess of income over expenditure", Debit: "", Credit: d.total_income - d.total_expense },
               ],
             )}
-            className="flex h-10.5 items-center gap-2 rounded-lg border border-border-strong bg-surface px-6 text-sm font-semibold text-text-secondary hover:bg-sunken"
           >
             <Download size={16} /> {t("এক্সপোর্ট", "Export")}
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -62,13 +76,17 @@ export function IncomeStatementScreen() {
       ) : d ? (
         <>
           <Ledger title={t("আয়ের তালিকা", "Income")} totalLabel={t("মোট আয়", "Total income")} credit={`৳${n(d.total_income)}`}>
-            {d.income.length === 0 ? <Empty t={t} /> : d.income.map((r, i) => <LedgerRow key={r.head} head={r.head} credit={`৳${n(r.amount)}`} last={i === d.income.length - 1} />)}
+            {d.income.length === 0
+              ? <TableEmpty colSpan={3} title={t("কোনো তথ্য পাওয়া যায়নি", "No data found")} />
+              : d.income.map((r) => <LedgerRow key={r.head} head={r.head} credit={`৳${n(r.amount)}`} />)}
           </Ledger>
           <Ledger title={t("ব্যায়ের তালিকা", "Expenditure")} totalLabel={t("মোট ব্যায়", "Total expense")} credit={`৳${n(d.total_expense)}`}>
-            {d.expense.length === 0 ? <Empty t={t} /> : d.expense.map((r, i) => <LedgerRow key={r.head} head={r.head} debit={`৳${n(r.amount)}`} last={i === d.expense.length - 1} />)}
+            {d.expense.length === 0
+              ? <TableEmpty colSpan={3} title={t("কোনো তথ্য পাওয়া যায়নি", "No data found")} />
+              : d.expense.map((r) => <LedgerRow key={r.head} head={r.head} debit={`৳${n(r.amount)}`} />)}
           </Ledger>
           <Ledger title={t("লাভ / ক্ষতির তালিকা", "Profit / Loss")} totalLabel={t("সর্বমোট", "Net")} credit={`৳${n(d.total_income - d.total_expense)}`}>
-            <LedgerRow head={t("আয়-ব্যায় উদ্বৃত্ত (Excess of Income over Expenditure)", "Excess of income over expenditure")} credit={`৳${n(d.total_income - d.total_expense)}`} last />
+            <LedgerRow head={t("আয়-ব্যায় উদ্বৃত্ত (Excess of Income over Expenditure)", "Excess of income over expenditure")} credit={`৳${n(d.total_income - d.total_expense)}`} />
           </Ledger>
         </>
       ) : null}
@@ -76,35 +94,43 @@ export function IncomeStatementScreen() {
   );
 }
 
-function Empty({ t }: { t: (bn: string, en: string) => string }) {
-  return <div className="px-5 py-6 text-center text-meta text-text-muted">{t("কোনো তথ্য পাওয়া যায়নি", "No data found")}</div>;
-}
-
+/**
+ * A real `<table>` with a `<tfoot>` total (SRA A-0.7). A statement is the most
+ * table-shaped object in the product — head, debit, credit — and it was three
+ * nested flex `<div>`s per row, so a screen reader read the numbers with no way
+ * to tell debit from credit, and the total was just another row of text.
+ */
 function Ledger({ title, totalLabel, credit, children }: { title: string; totalLabel: string; credit: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
-      <div className="border-b border-border-default px-5 py-4"><p className="text-base font-semibold text-text-primary">{title}</p></div>
-      <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
-        <div className="flex-1">{title.includes("আয়") || title.toLowerCase().includes("income") ? "খাত / Head" : "খাত / Head"}</div>
-        <div className="w-40 text-right">{"ডেবিট / Debit"}</div>
-        <div className="w-40 text-right">{"ক্রেডিট / Credit"}</div>
-      </div>
-      {children}
-      <div className="flex items-center gap-3 bg-primary px-5 py-3.5 text-text-on-primary">
-        <div className="flex-1 text-sm font-semibold">{totalLabel}</div>
-        <div className="w-40 text-right text-sm font-bold" />
-        <div className="w-40 text-right text-sm font-bold tnum">{credit}</div>
-      </div>
+    <div className="flex flex-col gap-2">
+      <p className="text-base font-semibold text-text-primary">{title}</p>
+      <Table minWidth={640}>
+        <THead>
+          <TR>
+            <TH>{"খাত / Head"}</TH>
+            <TH className="w-40 text-right">{"ডেবিট / Debit"}</TH>
+            <TH className="w-40 text-right">{"ক্রেডিট / Credit"}</TH>
+          </TR>
+        </THead>
+        <TBody>{children}</TBody>
+        <tfoot>
+          <tr className="bg-primary text-text-on-primary">
+            <th scope="row" className="px-5 py-3.5 text-left text-sm font-semibold">{totalLabel}</th>
+            <td className="px-5 py-3.5" />
+            <td className="px-5 py-3.5 text-right text-sm font-bold tnum">{credit}</td>
+          </tr>
+        </tfoot>
+      </Table>
     </div>
   );
 }
 
-function LedgerRow({ head, debit, credit, last }: { head: string; debit?: string; credit?: string; last?: boolean }) {
+function LedgerRow({ head, debit, credit }: { head: string; debit?: string; credit?: string }) {
   return (
-    <div className={cn("flex items-center gap-3 px-5 py-3.5", !last && "border-b border-border-default")}>
-      <div className="flex-1 text-meta text-text-secondary">{head}</div>
-      <div className="w-40 text-right text-meta text-text-secondary tnum">{debit ?? "—"}</div>
-      <div className="w-40 text-right text-meta font-semibold text-text-primary tnum">{credit ?? "—"}</div>
-    </div>
+    <TR>
+      <TD className="text-meta text-text-secondary">{head}</TD>
+      <TD className="text-right text-meta text-text-secondary tnum">{debit ?? "—"}</TD>
+      <TD className="text-right text-meta font-semibold text-text-primary tnum">{credit ?? "—"}</TD>
+    </TR>
   );
 }

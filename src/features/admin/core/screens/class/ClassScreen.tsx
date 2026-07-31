@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2, GraduationCap, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Select, Button, EmptyState, ConfirmDialog, useToast, PageHeader } from "@/shared/ui";
+import {
+  FormCard, Field, Input, Select, Button, EmptyState, ConfirmDialog, useToast, PageHeader,
+  Table, THead, TBody, TR, TH, TD, TableEmpty,
+} from "@/shared/ui";
 import {
   useClasses, useUpsertClass, useDeleteClass,
   useClassSections, useUpsertClassSection, useDeleteClassSection, useTeacherOptions,
@@ -140,31 +143,42 @@ export function ClassScreen() {
                 <Button variant="primary" onClick={addSection} disabled={upsertSection.isPending}><Plus size={14} /> {sf.id ? t("হালনাগাদ", "Update") : t("শাখা যোগ করুন", "Add section")}</Button>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-border-default">
-                <div className="flex items-center gap-3 bg-sunken px-4 py-2.5 text-meta font-semibold text-text-muted">
-                  <div className="flex-1">{t("শাখা", "Section")}</div>
-                  <div className="w-25">{t("ধারণক্ষমতা", "Capacity")}</div>
-                  <div className="w-20">{t("ভর্তি", "Enrolled")}</div>
-                  <div className="flex-1">{t("শ্রেণি শিক্ষক", "Class teacher")}</div>
-                  <div className="w-9" />
-                </div>
-                {sections.isLoading ? (
-                  <div className="p-4 text-meta text-text-muted">{t("লোড হচ্ছে…", "Loading…")}</div>
-                ) : (sections.data ?? []).length === 0 ? (
-                  <div className="p-4"><EmptyState icon={<Users size={20} />} title={t("কোনো শাখা নেই", "No sections yet")} /></div>
-                ) : (sections.data ?? []).map((s, i) => (
-                  <div key={s.id} className={cn("flex items-center gap-3 border-t border-border-default px-4 py-3", i % 2 === 1 && "bg-sunken")}>
-                    <div className="flex flex-1 items-center gap-2">
-                      <span className="grid size-7 place-items-center rounded-lg bg-primary-subtle text-sm font-bold text-primary">{s.sectionName.slice(0, 1)}</span>
-                      <span className="text-sm font-semibold text-text-primary">{t(`শাখা ${s.sectionName}`, s.sectionName)}</span>
-                    </div>
-                    <div className="w-25 text-meta text-text-secondary tnum">{s.capacity != null ? n(s.capacity) : "—"}</div>
-                    <div className="w-20 text-meta font-semibold text-text-primary tnum">{n(s.enrolled)}</div>
-                    <div className="flex-1 text-meta text-text-secondary">{s.classTeacherName ?? "—"}</div>
-                    <button onClick={() => setDelSectionId(s.id)} aria-label={t("মুছুন", "Delete")} className="grid size-9 shrink-0 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
-                  </div>
-                ))}
-              </div>
+              {/* A real <table>: this is four columns of section data with
+                  headers, and nested flex <div>s gave a screen reader an
+                  undifferentiated wall of text (SRA A-0.7 / WCAG 1.3.1). */}
+              <Table minWidth={560}>
+                <THead>
+                  <TR>
+                    <TH>{t("শাখা", "Section")}</TH>
+                    <TH className="w-25">{t("ধারণক্ষমতা", "Capacity")}</TH>
+                    <TH className="w-20">{t("ভর্তি", "Enrolled")}</TH>
+                    <TH>{t("শ্রেণি শিক্ষক", "Class teacher")}</TH>
+                    <TH className="w-12"><span className="sr-only">{t("অ্যাকশন", "Actions")}</span></TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {sections.isLoading ? (
+                    <TR><TD colSpan={5} className="text-meta text-text-muted">{t("লোড হচ্ছে…", "Loading…")}</TD></TR>
+                  ) : (sections.data ?? []).length === 0 ? (
+                    <TableEmpty colSpan={5} icon={<Users size={20} />} title={t("কোনো শাখা নেই", "No sections yet")} />
+                  ) : (sections.data ?? []).map((s) => (
+                    <TR key={s.id}>
+                      <TD>
+                        <span className="flex items-center gap-2">
+                          <span className="grid size-7 place-items-center rounded-lg bg-primary-subtle text-sm font-bold text-primary">{s.sectionName.slice(0, 1)}</span>
+                          <span className="text-sm font-semibold text-text-primary">{t(`শাখা ${s.sectionName}`, s.sectionName)}</span>
+                        </span>
+                      </TD>
+                      <TD className="text-meta text-text-secondary tnum">{s.capacity != null ? n(s.capacity) : "—"}</TD>
+                      <TD className="text-meta font-semibold text-text-primary tnum">{n(s.enrolled)}</TD>
+                      <TD className="text-meta text-text-secondary">{s.classTeacherName ?? "—"}</TD>
+                      <TD>
+                        <button onClick={() => setDelSectionId(s.id)} aria-label={t(`শাখা ${s.sectionName} মুছুন`, `Delete section ${s.sectionName}`)} className="grid size-9 shrink-0 place-items-center rounded-md text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
             </FormCard>
           ) : null}
         </div>
