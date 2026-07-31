@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, RotateCcw, CheckCheck, Users } from "lucide-react";
+import { Check, RotateCcw, CheckCheck, Users, AlertTriangle, History, MessageSquare } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Button, Field, Select, Input, SaveBar, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
@@ -11,7 +11,11 @@ import type { Option } from "@/shared/services/lookups/api";
 import { StatusPill, SummaryDot, Toggle, type AttTone } from "./parts";
 import { useExams, useSectionAttendance, useMarkAttendance } from "../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
-import { localDay } from "@/shared/lib/format";
+import { localDay, formatDateTime } from "@/shared/lib/format";
+import { useDraft } from "@/shared/lib/useDraft";
+import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
+import { smsCost } from "@/shared/lib/sms";
+import { useSmsAccount } from "@/features/admin/sms-notice/logic/hooks";
 
 // Institution-time day. Attendance taken at 19:00 local belongs to *today*, and
 // `toISOString()` would file it under yesterday for a UTC+6 audience.
@@ -57,9 +61,22 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
   // hydrate statuses from existing marks + default remaining to present
   useEffect(() => {
     if (!rows.length) return;
-    const ex = existing.data ?? {};
+    const ex = existing.data?.statuses ?? {};
     setStatuses(Object.fromEntries(rows.map((r) => [r.studentId, ex[r.studentId] ?? "present"])));
   }, [students.data, existing.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * Attendance for this (section, date[, exam]) already exists (SRA A-4 item 2).
+   * Hydration used to be silent, so the operator could not tell a first entry
+   * from an overwrite — on a Save that texts guardians and spends balance.
+   */
+  const alreadyTaken = (existing.data?.count ?? 0) > 0;
+
+  // Autosave, same reasoning as Marks Entry: this is the highest-frequency
+  // operation in the product and it runs on the flakiest connections.
+  const draftKey = sectionId && date ? `attendance:${context}:${sectionId}:${date}:${examId || "-"}` : null;
+  const draft = useDraft(draftKey, statuses, rows.length > 0);
+  useUnsavedGuard(rows.length > 0);
 
   const setOne = (id: string, v: string) => setStatuses((p) => ({ ...p, [id]: v }));
   const markAll = (v: string) => setStatuses(Object.fromEntries(rows.map((r) => [r.studentId, v])));
@@ -72,13 +89,35 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
 
   const canSave = Boolean(sectionId && date && (!isExam || examId) && rows.length) && !mark.isPending;
 
+  /**
+   * What the SMS toggle will actually cost, before it is switched on (SRA A-4
+   * item 5). It sat beside a Save button with no preview of the message, the
+   * recipient count or the spend.
+   */
+  const account = useSmsAccount();
+  const absentees = useMemo(
+    () => Object.values(statuses).filter((v) => v === "absent" || v === "exam_absent").length,
+    [statuses],
+  );
+  // The message the RPC composes. Bangla, so UCS-2 — the encoding that costs
+  // 70 characters a segment, not 160.
+  const smsPreview = t(
+    `প্রিয় অভিভাবক, আপনার সন্তান ${date} তারিখে বিদ্যালয়ে অনুপস্থিত ছিল।`,
+    `Dear guardian, your child was absent from school on ${date}.`,
+  );
+  const smsSegments = smsCost(smsPreview).segments;
+  const smsUnits = sms ? smsSegments * absentees : 0;
+
   function save() {
     if (isExam && !examId) { toast({ title: t("পরীক্ষা নির্বাচন করুন", "Select an exam"), variant: "error" }); return; }
     if (!canSave) return;
     mark.mutate(
       { class_section_id: sectionId, att_date: date, context, exam_id: isExam ? examId : undefined, sms, entries: rows.map((r) => ({ student_id: r.studentId, status: statuses[r.studentId] ?? "present" })) },
       {
-        onSuccess: (count) => toast({ title: t(`${count} জনের উপস্থিতি সংরক্ষিত হয়েছে`, `Attendance saved for ${count}`), variant: "success" }),
+        onSuccess: (count) => {
+          draft.clear();
+          toast({ title: t(`${count} জনের উপস্থিতি সংরক্ষিত হয়েছে`, `Attendance saved for ${count}`), variant: "success" });
+        },
         onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       },
     );
@@ -104,6 +143,36 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
         {/* No Search button: the roster loads reactively from the selects above.
             A control that cannot be actioned in this release is not rendered. */}
       </div>
+
+      {alreadyTaken ? (
+        <div className="flex items-start gap-2.5 rounded-xl border border-warning-fg/30 bg-warning-bg px-4 py-3 text-meta text-warning-fg">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <p>
+            {t(
+              `এই তারিখের উপস্থিতি ইতিমধ্যে নেওয়া হয়েছে${existing.data?.takenBy ? ` — ${existing.data.takenBy}` : ""}${existing.data?.takenAt ? `, ${formatDateTime(existing.data.takenAt)}` : ""}। সংরক্ষণ করলে তা পরিবর্তিত হবে এবং SMS আবার যাবে।`,
+              `Attendance for this date was already recorded${existing.data?.takenBy ? ` by ${existing.data.takenBy}` : ""}${existing.data?.takenAt ? ` at ${formatDateTime(existing.data.takenAt)}` : ""}. Saving overwrites it, and SMS goes out again.`,
+            )}
+          </p>
+        </div>
+      ) : null}
+
+      {draft.pending ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-meta text-info-fg">
+          <History size={16} className="shrink-0" />
+          <span className="flex-1">
+            {t(
+              `${formatDateTime(draft.savedAt)} এ অসংরক্ষিত উপস্থিতি পাওয়া গেছে।`,
+              `Unsaved attendance found from ${formatDateTime(draft.savedAt)}.`,
+            )}
+          </span>
+          <Button variant="secondary" className="h-8 px-3" onClick={() => { const d = draft.accept(); if (d) setStatuses(d); }}>
+            {t("ফিরিয়ে আনুন", "Restore")}
+          </Button>
+          <Button variant="ghost" className="h-8 px-3" onClick={() => draft.discard()}>
+            {t("বাদ দিন", "Discard")}
+          </Button>
+        </div>
+      ) : null}
 
       {!sectionId || (isExam && !examId) ? (
         <EmptyState icon={<Users size={22} />} title={isExam ? t("শ্রেণি ও পরীক্ষা নির্বাচন করুন", "Select class & exam") : t("একটি শ্রেণি নির্বাচন করুন", "Select a class")} />
@@ -141,6 +210,26 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
         </div>
       )}
 
+      {/*
+        The bill, before it is incurred (SRA A-4 item 5). The toggle sat beside
+        Save with no preview of the message, the recipient count or the spend —
+        and Bangla is UCS-2, so an ordinary sentence is more than one segment.
+      */}
+      {sms && absentees > 0 ? (
+        <div className="flex flex-col gap-1.5 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-meta text-info-fg">
+          <div className="flex items-start gap-2.5">
+            <MessageSquare size={16} className="mt-0.5 shrink-0" />
+            <p className="flex-1">
+              {t(
+                `${n(absentees)} জন অনুপস্থিতের অভিভাবককে SMS যাবে · ${n(smsSegments)} সেগমেন্ট × ${n(absentees)} = ${n(smsUnits)} টি এসএমএস · ব্যালেন্স ${n(account.data?.balance ?? 0)}`,
+                `SMS to ${absentees} absentees' guardians · ${smsSegments} segments × ${absentees} = ${smsUnits} messages · balance ${account.data?.balance ?? 0}`,
+              )}
+            </p>
+          </div>
+          <p className="pl-6.5 italic opacity-80">&ldquo;{smsPreview}&rdquo;</p>
+        </div>
+      ) : null}
+
       <SaveBar
         status={
           <div className="flex flex-wrap items-center gap-3 text-meta text-text-secondary">
@@ -149,10 +238,21 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
           </div>
         }
       >
-        <label className="mr-1 flex items-center gap-2 text-meta text-text-secondary">
+        {/*
+          Was `<button>` inside `<label>` — invalid nesting that breaks
+          label-click semantics and gives screen readers unpredictable output
+          (SRA A-0.7). `role="switch"` + `aria-checked` is the correct pattern.
+        */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={sms}
+          onClick={() => setSms((v) => !v)}
+          className="mr-1 flex items-center gap-2 rounded-md px-1 py-0.5 text-meta text-text-secondary"
+        >
           {t("অনুপস্থিতদের অভিভাবককে SMS", "SMS to absentees' guardians")}
-          <button type="button" onClick={() => setSms((v) => !v)}><Toggle on={sms} /></button>
-        </label>
+          <Toggle on={sms} />
+        </button>
         <Button variant="secondary" onClick={() => markAll("present")} disabled={mark.isPending}><RotateCcw size={15} /> {t("রিসেট", "Reset")}</Button>
         <Button variant="primary" onClick={save} disabled={!canSave}><Check size={16} /> {mark.isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button>
       </SaveBar>

@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { UserRound, FileText, Upload, Info } from "lucide-react";
 import { GENDER, RELIGION, BLOOD_GROUP } from "@/shared/constants/enums";
 import { useT } from "@/shared/i18n/useT";
-import { Button, FormCard, Field, Input, Select, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
+import { Button, FormCard, Field, Input, Select, Checkbox, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
+import { useZodForm } from "@/shared/lib/useZodForm";
+import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import {
   useDivisions,
   useDistricts,
@@ -14,18 +16,22 @@ import {
   useStudentCategories,
 } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
-import { BLOOD_TOKEN, type RegisterPayload } from "./logic/api";
+import { BLOOD_TOKEN, registerStudentSchema, type RegisterPayload, type RegisterFormValues } from "./logic/api";
 import { useRegisterStudent } from "./logic/useRegisterStudent";
 import { useErrorMessage } from "@/shared/services/errors";
 
-const EMPTY = {
+/**
+ * `same_as_present` is deliberately NOT here: it is a UI convenience that copies
+ * one address onto another, not a field the RPC stores. Keeping it out of the
+ * schema keeps `.strict()` honest.
+ */
+const EMPTY: RegisterFormValues = {
   name_bn: "", name_en: "", dob: "", gender: "", blood_group: "", religion: "",
   birth_reg_no: "", nationality: "বাংলাদেশি",
   academic_year_id: "", class_section_id: "", roll_no: "", admission_date: "", student_category_id: "",
   father_name: "", father_occupation: "",
   guardian_name: "", relationship: "", guardian_mobile: "", guardian_nid: "", monthly_income: "",
   present_division_id: "", present_district_id: "", present_upazila_id: "", present_village: "", present_house_road: "",
-  same_as_present: false,
   permanent_division_id: "", permanent_district_id: "", permanent_upazila_id: "", permanent_village: "", permanent_house_road: "",
 };
 
@@ -33,8 +39,25 @@ export function RegistrationScreen() {
   const { t, isBn } = useT();
   const msg = useErrorMessage();
   const toast = useToast();
-  const [f, setF] = useState({ ...EMPTY });
-  const up = (k: keyof typeof EMPTY, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
+  const [sameAsPresent, setSameAsPresent] = useState(false);
+
+  /**
+   * Inline, per-field validation (SRA F-1). This screen used to gate on a
+   * boolean and, on failure, fire a toast that named no field — across 31
+   * inputs and four cards.
+   */
+  const form = useZodForm(registerStudentSchema, EMPTY);
+  const f = form.values;
+  const up = <K extends keyof RegisterFormValues & string>(k: K, v: RegisterFormValues[K]) =>
+    form.setValue(k, v);
+  /** `error` + `touch` in one spread — see the note on `Field`'s `onBlur`. */
+  const bind = (k: keyof RegisterFormValues & string) => ({
+    error: form.errors[k],
+    onBlur: () => form.touch(k),
+  });
+
+  // 31 fields is a lot to lose to a closed tab on a shared school machine.
+  useUnsavedGuard(form.isDirty);
 
   const years = useAcademicYears();
   const classSections = useClassSectionsLookup();
@@ -54,19 +77,17 @@ export function RegistrationScreen() {
     (list ?? []).map((o) => ({ value: o.value, label: isBn ? o.label_bn : o.label_en }));
   const PICK = t("নির্বাচন করুন", "Select");
 
-  const canSubmit =
-    f.name_bn && f.name_en && f.dob && f.gender && f.guardian_mobile && f.academic_year_id && f.class_section_id;
-
   function submit() {
-    if (!canSubmit) {
-      toast({ title: t("প্রয়োজনীয় ফিল্ড পূরণ করুন", "Please fill the required fields"), variant: "error" });
+    const parsed = form.submit();
+    if (!parsed) {
+      // The toast now says only that something IS wrong; every field says WHAT.
+      toast({ title: t("চিহ্নিত ফিল্ডগুলো ঠিক করুন", "Fix the highlighted fields"), variant: "error" });
       return;
     }
-    const { same_as_present, ...fields } = f;
     const payload: RegisterPayload = {
-      ...fields,
+      ...f,
       blood_group: f.blood_group ? BLOOD_TOKEN[f.blood_group] ?? "" : "",
-      ...(same_as_present
+      ...(sameAsPresent
         ? {
             permanent_division_id: f.present_division_id,
             permanent_district_id: f.present_district_id,
@@ -79,7 +100,8 @@ export function RegistrationScreen() {
     mutate(payload, {
       onSuccess: (id) => {
         toast({ title: t("শিক্ষার্থী সফলভাবে ভর্তি হয়েছে", "Student registered successfully"), variant: "success" });
-        setF({ ...EMPTY });
+        form.reset(EMPTY);
+        setSameAsPresent(false);
         void id;
       },
       onError: (e: unknown) =>
@@ -101,34 +123,34 @@ export function RegistrationScreen() {
           {/* Basic info */}
           <FormCard title={t("শিক্ষার্থীর মৌলিক তথ্য", "Student Basic Info")}>
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Field label={t("পূর্ণ নাম (বাংলা)", "Full Name (Bangla)")} required>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label={t("পূর্ণ নাম (বাংলা)", "Full Name (Bangla)")} required {...bind("name_bn")}>
                   <Input value={f.name_bn} onChange={(e) => up("name_bn", e.target.value)} placeholder="রাহিম উদ্দিন" />
                 </Field>
-                <Field label={t("পূর্ণ নাম (English)", "Full Name (English)")} required>
+                <Field label={t("পূর্ণ নাম (English)", "Full Name (English)")} required {...bind("name_en")}>
                   <Input value={f.name_en} onChange={(e) => up("name_en", e.target.value)} placeholder="Rahim Uddin" className="font-latin" />
                 </Field>
               </div>
-              <div className="grid grid-cols-3 gap-4">
-                <Field label={t("জন্ম তারিখ", "Date of Birth")} required>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Field label={t("জন্ম তারিখ", "Date of Birth")} required {...bind("dob")}>
                   <Input type="date" value={f.dob} onChange={(e) => up("dob", e.target.value)} />
                 </Field>
-                <Field label={t("লিঙ্গ", "Gender")} required>
+                <Field label={t("লিঙ্গ", "Gender")} required {...bind("gender")}>
                   <Select value={f.gender} onChange={(e) => up("gender", e.target.value)} placeholder={PICK}
                     options={GENDER.map((g) => ({ value: g.value, label: isBn ? g.bn : g.en }))} />
                 </Field>
-                <Field label={t("রক্তের গ্রুপ", "Blood Group")}>
+                <Field label={t("রক্তের গ্রুপ", "Blood Group")} {...bind("blood_group")}>
                   <Select value={f.blood_group} onChange={(e) => up("blood_group", e.target.value)} placeholder={PICK}
                     options={BLOOD_GROUP.map((b) => ({ value: b, label: b }))} />
                 </Field>
-                <Field label={t("ধর্ম", "Religion")}>
+                <Field label={t("ধর্ম", "Religion")} {...bind("religion")}>
                   <Select value={f.religion} onChange={(e) => up("religion", e.target.value)} placeholder={PICK}
                     options={RELIGION.map((r) => ({ value: r.value, label: isBn ? r.bn : r.en }))} />
                 </Field>
-                <Field label={t("জন্ম নিবন্ধন নম্বর", "Birth Reg. No.")}>
+                <Field label={t("জন্ম নিবন্ধন নম্বর", "Birth Reg. No.")} {...bind("birth_reg_no")}>
                   <Input value={f.birth_reg_no} onChange={(e) => up("birth_reg_no", e.target.value)} placeholder={t("১৭ ডিজিট", "17 digits")} />
                 </Field>
-                <Field label={t("জাতীয়তা", "Nationality")}>
+                <Field label={t("জাতীয়তা", "Nationality")} {...bind("nationality")}>
                   <Input value={f.nationality} onChange={(e) => up("nationality", e.target.value)} />
                 </Field>
               </div>
@@ -137,23 +159,23 @@ export function RegistrationScreen() {
 
           {/* Class placement */}
           <FormCard title={t("শ্রেণি বিন্যাস", "Class Placement")}>
-            <div className="grid grid-cols-3 gap-4">
-              <Field label={t("শিক্ষাবর্ষ", "Academic Year")} required>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Field label={t("শিক্ষাবর্ষ", "Academic Year")} required {...bind("academic_year_id")}>
                 <Select value={f.academic_year_id} onChange={(e) => up("academic_year_id", e.target.value)} placeholder={PICK} options={opt(years.data)} />
               </Field>
-              <Field label={t("শ্রেণি ও শাখা", "Class & Section")} required className="col-span-2">
+              <Field label={t("শ্রেণি ও শাখা", "Class & Section")} required className="sm:col-span-2" {...bind("class_section_id")}>
                 <Select value={f.class_section_id} onChange={(e) => up("class_section_id", e.target.value)} placeholder={PICK} options={opt(classSections.data)} />
               </Field>
-              <Field label={t("রোল নম্বর", "Roll No.")}>
+              <Field label={t("রোল নম্বর", "Roll No.")} {...bind("roll_no")}>
                 <Input value={f.roll_no} onChange={(e) => up("roll_no", e.target.value)} placeholder={t("স্বয়ংক্রিয়/ম্যানুয়াল", "auto/manual")} />
               </Field>
-              <Field label={t("ভর্তির তারিখ", "Admission Date")}>
+              <Field label={t("ভর্তির তারিখ", "Admission Date")} {...bind("admission_date")}>
                 <Input type="date" value={f.admission_date} onChange={(e) => up("admission_date", e.target.value)} />
               </Field>
               <Field label={t("শিক্ষার্থী আইডি", "Student ID")}>
                 <Input value="" placeholder={t("সংরক্ষণে স্বয়ংক্রিয়", "auto on save")} disabled />
               </Field>
-              <Field label={t("শিক্ষার্থী ক্যাটাগরি (পেমেন্ট)", "Fee Category")} className="col-span-3">
+              <Field label={t("শিক্ষার্থী ক্যাটাগরি (পেমেন্ট)", "Fee Category")} className="sm:col-span-2 lg:col-span-3" {...bind("student_category_id")}>
                 <Select value={f.student_category_id} onChange={(e) => up("student_category_id", e.target.value)} placeholder={PICK} options={opt(categories.data)} />
               </Field>
             </div>
@@ -161,17 +183,17 @@ export function RegistrationScreen() {
 
           {/* Guardian */}
           <FormCard title={t("অভিভাবক তথ্য", "Guardian Info")}>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label={t("পিতার নাম", "Father's Name")}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={t("পিতার নাম", "Father's Name")} {...bind("father_name")}>
                 <Input value={f.father_name} onChange={(e) => up("father_name", e.target.value)} placeholder={t("পিতার পূর্ণ নাম", "Father's full name")} />
               </Field>
-              <Field label={t("পিতার পেশা", "Father's Occupation")}>
+              <Field label={t("পিতার পেশা", "Father's Occupation")} {...bind("father_occupation")}>
                 <Input value={f.father_occupation} onChange={(e) => up("father_occupation", e.target.value)} placeholder={t("যেমন: ব্যবসা", "e.g. Business")} />
               </Field>
-              <Field label={t("অভিভাবকের নাম", "Guardian's Name")}>
+              <Field label={t("অভিভাবকের নাম", "Guardian's Name")} {...bind("guardian_name")}>
                 <Input value={f.guardian_name} onChange={(e) => up("guardian_name", e.target.value)} placeholder={t("পূর্ণ নাম", "Full name")} />
               </Field>
-              <Field label={t("সম্পর্ক", "Relationship")}>
+              <Field label={t("সম্পর্ক", "Relationship")} {...bind("relationship")}>
                 <Select value={f.relationship} onChange={(e) => up("relationship", e.target.value)} placeholder={PICK}
                   options={[
                     { value: "father", label: t("পিতা", "Father") },
@@ -179,13 +201,13 @@ export function RegistrationScreen() {
                     { value: "other", label: t("অন্যান্য", "Other") },
                   ]} />
               </Field>
-              <Field label={t("মোবাইল নম্বর", "Mobile No.")} required>
+              <Field label={t("মোবাইল নম্বর", "Mobile No.")} required {...bind("guardian_mobile")}>
                 <Input value={f.guardian_mobile} onChange={(e) => up("guardian_mobile", e.target.value)} placeholder="01XXXXXXXXX" className="font-latin" />
               </Field>
-              <Field label={t("জাতীয় পরিচয়পত্র", "NID")}>
+              <Field label={t("জাতীয় পরিচয়পত্র", "NID")} {...bind("guardian_nid")}>
                 <Input value={f.guardian_nid} onChange={(e) => up("guardian_nid", e.target.value)} placeholder={t("১০/১৭ ডিজিট", "10/17 digits")} />
               </Field>
-              <Field label={t("মাসিক আয় (৳)", "Monthly Income (৳)")} className="col-span-2">
+              <Field label={t("মাসিক আয় (৳)", "Monthly Income (৳)")} className="sm:col-span-2" {...bind("monthly_income")}>
                 <Input value={f.monthly_income} onChange={(e) => up("monthly_income", e.target.value)} placeholder={t("ঐচ্ছিক", "optional")} />
               </Field>
             </div>
@@ -195,54 +217,56 @@ export function RegistrationScreen() {
           <FormCard title={t("ঠিকানা", "Address")}>
             <div className="flex flex-col gap-4">
               <p className="text-meta font-semibold text-text-secondary">{t("বর্তমান ঠিকানা", "Present Address")}</p>
-              <div className="grid grid-cols-3 gap-4">
-                <Field label={t("বিভাগ", "Division")}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Field label={t("বিভাগ", "Division")} {...bind("present_division_id")}>
                   <Select value={f.present_division_id} placeholder={PICK} options={opt(divisions.data)}
-                    onChange={(e) => setF((p) => ({ ...p, present_division_id: e.target.value, present_district_id: "", present_upazila_id: "" }))} />
+                    onChange={(e) => form.patch({ present_division_id: e.target.value, present_district_id: "", present_upazila_id: "" })} />
                 </Field>
-                <Field label={t("জেলা", "District")}>
+                <Field label={t("জেলা", "District")} {...bind("present_district_id")}>
                   <Select value={f.present_district_id} placeholder={PICK} options={opt(pDistricts.data)}
-                    onChange={(e) => setF((p) => ({ ...p, present_district_id: e.target.value, present_upazila_id: "" }))} />
+                    onChange={(e) => form.patch({ present_district_id: e.target.value, present_upazila_id: "" })} />
                 </Field>
-                <Field label={t("উপজেলা", "Upazila")}>
+                <Field label={t("উপজেলা", "Upazila")} {...bind("present_upazila_id")}>
                   <Select value={f.present_upazila_id} placeholder={PICK} options={opt(pUpazilas.data)}
                     onChange={(e) => up("present_upazila_id", e.target.value)} />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label={t("গ্রাম/মহল্লা", "Village/Area")}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label={t("গ্রাম/মহল্লা", "Village/Area")} {...bind("present_village")}>
                   <Input value={f.present_village} onChange={(e) => up("present_village", e.target.value)} placeholder={t("যেমন: রামপুর", "e.g. Rampur")} />
                 </Field>
-                <Field label={t("বাড়ি/হোল্ডিং ও রোড নং", "House/Road No.")}>
+                <Field label={t("বাড়ি/হোল্ডিং ও রোড নং", "House/Road No.")} {...bind("present_house_road")}>
                   <Input value={f.present_house_road} onChange={(e) => up("present_house_road", e.target.value)} placeholder={t("বাড়ি নং, রোড নং", "House, Road")} />
                 </Field>
               </div>
               <label className="flex items-center gap-2 text-sm text-text-secondary">
-                <input type="checkbox" checked={f.same_as_present} onChange={(e) => up("same_as_present", e.target.checked)} className="size-4 accent-primary" />
+                {/* Design-system Checkbox, not a raw input: the raw one lost the
+                    focus ring and the consistent hit target (SRA A-0.7). */}
+                <Checkbox checked={sameAsPresent} onChange={(e) => setSameAsPresent(e.target.checked)} />
                 {t("স্থায়ী ঠিকানা বর্তমান ঠিকানার সাথে একই", "Permanent address same as present")}
               </label>
-              {!f.same_as_present && (
+              {!sameAsPresent && (
                 <>
                   <p className="text-meta font-semibold text-text-secondary">{t("স্থায়ী ঠিকানা", "Permanent Address")}</p>
-                  <div className="grid grid-cols-3 gap-4">
-                    <Field label={t("বিভাগ", "Division")}>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <Field label={t("বিভাগ", "Division")} {...bind("permanent_division_id")}>
                       <Select value={f.permanent_division_id} placeholder={PICK} options={opt(divisions.data)}
-                        onChange={(e) => setF((p) => ({ ...p, permanent_division_id: e.target.value, permanent_district_id: "", permanent_upazila_id: "" }))} />
+                        onChange={(e) => form.patch({ permanent_division_id: e.target.value, permanent_district_id: "", permanent_upazila_id: "" })} />
                     </Field>
-                    <Field label={t("জেলা", "District")}>
+                    <Field label={t("জেলা", "District")} {...bind("permanent_district_id")}>
                       <Select value={f.permanent_district_id} placeholder={PICK} options={opt(permDistricts.data)}
-                        onChange={(e) => setF((p) => ({ ...p, permanent_district_id: e.target.value, permanent_upazila_id: "" }))} />
+                        onChange={(e) => form.patch({ permanent_district_id: e.target.value, permanent_upazila_id: "" })} />
                     </Field>
-                    <Field label={t("উপজেলা", "Upazila")}>
+                    <Field label={t("উপজেলা", "Upazila")} {...bind("permanent_upazila_id")}>
                       <Select value={f.permanent_upazila_id} placeholder={PICK} options={opt(permUpazilas.data)}
                         onChange={(e) => up("permanent_upazila_id", e.target.value)} />
                     </Field>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label={t("গ্রাম/মহল্লা", "Village/Area")}>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label={t("গ্রাম/মহল্লা", "Village/Area")} {...bind("permanent_village")}>
                       <Input value={f.permanent_village} onChange={(e) => up("permanent_village", e.target.value)} />
                     </Field>
-                    <Field label={t("বাড়ি/হোল্ডিং ও রোড নং", "House/Road No.")}>
+                    <Field label={t("বাড়ি/হোল্ডিং ও রোড নং", "House/Road No.")} {...bind("permanent_house_road")}>
                       <Input value={f.permanent_house_road} onChange={(e) => up("permanent_house_road", e.target.value)} />
                     </Field>
                   </div>
@@ -283,15 +307,17 @@ export function RegistrationScreen() {
       <SaveBar
         status={
           <>
-            <UnsavedDot />
-            <span>{t("নতুন ভর্তি ফর্ম", "New admission form")}</span>
+            {/* Driven by real dirty state. It was passed statically at every
+                call site in the product, i.e. it was decoration (SRA A-0.6). */}
+            {form.isDirty ? <UnsavedDot /> : null}
+            <span>{form.isDirty ? t("অসংরক্ষিত পরিবর্তন আছে", "Unsaved changes") : t("নতুন ভর্তি ফর্ম", "New admission form")}</span>
           </>
         }
       >
-        <Button variant="secondary" onClick={() => setF({ ...EMPTY })} disabled={isPending}>
+        <Button variant="secondary" onClick={() => { form.reset(EMPTY); setSameAsPresent(false); }} disabled={isPending}>
           {t("বাতিল", "Reset")}
         </Button>
-        <Button variant="primary" onClick={submit} disabled={isPending || !canSubmit}>
+        <Button variant="primary" onClick={submit} disabled={isPending}>
           {isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("ভর্তি সম্পন্ন করুন", "Complete Admission")}
         </Button>
       </SaveBar>

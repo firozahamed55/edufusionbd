@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import { useT } from "@/shared/i18n/useT";
 import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
 import { useSetting, useSaveSetting, useGradeSchemes } from "../../logic/hooks";
@@ -45,6 +46,24 @@ function opts(list: readonly (readonly [string, string, string])[], isBn: boolea
   return list.map(([value, bn, en]) => ({ value, label: isBn ? bn : en }));
 }
 
+/**
+ * The handful of keys in this jsonb blob that have a *wrong* value, not just an
+ * unset one (SRA A-0.2).
+ *
+ * Deliberately partial. `institution_setting` is an open jsonb document and
+ * most of what lives here is an enum backed by a `<Select>`, which cannot hold
+ * an invalid value. The four numerics can: `daily_periods: 0` silently breaks
+ * every routine calculation downstream, and `pass_mark: 500` makes the grading
+ * scheme unreachable. ponytail: validate what can be wrong, not everything that
+ * exists.
+ */
+const NUMERIC_RULES: Record<string, { min: number; max: number; bn: string; en: string }> = {
+  academic_year: { min: 2000, max: 2100, bn: "শিক্ষাবর্ষ ২০০০–২১০০ এর মধ্যে হতে হবে", en: "Academic year must be between 2000 and 2100" },
+  daily_periods: { min: 1, max: 20, bn: "দৈনিক পিরিয়ড ১–২০ এর মধ্যে হতে হবে", en: "Daily periods must be between 1 and 20" },
+  period_duration: { min: 5, max: 240, bn: "পিরিয়ডের সময়কাল ৫–২৪০ মিনিট হতে হবে", en: "Period duration must be 5–240 minutes" },
+  pass_mark: { min: 1, max: 100, bn: "পাস মার্ক ১–১০০ এর মধ্যে হতে হবে", en: "Pass mark must be between 1 and 100" },
+};
+
 export function BasicConfigScreen() {
   const { t, isBn } = useT();
   const msg = useErrorMessage();
@@ -54,17 +73,46 @@ export function BasicConfigScreen() {
   const save = useSaveSetting(SETTING_KEY, SCOPE);
   const [form, setForm] = useState<RpcPayload>({});
   const [dirty, setDirty] = useState(false);
+  const [touched, setTouched] = useState<Set<string>>(new Set());
 
   useEffect(() => { if (config.data) setForm({ ...config.data }); }, [config.data]);
   const set = (k: string, v: Json) => { setForm((p) => ({ ...p, [k]: v })); setDirty(true); };
 
+  // Settings survive a browser close far worse than a form does: the operator
+  // has no draft and no record of what they changed.
+  useUnsavedGuard(dirty);
+
+  const errors = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const [key, rule] of Object.entries(NUMERIC_RULES)) {
+      const raw = form[key];
+      if (raw === undefined || raw === null || raw === "") continue;
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value < rule.min || value > rule.max) {
+        out[key] = t(rule.bn, rule.en);
+      }
+    }
+    return out;
+  }, [form, t]);
+
+  /** `error` + `touch` in one spread — see the note on `Field`'s `onBlur`. */
+  const bind = (k: string) => ({
+    error: touched.has(k) ? errors[k] : undefined,
+    onBlur: () => setTouched((p) => (p.has(k) ? p : new Set(p).add(k))),
+  });
+
   function onSave() {
+    if (Object.keys(errors).length > 0) {
+      setTouched(new Set(Object.keys(NUMERIC_RULES)));
+      toast({ title: t("চিহ্নিত ফিল্ডগুলো ঠিক করুন", "Fix the highlighted fields"), variant: "error" });
+      return;
+    }
     save.mutate(form, {
-      onSuccess: () => { toast({ title: t("সংরক্ষিত হয়েছে", "Saved"), variant: "success" }); setDirty(false); },
+      onSuccess: () => { toast({ title: t("সংরক্ষিত হয়েছে", "Saved"), variant: "success" }); setDirty(false); setTouched(new Set()); },
       onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
-  function onReset() { setForm({ ...(config.data ?? {}) }); setDirty(false); }
+  function onReset() { setForm({ ...(config.data ?? {}) }); setDirty(false); setTouched(new Set()); }
 
   return (
     <div className="flex flex-col gap-5 pb-6">
@@ -79,7 +127,7 @@ export function BasicConfigScreen() {
         <>
           <FormCard title={t("একাডেমিক সেটিংস", "Academic Settings")}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label={t("চলতি শিক্ষাবর্ষ", "Current academic year")}>
+              <Field label={t("চলতি শিক্ষাবর্ষ", "Current academic year")} {...bind("academic_year")}>
                 <Input type="number" value={String(form.academic_year ?? "")} onChange={(e) => set("academic_year", e.target.value)} className="font-latin" />
               </Field>
               <Field label={t("সেশন শুরুর মাস", "Session start month")}>
@@ -91,10 +139,10 @@ export function BasicConfigScreen() {
               <Field label={t("কার্যদিবস", "Working days")}>
                 <Select value={String(form.working_days ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WORKING_DAYS, isBn)} onChange={(e) => set("working_days", e.target.value)} />
               </Field>
-              <Field label={t("দৈনিক পিরিয়ড সংখ্যা", "Daily periods")}>
+              <Field label={t("দৈনিক পিরিয়ড সংখ্যা", "Daily periods")} {...bind("daily_periods")}>
                 <Input type="number" min={1} value={String(form.daily_periods ?? "")} onChange={(e) => set("daily_periods", e.target.value)} className="font-latin" />
               </Field>
-              <Field label={t("পিরিয়ড সময়কাল (মিনিট)", "Period duration (minutes)")}>
+              <Field label={t("পিরিয়ড সময়কাল (মিনিট)", "Period duration (minutes)")} {...bind("period_duration")}>
                 <Input type="number" min={1} value={String(form.period_duration ?? "")} onChange={(e) => set("period_duration", e.target.value)} className="font-latin" />
               </Field>
             </div>
@@ -134,7 +182,7 @@ export function BasicConfigScreen() {
                     onChange={(e) => set("grading_system_id", e.target.value)}
                   />
                 </Field>
-                <Field label={t("পাস মার্ক (%)", "Pass mark (%)")}>
+                <Field label={t("পাস মার্ক (%)", "Pass mark (%)")} {...bind("pass_mark")}>
                   <Input type="number" min={0} max={100} value={String(form.pass_mark ?? "")} onChange={(e) => set("pass_mark", e.target.value)} className="font-latin" />
                 </Field>
                 <Field label={t("উপস্থিতির ধরন", "Attendance type")}>

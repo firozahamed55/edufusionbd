@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Save, ClipboardList, Info } from "lucide-react";
+import { Save, ClipboardList, Info, History } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Select, Input, Checkbox, Button, SaveBar, UnsavedDot, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
@@ -10,6 +10,9 @@ import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useExams, useSectionClassId, useExistingMarks, useSaveMarks, useSubjectMarks, useExamConfig } from "../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
+import { useDraft } from "@/shared/lib/useDraft";
+import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
+import { formatDateTime } from "@/shared/lib/format";
 
 /** Live mark entry/update — pick exam + section + subject, enter marks, save. */
 export function MarksEntry({ mode }: { mode: "input" | "update" }) {
@@ -63,6 +66,22 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   }, [students.data, existing.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ready = Boolean(examId && sectionId && subjectId);
+
+  /**
+   * Autosave (SRA A-0.6). 60 numeric inputs for one section live in React state
+   * and nowhere else until Save. On the intermittent connections and shared
+   * machines these schools run, a closed tab takes a 45-minute entry session
+   * with it. Keyed by the work, not the screen, so switching subject and back
+   * finds the right draft.
+   */
+  const draftKey = ready ? `marks:${examId}:${sectionId}:${subjectId}` : null;
+  const entered = useMemo(
+    () => Object.values(marks).filter((m) => m.absent || m.marks !== "").length,
+    [marks],
+  );
+  const draft = useDraft(draftKey, marks, entered > 0);
+  // Only warn once something is actually at stake.
+  useUnsavedGuard(entered > 0);
   const setMark = (id: string, patch: Partial<{ marks: string; absent: boolean }>) => setMarks((p) => ({ ...p, [id]: { ...(p[id] ?? { marks: "", absent: false }), ...patch } }));
 
   /**
@@ -92,7 +111,11 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
       { exam_id: examId, class_section_id: sectionId, subject_id: subjectId, full_marks: String(full.value),
         entries: rows.map((r) => ({ student_id: r.studentId, marks_obtained: marks[r.studentId]?.absent ? "" : (marks[r.studentId]?.marks ?? ""), is_absent: marks[r.studentId]?.absent ?? false })) },
       {
-        onSuccess: (count) => toast({ title: t(`${count} জনের নম্বর সংরক্ষিত হয়েছে`, `Saved marks for ${count}`), variant: "success" }),
+        onSuccess: (count) => {
+          // The draft has done its job — keeping it would re-offer saved work.
+          draft.clear();
+          toast({ title: t(`${count} জনের নম্বর সংরক্ষিত হয়েছে`, `Saved marks for ${count}`), variant: "success" });
+        },
         onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       },
     );
@@ -131,6 +154,26 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
                 ? t(`পূর্ণ নম্বর ${n(full.value)} — প্রতিষ্ঠানের মার্ক কনফিগ থেকে।`, `Full marks ${full.value} — from the institution mark config.`)
                 : t(`পূর্ণ নম্বর ${n(full.value)} — কোথাও নির্ধারিত নেই, ডিফল্ট ব্যবহার হচ্ছে। বিষয় সেটিংস বা মার্ক কনফিগে নির্ধারণ করুন।`, `Full marks ${full.value} — not configured anywhere, using the default. Set it in Subject settings or Mark config.`)}
           </span>
+        </div>
+      ) : null}
+
+      {/* Restore is never silent: a draft that reapplies itself on load is
+          indistinguishable from data the operator just selected. */}
+      {draft.pending ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-warning-fg/30 bg-warning-bg px-4 py-3 text-meta text-warning-fg">
+          <History size={16} className="shrink-0" />
+          <span className="flex-1">
+            {t(
+              `${formatDateTime(draft.savedAt)} এ অসংরক্ষিত এন্ট্রি পাওয়া গেছে।`,
+              `Unsaved entries found from ${formatDateTime(draft.savedAt)}.`,
+            )}
+          </span>
+          <Button variant="secondary" className="h-8 px-3" onClick={() => { const d = draft.accept(); if (d) setMarks(d); }}>
+            {t("ফিরিয়ে আনুন", "Restore")}
+          </Button>
+          <Button variant="ghost" className="h-8 px-3" onClick={() => draft.discard()}>
+            {t("বাদ দিন", "Discard")}
+          </Button>
         </div>
       ) : null}
 

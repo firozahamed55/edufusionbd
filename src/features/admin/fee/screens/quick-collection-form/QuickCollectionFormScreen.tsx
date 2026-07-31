@@ -20,6 +20,9 @@ export function QuickCollectionFormScreen() {
   const [code, setCode] = useState("");
   const [studentId, setStudentId] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
+  // Rendered on the field itself rather than as a toast: the operator is looking
+  // at the input they mistyped, not at the corner of the screen.
+  const [notFound, setNotFound] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [accountId, setAccountId] = useState("");
   const [amounts, setAmounts] = useState<Record<string, string>>({});
@@ -39,7 +42,8 @@ export function QuickCollectionFormScreen() {
     setSearching(true);
     try {
       const id = await findStudentIdByCode(createClient(), code.trim());
-      if (!id) { toast({ title: t("শিক্ষার্থী পাওয়া যায়নি", "Student not found"), variant: "error" }); return; }
+      if (!id) { setNotFound(true); return; }
+      setNotFound(false);
       setStudentId(id);
     } catch (e) {
       toast({ title: msg(e, { bn: "অনুসন্ধান ব্যর্থ", en: "Search failed" }), variant: "error" });
@@ -96,8 +100,9 @@ export function QuickCollectionFormScreen() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
         <div className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-e1">
-          <Field label={t("শিক্ষার্থী আইডি", "Student ID")} required>
-            <Input value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="STU-0001" className="font-latin" />
+          <Field label={t("শিক্ষার্থী আইডি", "Student ID")} required
+            error={notFound ? t("এই আইডিতে কোনো শিক্ষার্থী নেই", "No student with that ID") : undefined}>
+            <Input value={code} onChange={(e) => { setCode(e.target.value); setNotFound(false); }} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="STU-0001" className="font-latin" />
           </Field>
           <Button variant="primary" onClick={search} disabled={searching}><Search size={15} /> {searching ? t("খুঁজছে…", "Searching…") : t("অনুসন্ধান", "Search")}</Button>
         </div>
@@ -152,23 +157,41 @@ export function QuickCollectionFormScreen() {
               ) : rows.length === 0 ? (
                 <div className="p-5"><EmptyState icon={<Receipt size={22} />} title={t("কোনো ইনভয়েস নেই", "No invoices")} /></div>
               ) : (
-                rows.map((r, i) => (
-                  <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
+                rows.map((r, i) => {
+                  // Inline, per-row, before the click (SRA F-1 / A-6.1). The
+                  // RPC silently caps an over-payment, so without this the
+                  // clerk sees "Fee collected" and never learns the difference
+                  // is unaccounted for.
+                  const typed = amounts[r.id] ?? "";
+                  const over = typed !== "" && Number(typed) > r.due;
+                  const bad = typed !== "" && !(Number(typed) > 0);
+                  return (
+                  <div key={r.id} className={cn("flex items-start gap-3 px-5 py-3.5 border-b border-border-default last:border-0", i % 2 === 1 && "bg-sunken")}>
                     <div className="w-40 text-sm font-semibold text-text-primary">{r.heads || "—"}</div>
                     <div className="flex-1 text-meta text-text-secondary">{r.period ?? "—"}</div>
                     <div className="w-25 text-right text-meta text-text-secondary tnum">৳{n(r.total)}</div>
                     <div className="w-25 text-right text-meta font-semibold text-danger-fg tnum">৳{n(r.due)}</div>
                     <div className="w-32">
-                      <Input type="number" min={0} max={r.due} value={amounts[r.id] ?? ""}
-                        aria-invalid={Number(amounts[r.id] ?? 0) > r.due}
+                      <Input type="number" min={0} max={r.due} value={typed}
+                        aria-invalid={over || bad}
                         aria-label={t("আদায়ের পরিমাণ", "Collection amount")}
                         onChange={(e) => setAmounts((p) => ({ ...p, [r.id]: e.target.value }))} placeholder={String(r.due)} disabled={r.due <= 0} className="h-9 text-right font-latin" />
+                      {over ? (
+                        <p role="alert" className="mt-1 text-right text-xs font-medium text-danger-fg">
+                          {t(`সর্বোচ্চ ৳${n(r.due)}`, `Max ৳${n(r.due)}`)}
+                        </p>
+                      ) : bad ? (
+                        <p role="alert" className="mt-1 text-right text-xs font-medium text-danger-fg">
+                          {t("০ এর বেশি দিন", "Must be above 0")}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex w-24 justify-end">
-                      <Button variant="primary" className="h-9 px-3" onClick={() => collectOne(r.id, r.due)} disabled={r.due <= 0 || collect.isPending}>{t("আদায়", "Collect")}</Button>
+                      <Button variant="primary" className="h-9 px-3" onClick={() => collectOne(r.id, r.due)} disabled={r.due <= 0 || collect.isPending || over || bad}>{t("আদায়", "Collect")}</Button>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

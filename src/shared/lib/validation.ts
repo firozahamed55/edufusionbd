@@ -75,3 +75,45 @@ export const paymentMethod = z.enum(["cash", "bkash", "nagad", "rocket", "card"]
 
 /** The literal union, so a screen's `useState` can't hold an unsendable method. */
 export type PaymentMethod = z.infer<typeof paymentMethod>;
+
+/* ------------------------------------------------- Bangladesh-specific formats */
+/**
+ * These three fields were free text with only a placeholder hint (SRA A-2.1
+ * item 4), and each one propagates: a malformed mobile means the guardian never
+ * receives an SMS, a malformed birth-registration number is a compliance defect
+ * that surfaces years later on a transfer certificate.
+ *
+ * All three are `optional`-friendly via `blankToUndefined`, because the RPCs
+ * treat "" as absent and the forms initialise to "".
+ */
+
+/** `01[3-9]` + 8 digits — every operator prefix currently issued in Bangladesh. */
+export const bdMobile = z
+  .string()
+  .regex(/^01[3-9]\d{8}$/, "Enter an 11-digit mobile starting 013–019");
+export const optionalBdMobile = z.preprocess(blankToUndefined, bdMobile.optional());
+
+/** National ID: the legacy 10/13-digit forms and the current 17-digit form. */
+export const bdNid = z
+  .string()
+  .regex(/^(\d{10}|\d{13}|\d{17})$/, "NID must be 10, 13 or 17 digits");
+export const optionalBdNid = z.preprocess(blankToUndefined, bdNid.optional());
+
+/** Birth registration number — 17 digits since the 2010 BRIS rollout. */
+export const bdBirthRegNo = z
+  .string()
+  .regex(/^\d{17}$/, "Birth registration number must be 17 digits");
+export const optionalBdBirthRegNo = z.preprocess(blankToUndefined, bdBirthRegNo.optional());
+
+/**
+ * A date of birth that could belong to a school student.
+ *
+ * The upper bound is the one that matters: a mistyped year (2026 for 2016) sails
+ * past `isoDate`, and the record then fails every age-based report downstream.
+ */
+export const studentDob = isoDate.refine((v) => {
+  const d = new Date(`${v}T00:00:00Z`).getTime();
+  if (Number.isNaN(d)) return false;
+  const age = (Date.now() - d) / (365.25 * 24 * 60 * 60 * 1000);
+  return age >= 2 && age <= 30;
+}, "Date of birth looks wrong — check the year");

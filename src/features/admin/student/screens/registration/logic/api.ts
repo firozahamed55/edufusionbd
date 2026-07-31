@@ -1,6 +1,81 @@
 // Supabase data access for admin/student/registration.
 // Atomic create via the fn_register_student RPC (single transaction, no orphans).
+import { z } from "zod";
 import type { BrowserClient } from "@/shared/services/supabase/types";
+import {
+  optionalBdBirthRegNo,
+  optionalBdMobile,
+  optionalBdNid,
+  optionalText,
+  optionalUuid,
+  shortText,
+  studentDob,
+  isoDate,
+} from "@/shared/lib/validation";
+
+/**
+ * Admission, validated per field (SRA A-0.2, A-2.1).
+ *
+ * This is the largest form in the product — 31 inputs across four cards, one of
+ * them two scroll-lengths from the Save button. It used to gate on a boolean
+ * (`f.name_bn && f.name_en && f.dob && …`) and, on failure, fire a 4-second
+ * toast that named no field. Birth registration number, NID and mobile were
+ * free text with a placeholder hint, so a malformed guardian mobile — the one
+ * field every SMS the school ever sends depends on — was accepted silently.
+ *
+ * Every message here is written to be read by an office assistant under time
+ * pressure, not by a developer.
+ */
+export const registerStudentSchema = z
+  .object({
+    name_bn: shortText(120).min(1, "বাংলা নাম আবশ্যক / Bangla name is required"),
+    name_en: shortText(120).min(1, "English name is required"),
+    dob: studentDob,
+    gender: z.string().min(1, "Select a gender"),
+    blood_group: optionalText(10),
+    religion: optionalText(30),
+    birth_reg_no: optionalBdBirthRegNo,
+    nationality: optionalText(60),
+    academic_year_id: optionalUuid.refine((v) => Boolean(v), "Select the academic year"),
+    class_section_id: optionalUuid.refine((v) => Boolean(v), "Select a class & section"),
+    roll_no: z.preprocess(
+      (v) => (v === "" ? undefined : v),
+      z.string().regex(/^\d{1,5}$/, "Roll must be a number").optional(),
+    ),
+    admission_date: z.preprocess((v) => (v === "" ? undefined : v), isoDate.optional()),
+    student_category_id: optionalUuid,
+    father_name: optionalText(120),
+    father_occupation: optionalText(80),
+    guardian_name: optionalText(120),
+    relationship: optionalText(40),
+    // The one optional-looking field that is not optional in practice: it is
+    // how every SMS, fee reminder and absence notice reaches the family.
+    guardian_mobile: optionalBdMobile.refine((v) => Boolean(v), "Guardian mobile is required"),
+    guardian_nid: optionalBdNid,
+    monthly_income: z.preprocess(
+      (v) => (v === "" ? undefined : v),
+      z.string().regex(/^\d+$/, "Income must be a number").optional(),
+    ),
+    present_division_id: optionalUuid,
+    present_district_id: optionalUuid,
+    present_upazila_id: optionalUuid,
+    present_village: optionalText(120),
+    present_house_road: optionalText(120),
+    permanent_division_id: optionalUuid,
+    permanent_district_id: optionalUuid,
+    permanent_upazila_id: optionalUuid,
+    permanent_village: optionalText(120),
+    permanent_house_road: optionalText(120),
+  })
+  .strict();
+
+/**
+ * What the FORM holds: every field is the string an `<input>`/`<select>` gives
+ * back. Written out rather than derived with `z.input<>` because a
+ * `z.preprocess` field types its input as `unknown`, which is exactly the
+ * string this schema exists to normalise.
+ */
+export type RegisterFormValues = { [K in keyof Required<RegisterPayload>]: string };
 
 export type RegisterPayload = {
   name_bn: string;

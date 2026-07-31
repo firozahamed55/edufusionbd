@@ -19,15 +19,46 @@ export async function fetchSectionAttendance(
   attDate: string,
   context: "daily" | "exam",
   examId?: string | null,
-): Promise<Record<string, string>> {
-  let q = supabase.from("attendance").select("student_id, status").eq("class_section_id", classSectionId).eq("att_date", attDate).eq("context", context).limit(MAX_OPTIONS);
+): Promise<ExistingAttendance> {
+  let q = supabase
+    .from("attendance")
+    .select("student_id, status, created_at, marked_by, marker:marked_by(full_name)")
+    .eq("class_section_id", classSectionId)
+    .eq("att_date", attDate)
+    .eq("context", context)
+    .limit(MAX_OPTIONS);
   q = examId ? q.eq("exam_id", examId) : q.is("exam_id", null);
   const { data, error } = await q;
   if (error) throw error;
-  const map: Record<string, string> = {};
-  for (const r of (data ?? [])) map[r.student_id] = r.status;
-  return map;
+
+  const statuses: Record<string, string> = {};
+  let takenAt: string | null = null;
+  let takenBy: string | null = null;
+  for (const r of data ?? []) {
+    statuses[r.student_id] = r.status;
+    // Earliest row wins: that is when the register was actually taken, not when
+    // it was last corrected.
+    if (!takenAt || r.created_at < takenAt) {
+      takenAt = r.created_at;
+      takenBy = r.marker?.full_name ?? null;
+    }
+  }
+  return { statuses, takenAt, takenBy, count: Object.keys(statuses).length };
 }
+
+/**
+ * Existing marks PLUS the provenance the screen needs to warn (SRA A-4 item 2).
+ *
+ * Marks used to hydrate silently, so the operator could not tell "I am creating
+ * today's record" from "I am overwriting it" — on a screen whose Save sends real
+ * SMS to guardians and spends the school's balance.
+ */
+export type ExistingAttendance = {
+  statuses: Record<string, string>;
+  takenAt: string | null;
+  takenBy: string | null;
+  count: number;
+};
 
 export type MarkAttendancePayload = {
   class_section_id: string;

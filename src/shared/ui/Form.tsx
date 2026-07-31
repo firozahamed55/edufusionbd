@@ -58,6 +58,12 @@ export function FormCard({
  * The message renders with `role="alert"` and is wired to the control via
  * `aria-describedby`, so a screen reader announces it rather than leaving a
  * sighted-only red outline.
+ *
+ * `onBlur` lives here rather than on each control because React's synthetic
+ * blur is `focusout`, which DOES bubble — so the wrapping `<label>` sees a blur
+ * from whatever it contains. That means marking a field touched for
+ * `useZodForm` is one spread on the `Field` (`{...bind("dob")}`) instead of a
+ * hand-wired handler on every `Input`, `Select` and `Textarea` in the product.
  */
 export function Field({
   label,
@@ -65,6 +71,7 @@ export function Field({
   hint,
   error,
   className,
+  onBlur,
   children,
 }: {
   label?: ReactNode;
@@ -72,11 +79,13 @@ export function Field({
   hint?: ReactNode;
   error?: string;
   className?: string;
+  /** Fires when focus leaves any control inside. See the note above. */
+  onBlur?: () => void;
   children: ReactNode;
 }) {
   const errorId = useId();
   return (
-    <label className={cn("flex min-w-0 flex-col gap-1.5", className)}>
+    <label onBlur={onBlur} className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       {label ? (
         <span className="text-meta font-medium text-text-secondary">
           {label}

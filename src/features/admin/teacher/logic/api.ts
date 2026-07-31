@@ -1,9 +1,19 @@
 // Supabase data access for the Teacher module (registration + update-profile),
 // shared by the TeacherForm component. RLS-scoped to the caller's institution;
 // writes go through transaction-safe RPCs (fn_register_teacher / fn_update_teacher).
+import { z } from "zod";
 import type { BrowserClient } from "@/shared/services/supabase/types";
 import { BLOOD_LABEL } from "@/shared/constants/enums";
 import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
+import {
+  bdMobile,
+  isoDate,
+  optionalBdMobile,
+  optionalBdNid,
+  optionalText,
+  optionalUuid,
+  shortText,
+} from "@/shared/lib/validation";
 
 /** Full controlled-form shape. Enum fields hold DB values, except `blood_group`
  *  which holds the UI label ("A+"); it is mapped to the DB token on write. */
@@ -140,3 +150,54 @@ export async function fetchTeacherDetail(
     permanent_house_road: s(permanent?.house_road),
   };
 }
+
+/**
+ * Teacher onboarding / profile, validated per field (SRA A-0.2).
+ *
+ * The second-largest form in the product. It gated on a ten-way boolean
+ * (`f.name_bn && f.name_en && f.dob && …`) and, on failure, fired a toast that
+ * named none of the ten. Mobile and NID were free text, so a malformed staff
+ * number — the one the school calls when a teacher does not arrive — was
+ * accepted without complaint.
+ *
+ * `id` and `employee_code` are outside the schema: one is assigned by the
+ * picker, the other minted server-side.
+ */
+export const teacherFormSchema = z
+  .object({
+    name_bn: shortText(120).min(1, "বাংলা নাম আবশ্যক / Bangla name is required"),
+    name_en: shortText(120).min(1, "English name is required"),
+    dob: z.preprocess((v) => (v === "" ? undefined : v), isoDate.optional()),
+    gender: z.string().min(1, "Select a gender"),
+    blood_group: optionalText(10),
+    religion: optionalText(30),
+    nid: optionalBdNid,
+    nationality: optionalText(60),
+    designation_id: optionalUuid.refine((v) => Boolean(v), "Select a designation"),
+    department_id: optionalUuid.refine((v) => Boolean(v), "Select a department"),
+    main_subject_id: optionalUuid.refine((v) => Boolean(v), "Select the main subject"),
+    joining_date: z.preprocess((v) => (v === "" ? undefined : v), isoDate.optional()),
+    employment_type: optionalText(30),
+    email: z.string().email("Enter a valid email address"),
+    mobile: bdMobile,
+    alt_mobile: optionalBdMobile,
+    emergency_contact_name: optionalText(120),
+    emergency_contact_relation: z.string().min(1, "Select the emergency contact's relationship"),
+    emergency_contact_number: optionalBdMobile,
+    highest_degree: optionalText(120),
+    experience_years: z.preprocess(
+      (v) => (v === "" ? undefined : v),
+      z.string().regex(/^\d{1,2}$/, "Years must be a number").optional(),
+    ),
+    present_division_id: optionalUuid,
+    present_district_id: optionalUuid,
+    present_upazila_id: optionalUuid,
+    present_village: optionalText(120),
+    present_house_road: optionalText(120),
+    permanent_division_id: optionalUuid,
+    permanent_district_id: optionalUuid,
+    permanent_upazila_id: optionalUuid,
+    permanent_village: optionalText(120),
+    permanent_house_road: optionalText(120),
+  })
+  .strict();

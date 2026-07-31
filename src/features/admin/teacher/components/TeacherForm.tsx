@@ -5,7 +5,9 @@ import { User, FileText, Upload, Info } from "lucide-react";
 import { GENDER, RELIGION, BLOOD_GROUP, EMPLOYMENT_TYPE, BLOOD_TOKEN } from "@/shared/constants/enums";
 import { useT } from "@/shared/i18n/useT";
 import { useQueryState } from "@/shared/lib/useQueryState";
-import { Button, FormCard, Field, Input, Select, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
+import { Button, FormCard, Field, Input, Select, Checkbox, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
+import { useZodForm } from "@/shared/lib/useZodForm";
+import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import {
   useDivisions,
   useDistricts,
@@ -21,6 +23,7 @@ import {
   useRegisterTeacher,
   useUpdateTeacher,
 } from "../logic/hooks";
+import { teacherFormSchema } from "../logic/api";
 import type { TeacherFormValues, TeacherWritePayload } from "../logic/api";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -31,7 +34,9 @@ import { useErrorMessage } from "@/shared/services/errors";
  * Fully live: reference data + writes go through Supabase (RLS-scoped).
  */
 
-type FormState = TeacherFormValues & { same_as_present: boolean };
+/** `same_as_present` is UI-only (an address copy toggle) and lives outside
+ *  the schema, so `.strict()` stays meaningful. */
+type FormState = TeacherFormValues;
 
 const EMPTY: FormState = {
   id: "",
@@ -62,7 +67,6 @@ const EMPTY: FormState = {
   present_upazila_id: "",
   present_village: "",
   present_house_road: "",
-  same_as_present: false,
   permanent_division_id: "",
   permanent_district_id: "",
   permanent_upazila_id: "",
@@ -82,8 +86,23 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
   // (?id=…) instead of a blank picker, and so the view is linkable.
   const [{ id: selectedId }, setSelected] = useQueryState({ id: "" });
   const setSelectedId = (id: string) => setSelected({ id });
-  const [f, setF] = useState<FormState>({ ...EMPTY });
-  const up = (k: keyof FormState, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
+  const [sameAsPresent, setSameAsPresent] = useState(false);
+
+  /**
+   * Inline, per-field validation (SRA F-1). This form gated on a ten-way
+   * boolean and reported failure with a toast that named none of the ten.
+   */
+  const form = useZodForm(teacherFormSchema, EMPTY);
+  const f = form.values;
+  const setF = (next: FormState) => form.reset(next);
+  const up = <K extends keyof FormState & string>(k: K, v: FormState[K]) => form.setValue(k, v);
+  /** `error` + `touch` in one spread — see the note on `Field`'s `onBlur`. */
+  const bind = (k: keyof FormState & string) => ({
+    error: form.errors[k],
+    onBlur: () => form.touch(k),
+  });
+
+  useUnsavedGuard(form.isDirty);
 
   // Reference data (RLS-scoped tenant lookups + global geo cascade).
   const designations = useDesignations();
@@ -99,7 +118,12 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
   const teachers = useTeacherOptions();
   const detail = useTeacherDetail(!isRegister && selectedId ? selectedId : null);
   useEffect(() => {
-    if (detail.data) setF({ ...EMPTY, ...detail.data });
+    // Hydrating a picked teacher is a NEW baseline, not an edit — `reset`
+    // adopts it so `isDirty` stays false until the operator actually types.
+    if (detail.data) form.reset({ ...EMPTY, ...detail.data });
+    // `form.reset` is stable (useCallback with no deps); listing `form` would
+    // re-run this on every keystroke and wipe the operator's edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail.data]);
 
   const register = useRegisterTeacher();
@@ -116,18 +140,13 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
     { value: "other", label: t("অন্যান্য", "Other") },
   ];
 
-  const coreFilled =
-    f.name_bn && f.name_en && f.dob && f.gender && f.designation_id &&
-    f.department_id && f.main_subject_id && f.email && f.emergency_contact_relation && f.mobile;
-  const canSubmit = Boolean(coreFilled) && (isRegister || Boolean(f.id));
-
   function buildPayload(): TeacherWritePayload {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, employee_code, same_as_present, blood_group, ...rest } = f;
+    const { id, employee_code, blood_group, ...rest } = f;
     return {
       ...rest,
       blood_group: blood_group ? BLOOD_TOKEN[blood_group] ?? "" : "",
-      ...(same_as_present
+      ...(sameAsPresent
         ? {
             permanent_division_id: f.present_division_id,
             permanent_district_id: f.present_district_id,
@@ -140,8 +159,13 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
   }
 
   function submit() {
-    if (!canSubmit) {
-      toast({ title: t("প্রয়োজনীয় ফিল্ড পূরণ করুন", "Please fill the required fields"), variant: "error" });
+    if (!form.submit()) {
+      // The toast now says only that something IS wrong; every field says WHAT.
+      toast({ title: t("চিহ্নিত ফিল্ডগুলো ঠিক করুন", "Fix the highlighted fields"), variant: "error" });
+      return;
+    }
+    if (!isRegister && !f.id) {
+      toast({ title: t("একজন শিক্ষক নির্বাচন করুন", "Select a teacher first"), variant: "error" });
       return;
     }
     const payload = buildPayload();
@@ -149,7 +173,8 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
       register.mutate(payload, {
         onSuccess: () => {
           toast({ title: t("শিক্ষক সফলভাবে নিবন্ধিত হয়েছে", "Teacher registered successfully"), variant: "success" });
-          setF({ ...EMPTY });
+          form.reset({ ...EMPTY });
+          setSameAsPresent(false);
         },
         onError: (e: unknown) =>
           toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
@@ -206,33 +231,33 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
           <FormCard title={t("শিক্ষকের মৌলিক তথ্য", "Teacher Basic Info")}>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
-                <Field label={t("পূর্ণ নাম (বাংলা)", "Full Name (Bangla)")} required>
+                <Field label={t("পূর্ণ নাম (বাংলা)", "Full Name (Bangla)")} required {...bind("name_bn")}>
                   <Input value={f.name_bn} onChange={(e) => up("name_bn", e.target.value)} placeholder="মোঃ রফিকুল ইসলাম" />
                 </Field>
-                <Field label={t("Full Name (English)", "Full Name (English)")} required>
+                <Field label={t("Full Name (English)", "Full Name (English)")} required {...bind("name_en")}>
                   <Input value={f.name_en} onChange={(e) => up("name_en", e.target.value)} placeholder="Md. Rafiqul Islam" className="font-latin" />
                 </Field>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <Field label={t("জন্ম তারিখ", "Date of Birth")} required>
+                <Field label={t("জন্ম তারিখ", "Date of Birth")} required {...bind("dob")}>
                   <Input type="date" value={f.dob} onChange={(e) => up("dob", e.target.value)} />
                 </Field>
-                <Field label={t("লিঙ্গ", "Gender")} required>
+                <Field label={t("লিঙ্গ", "Gender")} required {...bind("gender")}>
                   <Select value={f.gender} onChange={(e) => up("gender", e.target.value)} placeholder={PICK}
                     options={GENDER.map((g) => ({ value: g.value, label: isBn ? g.bn : g.en }))} />
                 </Field>
-                <Field label={t("রক্তের গ্রুপ", "Blood Group")}>
+                <Field label={t("রক্তের গ্রুপ", "Blood Group")} {...bind("blood_group")}>
                   <Select value={f.blood_group} onChange={(e) => up("blood_group", e.target.value)} placeholder={PICK}
                     options={BLOOD_GROUP.map((b) => ({ value: b, label: b }))} />
                 </Field>
-                <Field label={t("ধর্ম", "Religion")}>
+                <Field label={t("ধর্ম", "Religion")} {...bind("religion")}>
                   <Select value={f.religion} onChange={(e) => up("religion", e.target.value)} placeholder={PICK}
                     options={RELIGION.map((r) => ({ value: r.value, label: isBn ? r.bn : r.en }))} />
                 </Field>
-                <Field label={t("জাতীয় পরিচয়পত্র", "NID")}>
+                <Field label={t("জাতীয় পরিচয়পত্র", "NID")} {...bind("nid")}>
                   <Input value={f.nid} onChange={(e) => up("nid", e.target.value)} placeholder={t("১০/১৭ ডিজিট", "10/17 digits")} className="font-latin" />
                 </Field>
-                <Field label={t("জাতীয়তা", "Nationality")}>
+                <Field label={t("জাতীয়তা", "Nationality")} {...bind("nationality")}>
                   <Input value={f.nationality} onChange={(e) => up("nationality", e.target.value)} />
                 </Field>
               </div>
@@ -241,22 +266,22 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
 
           <FormCard title={t("চাকরি বিবরণ", "Job Details")}>
             <div className="grid grid-cols-3 gap-4">
-              <Field label={t("পদবি", "Designation")} required>
+              <Field label={t("পদবি", "Designation")} required {...bind("designation_id")}>
                 <Select value={f.designation_id} onChange={(e) => up("designation_id", e.target.value)} placeholder={PICK} options={opt(designations.data)} />
               </Field>
-              <Field label={t("বিভাগ", "Department")} required>
+              <Field label={t("বিভাগ", "Department")} required {...bind("department_id")}>
                 <Select value={f.department_id} onChange={(e) => up("department_id", e.target.value)} placeholder={PICK} options={opt(departments.data)} />
               </Field>
-              <Field label={t("মূল বিষয়", "Main Subject")} required>
+              <Field label={t("মূল বিষয়", "Main Subject")} required {...bind("main_subject_id")}>
                 <Select value={f.main_subject_id} onChange={(e) => up("main_subject_id", e.target.value)} placeholder={PICK} options={opt(subjects.data)} />
               </Field>
               <Field label={t("কর্মচারী আইডি", "Employee ID")}>
                 <Input value={f.employee_code} placeholder={isRegister ? t("সংরক্ষণে স্বয়ংক্রিয়", "auto on save") : ""} disabled className="font-latin" />
               </Field>
-              <Field label={t("যোগদানের তারিখ", "Joining Date")}>
+              <Field label={t("যোগদানের তারিখ", "Joining Date")} {...bind("joining_date")}>
                 <Input type="date" value={f.joining_date} onChange={(e) => up("joining_date", e.target.value)} />
               </Field>
-              <Field label={t("নিয়োগের ধরন", "Employment Type")}>
+              <Field label={t("নিয়োগের ধরন", "Employment Type")} {...bind("employment_type")}>
                 <Select value={f.employment_type} onChange={(e) => up("employment_type", e.target.value)} placeholder={PICK}
                   options={EMPLOYMENT_TYPE.map((a) => ({ value: a.value, label: isBn ? a.bn : a.en }))} />
               </Field>
@@ -266,34 +291,34 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
           <FormCard title={t("যোগাযোগ ও যোগ্যতা", "Contact & Qualification")}>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
-                <Field label={t("ইমেইল", "Email")} required>
+                <Field label={t("ইমেইল", "Email")} required {...bind("email")}>
                   <Input type="email" value={f.email} onChange={(e) => up("email", e.target.value)} placeholder="name@school.edu.bd" className="font-latin" />
                 </Field>
-                <Field label={t("জরুরি যোগাযোগ সম্পর্ক", "Emergency Contact Relation")} required>
+                <Field label={t("জরুরি যোগাযোগ সম্পর্ক", "Emergency Contact Relation")} required {...bind("emergency_contact_relation")}>
                   <Select value={f.emergency_contact_relation} onChange={(e) => up("emergency_contact_relation", e.target.value)} placeholder={PICK} options={RELATION} />
                 </Field>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <Field label={t("মোবাইল নম্বর", "Mobile No.")} required>
+                <Field label={t("মোবাইল নম্বর", "Mobile No.")} required {...bind("mobile")}>
                   <Input value={f.mobile} onChange={(e) => up("mobile", e.target.value)} placeholder="01XXXXXXXXX" className="font-latin" />
                 </Field>
-                <Field label={t("বিকল্প মোবাইল", "Alt. Mobile")}>
+                <Field label={t("বিকল্প মোবাইল", "Alt. Mobile")} {...bind("alt_mobile")}>
                   <Input value={f.alt_mobile} onChange={(e) => up("alt_mobile", e.target.value)} placeholder={t("ঐচ্ছিক", "optional")} className="font-latin" />
                 </Field>
-                <Field label={t("জরুরি যোগাযোগ নম্বর", "Emergency No.")}>
+                <Field label={t("জরুরি যোগাযোগ নম্বর", "Emergency No.")} {...bind("emergency_contact_number")}>
                   <Input value={f.emergency_contact_number} onChange={(e) => up("emergency_contact_number", e.target.value)} placeholder="01XXXXXXXXX" className="font-latin" />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Field label={t("জরুরি যোগাযোগ নাম", "Emergency Contact Name")}>
+                <Field label={t("জরুরি যোগাযোগ নাম", "Emergency Contact Name")} {...bind("emergency_contact_name")}>
                   <Input value={f.emergency_contact_name} onChange={(e) => up("emergency_contact_name", e.target.value)} placeholder={t("পূর্ণ নাম", "Full name")} />
                 </Field>
-                <Field label={t("সর্বোচ্চ ডিগ্রি", "Highest Degree")}>
+                <Field label={t("সর্বোচ্চ ডিগ্রি", "Highest Degree")} {...bind("highest_degree")}>
                   <Input value={f.highest_degree} onChange={(e) => up("highest_degree", e.target.value)} placeholder={t("যেমন: বিএসসি/এমএ", "e.g. BSc/MA")} />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Field label={t("অভিজ্ঞতা (বছর)", "Experience (years)")}>
+                <Field label={t("অভিজ্ঞতা (বছর)", "Experience (years)")} {...bind("experience_years")}>
                   <Input type="number" min={0} value={f.experience_years} onChange={(e) => up("experience_years", e.target.value)} placeholder={t("ঐচ্ছিক", "optional")} className="font-latin" />
                 </Field>
               </div>
@@ -304,53 +329,53 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
             <div className="flex flex-col gap-4">
               <p className="text-meta font-semibold text-text-secondary">{t("বর্তমান ঠিকানা", "Present Address")}</p>
               <div className="grid grid-cols-3 gap-4">
-                <Field label={t("বিভাগ", "Division")}>
+                <Field label={t("বিভাগ", "Division")} {...bind("present_division_id")}>
                   <Select value={f.present_division_id} placeholder={PICK} options={opt(divisions.data)}
-                    onChange={(e) => setF((p) => ({ ...p, present_division_id: e.target.value, present_district_id: "", present_upazila_id: "" }))} />
+                    onChange={(e) => form.patch({ present_division_id: e.target.value, present_district_id: "", present_upazila_id: "" })} />
                 </Field>
-                <Field label={t("জেলা", "District")}>
+                <Field label={t("জেলা", "District")} {...bind("present_district_id")}>
                   <Select value={f.present_district_id} placeholder={PICK} options={opt(pDistricts.data)}
-                    onChange={(e) => setF((p) => ({ ...p, present_district_id: e.target.value, present_upazila_id: "" }))} />
+                    onChange={(e) => form.patch({ present_district_id: e.target.value, present_upazila_id: "" })} />
                 </Field>
-                <Field label={t("উপজেলা", "Upazila")}>
+                <Field label={t("উপজেলা", "Upazila")} {...bind("present_upazila_id")}>
                   <Select value={f.present_upazila_id} placeholder={PICK} options={opt(pUpazilas.data)}
                     onChange={(e) => up("present_upazila_id", e.target.value)} />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Field label={t("গ্রাম/মহল্লা", "Village/Area")}>
+                <Field label={t("গ্রাম/মহল্লা", "Village/Area")} {...bind("present_village")}>
                   <Input value={f.present_village} onChange={(e) => up("present_village", e.target.value)} placeholder={t("যেমন: রামপুর", "e.g. Rampur")} />
                 </Field>
-                <Field label={t("বাড়ি/হোল্ডিং ও রোড নং", "House/Road No.")}>
+                <Field label={t("বাড়ি/হোল্ডিং ও রোড নং", "House/Road No.")} {...bind("present_house_road")}>
                   <Input value={f.present_house_road} onChange={(e) => up("present_house_road", e.target.value)} placeholder={t("বাড়ি নং, রোড নং", "House, Road")} />
                 </Field>
               </div>
               <label className="flex items-center gap-2 text-sm text-text-secondary">
-                <input type="checkbox" checked={f.same_as_present} onChange={(e) => up("same_as_present", e.target.checked)} className="size-4 accent-primary" />
+                <Checkbox checked={sameAsPresent} onChange={(e) => setSameAsPresent(e.target.checked)} />
                 {t("স্থায়ী ঠিকানা বর্তমান ঠিকানার সাথে একই", "Permanent address same as present")}
               </label>
-              {!f.same_as_present && (
+              {!sameAsPresent && (
                 <>
                   <p className="text-meta font-semibold text-text-secondary">{t("স্থায়ী ঠিকানা", "Permanent Address")}</p>
                   <div className="grid grid-cols-3 gap-4">
-                    <Field label={t("বিভাগ", "Division")}>
+                    <Field label={t("বিভাগ", "Division")} {...bind("permanent_division_id")}>
                       <Select value={f.permanent_division_id} placeholder={PICK} options={opt(divisions.data)}
-                        onChange={(e) => setF((p) => ({ ...p, permanent_division_id: e.target.value, permanent_district_id: "", permanent_upazila_id: "" }))} />
+                        onChange={(e) => form.patch({ permanent_division_id: e.target.value, permanent_district_id: "", permanent_upazila_id: "" })} />
                     </Field>
-                    <Field label={t("জেলা", "District")}>
+                    <Field label={t("জেলা", "District")} {...bind("permanent_district_id")}>
                       <Select value={f.permanent_district_id} placeholder={PICK} options={opt(permDistricts.data)}
-                        onChange={(e) => setF((p) => ({ ...p, permanent_district_id: e.target.value, permanent_upazila_id: "" }))} />
+                        onChange={(e) => form.patch({ permanent_district_id: e.target.value, permanent_upazila_id: "" })} />
                     </Field>
-                    <Field label={t("উপজেলা", "Upazila")}>
+                    <Field label={t("উপজেলা", "Upazila")} {...bind("permanent_upazila_id")}>
                       <Select value={f.permanent_upazila_id} placeholder={PICK} options={opt(permUpazilas.data)}
                         onChange={(e) => up("permanent_upazila_id", e.target.value)} />
                     </Field>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label={t("গ্রাম/মহল্লা", "Village/Area")}>
+                    <Field label={t("গ্রাম/মহল্লা", "Village/Area")} {...bind("permanent_village")}>
                       <Input value={f.permanent_village} onChange={(e) => up("permanent_village", e.target.value)} />
                     </Field>
-                    <Field label={t("বাড়ি/হোল্ডিং ও রোড নং", "House/Road No.")}>
+                    <Field label={t("বাড়ি/হোল্ডিং ও রোড নং", "House/Road No.")} {...bind("permanent_house_road")}>
                       <Input value={f.permanent_house_road} onChange={(e) => up("permanent_house_road", e.target.value)} />
                     </Field>
                   </div>
@@ -399,15 +424,15 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
       <SaveBar
         status={
           <>
-            <UnsavedDot />
+            {form.isDirty ? <UnsavedDot /> : null}
             <span>{isRegister ? t("নতুন নিবন্ধন ফর্ম", "New registration form") : t("বিদ্যমান শিক্ষক সম্পাদনা", "Editing existing teacher")}</span>
           </>
         }
       >
-        <Button variant="secondary" onClick={() => { setF({ ...EMPTY }); setSelectedId(""); }} disabled={isPending}>
+        <Button variant="secondary" onClick={() => { setF({ ...EMPTY }); setSelectedId(""); setSameAsPresent(false); }} disabled={isPending}>
           {isRegister ? t("বাতিল", "Reset") : t("বাতিল করুন", "Cancel")}
         </Button>
-        <Button variant="primary" onClick={submit} disabled={isPending || !canSubmit}>
+        <Button variant="primary" onClick={submit} disabled={isPending}>
           {isPending
             ? t("সংরক্ষণ হচ্ছে…", "Saving…")
             : isRegister
