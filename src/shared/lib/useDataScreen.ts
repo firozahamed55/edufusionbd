@@ -58,6 +58,14 @@ export type DataScreen<F extends Record<string, string>> = {
   setPage: (page: number) => void;
   setSort: (sort: Sort) => void;
   setFilter: <K extends keyof F & string>(key: K, value: string) => void;
+  /**
+   * Several filters in one history entry. Two `setFilter` calls in one handler
+   * do NOT compose — each rebuilds the query string from the same render's
+   * `searchParams`, so the last one wins and the others are silently dropped.
+   * Any control that applies more than one key at once (a date range behind a
+   * Search button) must use this.
+   */
+  setFilters: (patch: Partial<F>) => void;
   /** Clear search, filters and sort, and return to page 1. */
   reset: () => void;
   /** True when anything is narrowing the view — drives a "Clear filters" affordance. */
@@ -122,6 +130,10 @@ export function useDataScreen<F extends Record<string, string>>(
       setState({ [key]: value, page: 1 } as never),
     [setState],
   );
+  const setFilters = useCallback(
+    (patch: Partial<F>) => setState({ ...patch, page: 1 } as never),
+    [setState],
+  );
   const reset = useCallback(() => {
     const cleared: Record<string, string | number> = { q: "", page: 1, sortKey: "", sortDir: "" };
     for (const key of Object.keys(filterDefaults)) cleared[key] = "";
@@ -184,6 +196,7 @@ export function useDataScreen<F extends Record<string, string>>(
     setPage,
     setSort,
     setFilter,
+    setFilters,
     reset,
     isFiltered,
     useSelection,

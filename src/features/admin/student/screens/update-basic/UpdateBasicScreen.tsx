@@ -1,12 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { Pencil, Users } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { GENDER, RELIGION, BLOOD_GROUP, BLOOD_TOKEN, BLOOD_LABEL } from "@/shared/constants/enums";
 import {
-  Button, Field, Select, Input, Skeleton, EmptyState, ErrorState, Modal, useToast, } from "@/shared/ui";
+  Button, Field, Select, Input, Skeleton, EmptyState, ErrorState, Modal, useToast,
+  PageHeader, Pagination, LiveRegion, DataToolbar, Badge, RowActions,
+  Table, THead, TBody, TR, TH, TD, TableEmpty, SortableTH,
+} from "@/shared/ui";
+import { useDataScreen, applyClientList } from "@/shared/lib/useDataScreen";
+import { exportCsv } from "@/shared/lib/exportCsv";
+import { localDay } from "@/shared/lib/format";
 import { useClassSectionsLookup, useStudentCategories } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useSectionStudents, useStudentBasic, useUpdateStudentBasic } from "../../logic/hooks";
@@ -14,38 +20,59 @@ import type { StudentBasicPayload } from "../../logic/api";
 import { useErrorMessage } from "@/shared/services/errors";
 
 /**
- * Student · Update Basic Info — live section list → edit modal.
- * Section filter → students from Supabase (RLS-scoped) → edit basic fields via
- * fn_update_student_basic. Loading / empty / error states are all real.
+ * Student · Update Basic Info — section roster → edit modal.
+ *
+ * On the data-interaction contract (SRA A-0.1; A-2.2 named this screen for
+ * having no URL state, no pagination and no export). Section and the open
+ * record both live in the URL, so a half-finished correction survives a reload
+ * and can be handed to whoever has the birth certificate on their desk.
+ *
+ * The three per-column filter boxes are gone. They were three inputs that each
+ * did a substring match on one field; one search box across all three is the
+ * contract's model, and it is also what someone holding a piece of paper
+ * actually types — they have *a* number, not knowledge of which column it is.
  */
 
 export function UpdateBasicScreen() {
   const { t, n, isBn } = useT();
   const msg = useErrorMessage();
-  const [sectionId, setSectionId] = useState<string>("");
-  const [query, setQuery] = useState({ id: "", roll: "", name: "" });
-  const [editId, setEditId] = useState<string | null>(null);
+
+  const ds = useDataScreen({ filters: { sectionId: "", id: "" } });
+  const { sectionId, id: editId } = ds.filters;
 
   const sections = useClassSectionsLookup();
   const students = useSectionStudents(sectionId || null);
 
   const opt = (list?: Option[]) => (list ?? []).map((o) => ({ value: o.value, label: isBn ? o.label_bn : o.label_en }));
 
-  const rows = useMemo(() => {
-    const all = students.data ?? [];
-    return all.filter((r) =>
-      (!query.id || (r.code ?? "").toLowerCase().includes(query.id.toLowerCase())) &&
-      (!query.roll || String(r.roll ?? "").includes(query.roll)) &&
-      (!query.name || `${r.name_bn} ${r.name_en}`.toLowerCase().includes(query.name.toLowerCase())),
-    );
-  }, [students.data, query]);
+  const all = students.data ?? [];
+  const { rows, total } = applyClientList(all, ds, {
+    search: (r) => [r.code, r.roll, r.name_bn, r.name_en, r.category],
+    sort: {
+      code: (r) => r.code,
+      roll: (r) => r.roll,
+      name: (r) => (isBn ? r.name_bn : r.name_en),
+      category: (r) => r.category,
+    },
+  });
 
   return (
-    <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("মৌলিক তথ্য হালনাগাদ", "Update Basic Info")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("নির্বাচিত শিক্ষার্থীর মৌলিক তথ্য সম্পাদনা করুন", "Edit basic information of the selected student")}</p>
-      </header>
+    <div className="flex flex-col gap-5">
+      <LiveRegion
+        message={
+          !sectionId
+            ? ""
+            : students.isLoading
+              ? t("লোড হচ্ছে", "Loading students")
+              : t(`${n(total)} জন শিক্ষার্থী পাওয়া গেছে`, `${total} students found`)
+        }
+      />
+
+      <PageHeader
+        crumbs={[{ label: t("শিক্ষার্থী", "Students"), href: "/admin/student/update-class" }, { label: t("মৌলিক তথ্য হালনাগাদ", "Update Basic Info") }]}
+        title={t("মৌলিক তথ্য হালনাগাদ", "Update Basic Info")}
+        subtitle={t("নির্বাচিত শিক্ষার্থীর মৌলিক তথ্য সম্পাদনা করুন", "Edit basic information of the selected student")}
+      />
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface p-5 shadow-e1">
         <Field label={t("শ্রেণি ও শাখা", "Class & Section")} required className="w-90 max-w-full">
@@ -53,71 +80,108 @@ export function UpdateBasicScreen() {
             value={sectionId}
             placeholder={sections.isLoading ? t("লোড হচ্ছে…", "Loading…") : t("নির্বাচন করুন", "Select")}
             options={opt(sections.data)}
-            onChange={(e) => setSectionId(e.target.value)}
+            onChange={(e) => ds.setFilter("sectionId", e.target.value)}
           />
         </Field>
         {/* No Search button: the roster loads reactively from the select. */}
       </div>
 
+      {sectionId ? (
+        <DataToolbar
+          q={ds.q}
+          onQChange={ds.setQ}
+          placeholder={t("নাম, আইডি বা রোল খুঁজুন", "Search name, ID or roll")}
+          searchLabel={t("শিক্ষার্থী খুঁজুন", "Search students")}
+          isFiltered={ds.isFiltered}
+          onReset={ds.reset}
+          onExportAll={() =>
+            exportCsv(
+              `section-students-${localDay()}.csv`,
+              all.map((r) => ({
+                StudentId: r.code ?? "",
+                Roll: r.roll ?? "",
+                Name: r.name_en,
+                NameBn: r.name_bn,
+                Category: r.category ?? "",
+              })),
+            )
+          }
+          exportAllCount={all.length}
+        />
+      ) : null}
+
       {!sectionId ? (
         <EmptyState icon={<Users size={22} />} title={t("একটি শ্রেণি ও শাখা নির্বাচন করুন", "Select a class & section")} description={t("শিক্ষার্থী তালিকা দেখতে উপরে থেকে শ্রেণি বেছে নিন।", "Pick a section above to load its student list.")} />
-      ) : students.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}
-        </div>
       ) : students.isError ? (
         <ErrorState title={t("তালিকা লোড করা যায়নি", "Could not load list")} description={msg(students.error)} />
-      ) : (students.data ?? []).length === 0 ? (
+      ) : !students.isLoading && all.length === 0 ? (
         <EmptyState icon={<Users size={22} />} title={t("এই শাখায় কোনো শিক্ষার্থী নেই", "No students in this section")} />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-e1">
-          <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
-            <p className="flex-1 text-base font-semibold text-text-primary">{t("শিক্ষার্থী তালিকা", "Student List")}</p>
-            <span className="text-meta font-semibold text-primary">{t("মোট পাওয়া গেছে", "Total found")}: {n(rows.length)}</span>
-          </div>
-          <div className="flex items-center gap-3 px-5 pt-4 text-meta font-semibold text-text-muted">
-            <div className="w-37.5">{t("শিক্ষার্থী আইডি", "Student ID")}</div>
-            <div className="w-20">{t("রোল", "Roll")}</div>
-            <div className="flex-1">{t("নাম", "Name")}</div>
-            <div className="w-37.5">{t("ক্যাটাগরি", "Category")}</div>
-            <div className="w-20 text-right">{t("অ্যাকশন", "Action")}</div>
-          </div>
-          <div className="flex items-center gap-3 border-b border-border-default px-5 pb-3 pt-2">
-            <ColFilter className="w-37.5" placeholder={t("আইডি", "ID")} value={query.id} onChange={(v) => setQuery((q) => ({ ...q, id: v }))} />
-            <ColFilter className="w-20" placeholder={t("রোল", "Roll")} value={query.roll} onChange={(v) => setQuery((q) => ({ ...q, roll: v }))} />
-            <ColFilter className="flex-1" placeholder={t("নাম খুঁজুন", "Search name")} value={query.name} onChange={(v) => setQuery((q) => ({ ...q, name: v }))} />
-            <div className="w-37.5" />
-            <div className="w-20" />
-          </div>
-          {rows.map((r, i) => (
-            <div key={r.enrollmentId} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-              <div className="w-37.5 font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</div>
-              <div className="w-20 text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</div>
-              <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-              <div className="w-37.5">
-                <span className="inline-block rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">{r.category ?? t("সাধারণ", "General")}</span>
-              </div>
-              <div className="flex w-20 justify-end">
-                <button aria-label={t("সম্পাদনা", "Edit")} onClick={() => setEditId(r.studentId)}
-                  className="grid size-8 place-items-center rounded-lg bg-primary text-text-on-primary hover:bg-primary-hover">
-                  <Pencil size={15} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <>
+          <Table minWidth={820}>
+            <THead>
+              <TR>
+                <SortableTH sortKey="code" sort={ds.sort} onSort={ds.setSort}>{t("শিক্ষার্থী আইডি", "Student ID")}</SortableTH>
+                <SortableTH sortKey="roll" sort={ds.sort} onSort={ds.setSort}>{t("রোল", "Roll")}</SortableTH>
+                <SortableTH sortKey="name" sort={ds.sort} onSort={ds.setSort}>{t("নাম", "Name")}</SortableTH>
+                <SortableTH sortKey="category" sort={ds.sort} onSort={ds.setSort}>{t("ক্যাটাগরি", "Category")}</SortableTH>
+                <TH className="w-20 text-right">{t("অ্যাকশন", "Action")}</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {students.isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TR key={i}>{Array.from({ length: 5 }).map((__, j) => <TD key={j}><Skeleton className="h-5" /></TD>)}</TR>
+                ))
+              ) : rows.length === 0 ? (
+                <TableEmpty colSpan={5} icon={<Users size={22} />} title={t("কোনো মিল পাওয়া যায়নি", "No matches")} />
+              ) : (
+                rows.map((r) => (
+                  <TR key={r.enrollmentId}>
+                    <TD className="font-latin text-meta font-medium text-text-secondary tnum">{r.code ? n(r.code) : "—"}</TD>
+                    <TD className="text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</TD>
+                    <TD className="text-sm font-medium">
+                      <Link href={`/admin/student/profile?id=${r.studentId}`} className="text-primary hover:underline">
+                        {isBn ? r.name_bn : r.name_en}
+                      </Link>
+                    </TD>
+                    <TD><Badge tone="info">{r.category ?? t("সাধারণ", "General")}</Badge></TD>
+                    <TD className="text-right">
+                      <RowActions
+                        label={t("অ্যাকশন", "Actions")}
+                        actions={[
+                          {
+                            label: t("সম্পাদনা", "Edit"),
+                            icon: Pencil,
+                            // URL-backed, so an open record survives a reload
+                            // and is linkable (the fix A-3.1 made for teachers).
+                            onClick: () => ds.setFilter("id", r.studentId),
+                          },
+                          { label: t("প্রোফাইল", "Open profile"), href: `/admin/student/profile?id=${r.studentId}` },
+                        ]}
+                      />
+                    </TD>
+                  </TR>
+                ))
+              )}
+            </TBody>
+          </Table>
+
+          {total > ds.perPage ? (
+            <Pagination
+              label={t(
+                `${n(ds.from)}–${n(ds.to(total))} দেখানো হচ্ছে · মোট ${n(total)} জন`,
+                `Showing ${ds.from}-${ds.to(total)} of ${total}`,
+              )}
+              pages={ds.pages(total)}
+              current={ds.page}
+              onPageChange={ds.setPage}
+            />
+          ) : null}
+        </>
       )}
 
-      {editId ? <EditModal studentId={editId} onClose={() => setEditId(null)} /> : null}
-    </div>
-  );
-}
-
-function ColFilter({ className, placeholder, value, onChange }: { className?: string; placeholder?: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className={className}>
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="h-8 w-full rounded-md border border-border-strong bg-surface px-2 text-xs text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none" />
+      {editId ? <EditModal studentId={editId} onClose={() => ds.setFilter("id", "")} /> : null}
     </div>
   );
 }

@@ -115,7 +115,7 @@ export const queryKeys = {
     unpaidSection: (sectionId: Id) => ["fee", "unpaid-section", sectionId] as const,
     unpaidInstitute: ["fee", "unpaid-institute"] as const,
     appliedAll: ["fee", "applied"] as const,
-    applied: (page: number, yearId: Id) => ["fee", "applied", page, yearId] as const,
+    applied: (params: Filters, yearId: Id) => ["fee", "applied", params, yearId] as const,
     digitalAll: ["fee", "digital"] as const,
     digital: (page: number) => ["fee", "digital", "list", page] as const,
     digitalStats: ["fee", "digital", "stats"] as const,
@@ -134,7 +134,7 @@ export const queryKeys = {
     recipients: (audience: string, sectionId: string) =>
       ["sms", "recipients", audience, sectionId] as const,
     noticesAll: ["sms", "notices"] as const,
-    notices: (page: number) => ["sms", "notices", page] as const,
+    notices: (params: Filters) => ["sms", "notices", params] as const,
   },
 
   students: {

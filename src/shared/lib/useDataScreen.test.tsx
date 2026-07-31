@@ -51,6 +51,25 @@ describe("useDataScreen", () => {
     expect(result.current.sort).toBeNull();
   });
 
+  it("applies several filters in one history entry", () => {
+    // Two setFilter calls in one handler would each rebuild the query string
+    // from the same render's searchParams, so the second silently overwrites
+    // the first. Every date-range Search button applies three keys at once.
+    const { result, rerender } = renderHook(() =>
+      useDataScreen({ filters: { sectionId: "", from: "", to: "" } }),
+    );
+    act(() => {
+      result.current.setFilter("from", "2026-01-01");
+      result.current.setFilter("to", "2026-01-31");
+    });
+    rerender();
+    expect(params().get("from")).toBeNull(); // clobbered — this is the bug
+
+    act(() => result.current.setFilters({ sectionId: "s1", from: "2026-01-01", to: "2026-01-31" }));
+    rerender();
+    expect(result.current.filters).toEqual({ sectionId: "s1", from: "2026-01-01", to: "2026-01-31" });
+  });
+
   it("exposes screen-defined filters", () => {
     const { result, rerender } = renderHook(() => useDataScreen({ filters: { status: "" } }));
     act(() => result.current.setFilter("status", "active"));

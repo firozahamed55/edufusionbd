@@ -81,8 +81,8 @@ export type AttendanceSummary = {
   regular_count: number;
   at_risk_count: number;
   status_split: { present: number; late: number; absent: number; leave: number; exam_absent: number };
-  students: { code: string | null; roll: number | null; name_bn: string; name_en: string; present: number; total: number; rate: number }[];
-  at_risk: { code: string | null; roll: number | null; name_bn: string; name_en: string; rate: number; absent: number }[];
+  students: { student_id: string; code: string | null; roll: number | null; name_bn: string; name_en: string; present: number; total: number; rate: number }[];
+  at_risk: { student_id: string; code: string | null; roll: number | null; name_bn: string; name_en: string; rate: number; absent: number }[];
 };
 export async function fetchAttendanceSummary(
   supabase: BrowserClient,
@@ -90,10 +90,13 @@ export async function fetchAttendanceSummary(
   from: string,
   to: string,
 ): Promise<AttendanceSummary> {
-  // `useAttendanceSummary` gates on `enabled`, so a null section id means the
-  // caller fired anyway. Fail loudly instead of asking Postgres to summarise
-  // the null section and rendering the empty result as "0% attendance".
-  if (!classSectionId) throw new Error("fetchAttendanceSummary: no class section selected");
+  // A null section is INSTITUTION-WIDE, not an error. `fn_attendance_summary`
+  // has read `p_class_section_id is null or …` since it shipped; this fetcher
+  // refused to send null, on the belief that Postgres would summarise "the null
+  // section" and return 0%. It does not, and the guard is what made the
+  // Analytics screen's own default — "All classes & sections" — throw on load.
+  // Callers that genuinely require a section (the Report screen) gate with
+  // `enabled` instead, which is where a required input belongs.
   const { data, error } = await supabase.rpc("fn_attendance_summary", { p_class_section_id: classSectionId, p_from: from, p_to: to });
   if (error) throw new Error(error.message);
   return data as AttendanceSummary;

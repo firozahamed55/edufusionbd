@@ -166,14 +166,24 @@ export async function fetchCampaignTotals(s: BrowserClient): Promise<CampaignTot
 }
 
 /** Same reasoning as `fetchCampaigns` — the notice board only ever grows. */
-export async function fetchNotices(s: BrowserClient, page = 1): Promise<Paged<NoticeRow>> {
+export async function fetchNotices(
+  s: BrowserClient,
+  { page = 1, q = "", status = "" }: { page?: number; q?: string; status?: string } = {},
+): Promise<Paged<NoticeRow>> {
   const [from, to] = pageRange(page);
-  const { data, error, count } = await s
+  // Server-side, because the board only ever grows: filtering the fetched page
+  // would search the newest 20 notices and report the rest as absent.
+  let query = s
     .from("notice")
     .select("id, title, body, audience, event_date, status", { count: "exact" })
     .eq("is_archived", false)
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .order("created_at", { ascending: false });
+
+  const needle = q.trim().replace(/[%,]/g, "");
+  if (needle) query = query.or(`title.ilike.%${needle}%,body.ilike.%${needle}%`);
+  if (status) query = query.eq("status", status);
+
+  const { data, error, count } = await query.range(from, to);
   if (error) throw error;
   return { rows: data ?? [], total: count ?? 0 };
 }

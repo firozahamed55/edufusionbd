@@ -149,18 +149,50 @@ export const APPLIED_FEE_PAGE_SIZE = 25;
 export async function fetchAppliedFees(
   supabase: BrowserClient,
   yearId: string,
-  { page = 1, perPage = APPLIED_FEE_PAGE_SIZE }: { page?: number; perPage?: number } = {},
+  {
+    page = 1,
+    perPage = APPLIED_FEE_PAGE_SIZE,
+    q = "",
+    status = "",
+    sort,
+  }: {
+    page?: number;
+    perPage?: number;
+    q?: string;
+    status?: string;
+    sort?: { key: string; dir: "asc" | "desc" } | null;
+  } = {},
 ): Promise<{ rows: AppliedFee[]; total: number }> {
   const from = (page - 1) * perPage;
-  const { data, error, count } = await supabase
+  // `!inner` so the student filter excludes the INVOICE, not just its embedded
+  // student. Without it PostgREST returns every invoice with a null student and
+  // the screen reports thousands of matches for a name nobody has.
+  const needle = q.trim();
+  let query = supabase
     .from("fee_invoice")
     .select(
-      "id, period, due_amount, status, student:student_id(student_code, name_bn, name_en), lines:fee_invoice_line(head:fee_head_id(name))",
+      `id, period, due_amount, status, student:student_id${needle ? "!inner" : ""}(student_code, name_bn, name_en), lines:fee_invoice_line(head:fee_head_id(name))`,
       { count: "exact" },
     )
     .eq("academic_year_id", yearId)
-    .is("deleted_at", null).order("created_at", { ascending: false })
-    .range(from, from + perPage - 1);
+    .is("deleted_at", null);
+
+  if (needle) {
+    const like = `%${needle.replace(/[%,]/g, "")}%`;
+    query = query.or(
+      `student_code.ilike.${like},name_bn.ilike.${like},name_en.ilike.${like}`,
+      { referencedTable: "student" },
+    );
+  }
+  if (status) query = query.eq("status", status);
+
+  // Only columns of `fee_invoice` itself are sortable. Ordering by the embedded
+  // student name orders inside the embed, not the page — a wrong answer that
+  // looks right, so the header for it is not offered.
+  const column = sort?.key === "due" ? "due_amount" : sort?.key === "period" ? "period" : "created_at";
+  query = query.order(column, { ascending: sort ? sort.dir === "asc" : false });
+
+  const { data, error, count } = await query.range(from, from + perPage - 1);
   if (error) throw error;
   const rows = (data ?? []).map((r) => ({
     id: r.id, period: r.period, due: num(r.due_amount), status: r.status,

@@ -30,11 +30,16 @@ export const useUnpaidBySection = (sectionId: string | null) =>
 
 export const useUnpaidByInstitute = () => useQuery({ queryKey: queryKeys.fee.unpaidInstitute, queryFn: () => api.fetchUnpaidByInstitute(c()) });
 
-export const useAppliedFees = (page: number) => {
+export const useAppliedFees = (params: {
+  page: number;
+  q?: string;
+  status?: string;
+  sort?: { key: string; dir: "asc" | "desc" } | null;
+}) => {
   const yearId = useCurrentYearId();
   return useQuery({
-    queryKey: queryKeys.fee.applied(page, yearId),
-    queryFn: () => api.fetchAppliedFees(c(), yearId as string, { page }),
+    queryKey: queryKeys.fee.applied({ ...params, sort: params.sort ? `${params.sort.key}:${params.sort.dir}` : "" }, yearId),
+    queryFn: () => api.fetchAppliedFees(c(), yearId as string, params),
     enabled: !!yearId,
     placeholderData: (prev) => prev,
   });

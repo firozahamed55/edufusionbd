@@ -44,24 +44,42 @@ export const AUDIT_ENTITIES = [
   "setting",
 ] as const;
 
-const PAGE_SIZE = 25;
+export const AUDIT_ACTIONS = ["INSERT", "UPDATE", "DELETE"] as const;
+
+export const AUDIT_PAGE_SIZE = 25;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A record id pasted into the search box means "the history of this record". */
+export const isRecordId = (value: string) => UUID.test(value.trim());
 
 export async function fetchAuditLog(
   supabase: BrowserClient,
-  { page = 1, entity }: { page?: number; entity?: string },
+  {
+    page = 1,
+    entity,
+    action,
+    entityId,
+    dir = "desc",
+  }: { page?: number; entity?: string; action?: string; entityId?: string; dir?: "asc" | "desc" },
 ): Promise<{ rows: AuditLogRow[]; total: number }> {
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const from = (page - 1) * AUDIT_PAGE_SIZE;
+  const to = from + AUDIT_PAGE_SIZE - 1;
 
   let query = supabase
     .from("audit_log")
     .select("id, entity, entity_id, action, at, before, after, changed_by:profile(full_name)", {
       count: "exact",
     })
-    .order("at", { ascending: false })
+    .order("at", { ascending: dir === "asc" })
     .range(from, to);
 
   if (entity) query = query.eq("entity", entity);
+  if (action) query = query.eq("action", action);
+  // `entity_id` is a uuid column, so this is an equality filter and never a
+  // partial match. The caller guards with `isRecordId` — a malformed uuid sent
+  // to PostgREST is a 400, not an empty result.
+  if (entityId && isRecordId(entityId)) query = query.eq("entity_id", entityId.trim());
 
   const { data, error, count } = await query;
   if (error) throw error;

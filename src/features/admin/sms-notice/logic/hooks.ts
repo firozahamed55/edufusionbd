@@ -25,8 +25,8 @@ export const useResolvedRecipients = (audience: string, sectionId: string) =>
 export const useCampaignTotals = () => useQuery({ queryKey: queryKeys.sms.campaignTotals, queryFn: () => api.fetchCampaignTotals(c()) });
 export const useCampaigns = (page = 1) =>
   useQuery({ queryKey: queryKeys.sms.campaigns(page), queryFn: () => api.fetchCampaigns(c(), page), placeholderData: (prev) => prev });
-export const useNotices = (page = 1) =>
-  useQuery({ queryKey: queryKeys.sms.notices(page), queryFn: () => api.fetchNotices(c(), page), placeholderData: (prev) => prev });
+export const useNotices = (params: { page?: number; q?: string; status?: string } = {}) =>
+  useQuery({ queryKey: queryKeys.sms.notices(params), queryFn: () => api.fetchNotices(c(), params), placeholderData: (prev) => prev });
 
 function useMut<T>(fn: (v: T) => Promise<unknown>, keys: readonly (readonly unknown[])[]) {
   const qc = useQueryClient();
