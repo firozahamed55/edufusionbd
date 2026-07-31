@@ -104,6 +104,111 @@ address.
 
 ---
 
-## Phase 2 — The operating surface · in progress · target 80 → 86
+## Phase 2 — The operating surface · **DONE** (code) · target 80 → 86
 
-_Updated as work lands._
+### Week 4 — `2c21cdd`, `f617439`
+
+| SRA item | Status | Note |
+|---|---|---|
+| Extract `useDataScreen` from the Teacher Directory (A-0.1) | DONE | A hook + `DataToolbar`, not a `<DataTable>` — composition over configuration; a 40-prop table is how design systems die |
+| Migrate the first 4 list screens | DONE | Teacher Directory (first, deliberately — proves the extraction against the one screen that was already correct), quick-collection-list, sms history, digital-collection |
+
+`applyClientList()` gives the same contract to screens that already hold a
+bounded set. Explicitly not for unbounded data: a table that only grows must
+page on the server, or "export all" silently exports page 1.
+
+### Week 5 — `bc8158a`, `05a6519`, `9134402`, `f4db94e`
+
+| SRA item | Status | Note |
+|---|---|---|
+| Remaining 10 list screens (A-0.1) | DONE | update-class, unpaid-section, unpaid-institute, audit-log, delete-fees, attendance report + analytics, update-basic, notice-board. 14 of 14 — User Management is the 14th and Week 6 rebuilt it |
+| `useGridNavigation` for Marks Entry + Attendance (A-0.7) | DONE | Arrows, Enter-as-next-row, select-on-land; attendance gets `1..4`. Not a full ARIA grid — Tab already means something correct in a table of real inputs |
+| 9 `<div>` tables → `shared/ui/Table` (A-0.7) | DONE | 10 tables across 8 screens: class sections, subjects, grading (list + editable bands), fee mapping, the 3 income-statement ledgers, migration pushback, class distribution |
+
+**Three defects found while migrating, none in the report.**
+
+- **Audit Log threw on render.** `AUDIT_ENTITIES` listed 22 entities, `ENTITY_LABEL`
+  held 6, and the `<option>` list read `.bn` without the `?.` the row rendering
+  had. Dead since the entity list grew past `migration_batch`.
+- **Attendance Analytics threw on load, on its own default.** `fn_attendance_summary`
+  has read `p_class_section_id is null or …` since it shipped — null means
+  institution-wide — but the fetcher refused to send null. Fixed at the guard,
+  not at the screen, because the Report screen shares that fetcher.
+- **A ninth dead control** (the report listed seven; Week 4 found the eighth):
+  Analytics' per-row SMS button was `disabled` unconditionally.
+
+`fn_attendance_summary` gained `student_id`. It returned a row per student and
+no way to address one — `student_code` is a display string, nullable for anyone
+registered before codes were minted — so no roster could be linked out of.
+
+`useDataScreen` gained `setFilters()`. Two `setFilter` calls in one handler do
+not compose: each rebuilds the query string from the same render's
+`searchParams`, so the last wins and the others vanish silently. Every
+date-range Search button applies three keys at once.
+
+### Week 6 — `0fea1de`, `26e96dc`
+
+| SRA item | Status | Note |
+|---|---|---|
+| User Management v2 (A-0.4 point 3) | DONE **except invite** | Role assignment, suspend/reactivate, last sign-in, full A-0.1 contract |
+| Permission Matrix (A-0.4 point 4) | DONE, read-only | See below |
+| Populate `AdminModule.roles` (A-0.4 point 2) | DONE, as `permission` | See below |
+| Human-readable acting role (A-0.4 point 5) | DONE | Was `me.role.replace(/_/g, " ")` — the raw enum, in English, on a Bangla-only product |
+
+**Invite is not built, and the screen says so.** Creating a Supabase Auth user
+needs the **service-role key**, which cannot exist in a browser bundle. That is
+a server route with its own rate limit and audit trail, and it belongs with the
+Phase 3 auth work (MFA, session management, My Account) rather than bolted onto
+a list screen. Suspension covers the operational need in the meantime; delete
+is deliberately absent because a profile carries audit attribution.
+
+**The Permission Matrix is read-only, deliberately.** The four roles are
+`is_system` rows and every RLS policy and RPC guard in the product is written
+against their codes. An editable grid that lets an operator untick
+`dashboard.view` from `institution_admin` locks the school out of its own
+product in two clicks with no undo. Custom roles are the feature that makes
+editing safe, and they are not built.
+
+**`roles` became `permission`.** The report says "populate `AdminModule.roles`";
+that field was typed against the JWT enum (`admin | teacher | parent | student |
+super_admin`) — a vocabulary the database never shared, which is why nothing
+ever set it. The rail now filters on **permission codes**, the same ones RLS and
+the RPC guards use, so navigation and authorization agree by construction
+instead of by two lists someone must remember to sync. It **fails open**:
+`undefined` (loading) and `[]` (an account whose `user_role` rows were never
+seeded) both show everything, because an empty rail reads as a broken product
+rather than as an access decision — risk R-5 exactly. RLS is the control; the
+rail is only the map.
+
+### Week 7 — `e5283f8`
+
+| SRA item | Status | Note |
+|---|---|---|
+| Student Profile + Teacher Profile detail pages | DONE | Read-only, link out rather than duplicate; both link to the Audit Log filtered to that record, which is the per-record timeline A-2.2 says is missing |
+| Global entity search in `⌘K` | DONE | Screens resolve locally and instantly; people are a debounced query appended below them |
+| Dashboard KPI drill-down | DONE | Every tile opens the list it summarises; the collection tile opens the income statement for exactly its window |
+| Dashboard period selector | DONE, scoped | See below |
+
+**The period selector governs two panels and one tile, not the whole screen.**
+Money collected and attendance are functions of a date range. Enrolment counts,
+teacher counts and outstanding dues are point-in-time facts, and a control that
+appeared to filter them would be reporting a falsehood — which is the exact
+defect the dashboard rebuild set out to remove ("every element is bound to real
+data, or it does not ship"). The period query is separate from the main payload
+so the server prefetch (audit H-5) keeps a constant cache key.
+
+### Phase 2 exit criteria
+
+| Criterion | Met |
+|---|---|
+| 14 list screens with the full contract | ✅ |
+| RBAC usable end to end | ✅ for assignment, suspension and visibility; **invite is Phase 3** (service-role key) |
+| Every stored entity has a detail page | ✅ students and teachers |
+
+### Verification
+
+`tsc --noEmit` clean · `eslint` clean · **290 tests, 24 files, all passing** ·
+`next build` clean with all three new routes emitted. Not exercised against a
+live database or a browser session — the Supabase project and a signed-in
+operator are needed for that, and the migrations in this phase
+(`20260731100000`, `20260731110000`) have not been pushed.
