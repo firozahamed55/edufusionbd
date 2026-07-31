@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, FileText, Award } from "lucide-react";
+import { Search, FileText, Award, Info } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { createClient } from "@/shared/services/supabase/client";
@@ -87,8 +87,12 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
               <Textarea value={f[isT ? "remarks" : "reason"] ?? ""} onChange={(e) => up(isT ? "remarks" : "reason", e.target.value)} />
             </Field>
           </div>
+          {/* A control that cannot be actioned in this release is not rendered. */}
+          <div className="flex items-start gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-meta text-info-fg">
+            <Info size={15} className="mt-px shrink-0" />
+            <span>{t("PDF আউটপুট প্রিন্ট-টেমপ্লেট রিলিজের সাথে আসছে। সনদের রেকর্ড এখনই তৈরি ও সংরক্ষণ করা যাবে।", "PDF output arrives with the print-template release. Certificate records can be created and stored now.")}</span>
+          </div>
           <div className="flex justify-end gap-3">
-            <button disabled className="rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-medium text-text-muted opacity-60">{t("PDF (শীঘ্রই)", "PDF (soon)")}</button>
             <Button variant="primary" onClick={generate} disabled={pending}>{pending ? t("তৈরি হচ্ছে…", "Creating…") : t("তৈরি করুন", "Generate")}</Button>
           </div>
         </div>

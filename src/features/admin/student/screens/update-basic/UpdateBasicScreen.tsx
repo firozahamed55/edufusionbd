@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Pencil, Users } from "lucide-react";
+import { Pencil, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { GENDER, RELIGION, BLOOD_GROUP, BLOOD_TOKEN, BLOOD_LABEL } from "@/shared/constants/enums";
@@ -56,9 +56,7 @@ export function UpdateBasicScreen() {
             onChange={(e) => setSectionId(e.target.value)}
           />
         </Field>
-        <Button variant="primary" className="h-10.5 px-6" disabled>
-          <Search size={16} /> {t("অনুসন্ধান", "Search")}
-        </Button>
+        {/* No Search button: the roster loads reactively from the select. */}
       </div>
 
       {!sectionId ? (

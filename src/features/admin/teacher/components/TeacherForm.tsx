@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { User, FileText, Upload, Info } from "lucide-react";
 import { GENDER, RELIGION, BLOOD_GROUP, EMPLOYMENT_TYPE, BLOOD_TOKEN } from "@/shared/constants/enums";
 import { useT } from "@/shared/i18n/useT";
+import { useQueryState } from "@/shared/lib/useQueryState";
 import { Button, FormCard, Field, Input, Select, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
 import {
   useDivisions,
@@ -77,7 +78,10 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
   const msg = useErrorMessage();
   const toast = useToast();
 
-  const [selectedId, setSelectedId] = useState<string>("");
+  // URL-backed so "Edit profile" from the directory opens THAT teacher
+  // (?id=…) instead of a blank picker, and so the view is linkable.
+  const [{ id: selectedId }, setSelected] = useQueryState({ id: "" });
+  const setSelectedId = (id: string) => setSelected({ id });
   const [f, setF] = useState<FormState>({ ...EMPTY });
   const up = (k: keyof FormState, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
 

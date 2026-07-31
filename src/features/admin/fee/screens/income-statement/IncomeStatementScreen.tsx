@@ -8,8 +8,10 @@ import { Field, Input, Button, Skeleton, ErrorState, PageHeader } from "@/shared
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { useIncomeStatement } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
+import { localDay } from "@/shared/lib/format";
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+// Institution-time day boundaries (UTC would report yesterday after 18:00 local).
+const iso = (d: Date) => localDay(d);
 
 /** Fee · Income Statement — live income/expenditure over a date range. */
 export function IncomeStatementScreen() {

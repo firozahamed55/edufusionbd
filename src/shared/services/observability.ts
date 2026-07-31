@@ -106,6 +106,43 @@ function emit(level: LogLevel, event: string, trusted: LogFields, fields: LogFie
   if (level === "error") console.error(line);
   else if (level === "warn") console.warn(line);
   else console.log(line);
+
+  if (level === "error") alertTransport(line);
+}
+
+/**
+ * Push errors somewhere that *wakes someone up* (SRA §5.6.5 — "nothing alerts").
+ *
+ * A log line in a drain is a record, not an alert: MTTD stays "whenever an
+ * operator complains". This sends the same already-scrubbed JSON to whatever
+ * ingest URL the owner configures — a Slack/Discord incoming webhook, Better
+ * Stack, Axiom, or a Sentry envelope proxy. It is a URL, not an SDK, so it needs
+ * no vendor decision to be useful and no code change when the decision is made.
+ *
+ * ponytail: chosen over `@sentry/nextjs` deliberately. Sentry would add a build
+ * plugin, three config files, a sourcemap auth token and ~40 kB of client
+ * runtime — all to reach an endpoint we can reach with `fetch`. If the project
+ * later wants Sentry's grouping/release UI, install the SDK and delete this
+ * function; the funnel above is unchanged either way.
+ *
+ * Fire-and-forget by construction: this runs on the error path, and an alerting
+ * transport that can throw or hang turns one failure into two.
+ */
+function alertTransport(line: string): void {
+  const url = process.env.OBSERVABILITY_ALERT_URL;
+  if (!url || !isServer) return;
+  try {
+    void fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      // Slack/Discord want `{text}`; log ingests accept arbitrary JSON and will
+      // index `text` as the payload. One shape satisfies both.
+      body: JSON.stringify({ text: line }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // An unreachable alert sink must never mask the error it was reporting.
+  }
 }
 
 /** Something noteworthy but expected. Use sparingly — logs are not metrics. */

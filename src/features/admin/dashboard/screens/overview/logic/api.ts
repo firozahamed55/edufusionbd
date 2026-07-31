@@ -40,6 +40,8 @@ export type DashboardData = {
   classSections: number;
   totalDue: number;
   collectedThisMonth: number;
+  /** Drives the setup checklist's "add subjects" step (was hardcoded false). */
+  subjects: number;
   notices: DashboardNotice[];
   attention: AttentionItem[];
   attendanceTrend: AttendancePoint[];
@@ -67,7 +69,7 @@ export async function fetchDashboard(
 ): Promise<DashboardData> {
   const since = isoDay(30, now);
 
-  const [kpiRes, noticeRes, overdueRes, attendanceRes, riskRes, activityRes] = await Promise.all([
+  const [kpiRes, noticeRes, overdueRes, attendanceRes, riskRes, activityRes, subjectRes] = await Promise.all([
     supabase.from("v_dashboard_kpi").select("*").maybeSingle(),
     supabase
       .from("notice")
@@ -102,6 +104,8 @@ export async function fetchDashboard(
       .select("id, action, entity, at")
       .order("at", { ascending: false })
       .limit(6),
+    // Head-only count — the checklist needs "any?", not the rows.
+    supabase.from("subject").select("id", { count: "exact", head: true }),
   ]);
 
   if (kpiRes.error) throw kpiRes.error;
@@ -159,6 +163,7 @@ export async function fetchDashboard(
     classSections: Number(k?.class_sections ?? 0),
     totalDue: Number(k?.total_due ?? 0),
     collectedThisMonth: Number(k?.collected_this_month ?? 0),
+    subjects: subjectRes.count ?? 0,
     notices: noticeRes.data ?? [],
     attention,
     attendanceTrend,

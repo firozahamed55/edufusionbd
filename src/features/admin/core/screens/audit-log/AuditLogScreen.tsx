@@ -16,6 +16,7 @@ import {
   Pagination,
   Modal,
   } from "@/shared/ui";
+import { formatDateTime } from "@/shared/lib/format";
 import { useAuditLog } from "./logic/useAuditLog";
 import { AUDIT_ENTITIES, type AuditLogRow } from "./logic/api";
 
@@ -116,7 +117,7 @@ export function AuditLogScreen() {
               ) : (
                 data!.rows.map((r) => (
                   <TR key={r.id}>
-                    <TD className="text-meta text-text-secondary">{new Date(r.at).toLocaleString()}</TD>
+                    <TD className="text-meta text-text-secondary">{formatDateTime(r.at)}</TD>
                     <TD>{t(ENTITY_LABEL[r.entity]?.bn ?? r.entity, ENTITY_LABEL[r.entity]?.en ?? r.entity)}</TD>
                     <TD>
                       <Badge tone={ACTION_TONE[r.action] ?? "info"}>{r.action}</Badge>

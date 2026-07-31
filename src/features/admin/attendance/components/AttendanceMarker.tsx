@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, Check, RotateCcw, CheckCheck, Users } from "lucide-react";
+import { Check, RotateCcw, CheckCheck, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Button, Field, Select, Input, SaveBar, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
@@ -11,8 +11,11 @@ import type { Option } from "@/shared/services/lookups/api";
 import { StatusPill, SummaryDot, Toggle, type AttTone } from "./parts";
 import { useExams, useSectionAttendance, useMarkAttendance } from "../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
+import { localDay } from "@/shared/lib/format";
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+// Institution-time day. Attendance taken at 19:00 local belongs to *today*, and
+// `toISOString()` would file it under yesterday for a UTC+6 audience.
+const iso = (d: Date) => localDay(d);
 
 type StatusDef = { value: string; tone: AttTone; bn: string; en: string; dot: string };
 const DAILY: StatusDef[] = [
@@ -98,7 +101,8 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
           </Field>
         ) : null}
         <Field label={t("তারিখ", "Date")} className="w-50 max-w-full"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-        <Button variant="primary" className="h-10.5 px-6" disabled><Search size={16} /> {t("অনুসন্ধান", "Search")}</Button>
+        {/* No Search button: the roster loads reactively from the selects above.
+            A control that cannot be actioned in this release is not rendered. */}
       </div>
 
       {!sectionId || (isExam && !examId) ? (

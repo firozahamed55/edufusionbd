@@ -14,7 +14,7 @@ begin;
 -- Created inside the test transaction and rolled back with it, so pgTAP never
 -- lands in a real database. Nothing in production needs this extension.
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(40);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures — four accounts on one tenant, differing only in role/linkage.
@@ -225,6 +225,25 @@ with u as (
 select cmp_ok((select reverted from u)::int, '>', 0, 'fn_pushback_migration reverts the rows it just created');
 
 select is((select status from public.migration_batch limit 1), 'reverted', 'the batch is marked reverted');
+
+-- ---------------------------------------------------------------------------
+-- 2.6 — monthly invoice generation is idempotent: a second run for the same
+-- period creates zero new lines, enforced by `uq_fee_invoice_student_period`
+-- rather than a check-then-insert race. This is the property a `pg_cron` job
+-- that might fire twice (a redeploy mid-run) actually depends on.
+-- ---------------------------------------------------------------------------
+insert into public.fee_mapping (institution_id, class_id, fee_head_id, amount, frequency, is_active)
+select i.id, c.id, fh.id, 1200, 'monthly', true
+from public.institution i, public.class c, public.fee_head fh
+where c.numeric_level = 6 and fh.category = 'tuition' limit 1;
+
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-0000-0000-0000-000000000001","role":"authenticated"}', true);
+
+select cmp_ok((select public.fn_generate_monthly_invoices())::int, '>', 0,
+  'first invoice-generation run creates lines');
+select is((select public.fn_generate_monthly_invoices())::int, 0,
+  'second run for the same month creates zero — idempotent by constraint');
 
 select * from finish();
 rollback;

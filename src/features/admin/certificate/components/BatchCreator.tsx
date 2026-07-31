@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Wand2, IdCard, Layers } from "lucide-react";
+import { Wand2, IdCard, Layers, Info } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Input, Select, Button, EmptyState, useToast, PageHeader } from "@/shared/ui";
@@ -73,8 +73,13 @@ export function BatchCreator({ kind }: { kind: "id" | "admit" }) {
             </>
           )}
         </div>
+        {/* A control that cannot be actioned in this release is not rendered.
+            The absence is stated once, in prose, instead of as a dead button. */}
+        <div className="flex items-start gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-meta text-info-fg">
+          <Info size={15} className="mt-px shrink-0" />
+          <span>{t("প্রিন্ট আউটপুট প্রিন্ট-টেমপ্লেট রিলিজের সাথে আসছে। ব্যাচ এখনই তৈরি ও সংরক্ষণ করা যাবে।", "Print output arrives with the print-template release. Batches can be created and stored now.")}</span>
+        </div>
         <div className="flex justify-end gap-3">
-          <button disabled className="rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-medium text-text-muted opacity-60">{t("প্রিন্ট (শীঘ্রই)", "Print (soon)")}</button>
           <Button variant="primary" onClick={generate} disabled={pending}><Wand2 size={16} /> {pending ? t("তৈরি হচ্ছে…", "Creating…") : t("ব্যাচ তৈরি করুন", "Create batch")}</Button>
         </div>
       </div>

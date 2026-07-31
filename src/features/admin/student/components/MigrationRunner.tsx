@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, ArrowUp, Users } from "lucide-react";
+import { ArrowUp, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Button, Field, Select, SaveBar, UnsavedDot, Checkbox, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
@@ -88,9 +88,7 @@ export function MigrationRunner({ type }: { type: "merit" | "no_merit" }) {
         <Field label={t("লক্ষ্য শ্রেণি ও শাখা", "Target Class & Section")} required>
           <Select value={targetId} placeholder={t("নির্বাচন করুন", "Select")} options={opt(sections.data)} onChange={(e) => setTargetId(e.target.value)} />
         </Field>
-        <Button variant="primary" className="h-10.5 px-6" disabled>
-          <Search size={16} /> {t("অনুসন্ধান", "Search")}
-        </Button>
+        {/* No Search button: the roster loads reactively from the source select. */}
       </div>
 
       {!sourceId ? (

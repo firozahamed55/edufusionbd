@@ -278,7 +278,7 @@ export function ListScreen() {
                       <RowActions
                         label={t("অ্যাকশন", "Actions")}
                         actions={[
-                          { label: t("প্রোফাইল সম্পাদনা", "Edit profile"), icon: Pencil, href: "/admin/teacher/update-profile" },
+                          { label: t("প্রোফাইল সম্পাদনা", "Edit profile"), icon: Pencil, href: `/admin/teacher/update-profile?id=${r.id}` },
                           {
                             label: t("এসএমএস পাঠান", "Send SMS"),
                             icon: Send,

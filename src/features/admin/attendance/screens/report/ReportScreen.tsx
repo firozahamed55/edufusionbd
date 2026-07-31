@@ -9,8 +9,10 @@ import { useClassSectionsLookup } from "@/shared/services/lookups/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { useAttendanceSummary } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
+import { localDay } from "@/shared/lib/format";
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+// Institution-time day boundaries (UTC would report yesterday after 18:00 local).
+const iso = (d: Date) => localDay(d);
 const rateTone = (r: number) => (r >= 90 ? "text-success-fg" : r >= 75 ? "text-warning-fg" : "text-danger-fg");
 
 /** Attendance · Report — live per-student monthly attendance summary. */

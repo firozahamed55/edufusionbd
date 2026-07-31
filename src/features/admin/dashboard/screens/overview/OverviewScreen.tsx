@@ -24,6 +24,7 @@ import { useT } from "@/shared/i18n/useT";
 import { BarChart, Donut, Skeleton, ErrorState, EmptyState, PageHeader } from "@/shared/ui";
 import { useAdminUser } from "@/features/admin/components/useAdminUser";
 import { SetupChecklist } from "../../components/SetupChecklist";
+import { localDay, weekdayShort } from "@/shared/lib/format";
 import { useDashboard } from "./logic/useDashboard";
 import type { AttentionItem } from "./logic/api";
 
@@ -66,14 +67,11 @@ export function OverviewScreen() {
   const avgRate = trend.length > 0 ? Math.round(trend.reduce((s, p) => s + p.rate, 0) / trend.length) : 0;
   // Last 7 points, labelled by weekday — the chart is a real 30-day rolling
   // series now, not five invented numbers.
-  const chartData = trend.slice(-7).map((p) => {
-    const d = new Date(`${p.date}T00:00:00`);
-    return {
-      label: d.toLocaleDateString(undefined, { weekday: "short" }),
-      value: p.rate,
-      display: n(p.rate),
-    };
-  });
+  const chartData = trend.slice(-7).map((p) => ({
+    label: weekdayShort(`${p.date}T12:00:00Z`),
+    value: p.rate,
+    display: n(p.rate),
+  }));
 
   const quickActions = [
     { icon: UserPlus, title: t("নতুন শিক্ষার্থী", "New Student"), desc: t("নতুন রেজিস্ট্রেশন", "New registration"), href: "/admin/student/registration" },
@@ -174,7 +172,7 @@ export function OverviewScreen() {
       {isEmptyInstitution ? (
         <SetupChecklist
           hasClasses={(data?.classSections ?? 0) > 0}
-          hasSubjects={false}
+          hasSubjects={(data?.subjects ?? 0) > 0}
           hasStudents={(data?.activeStudents ?? 0) > 0}
         />
       ) : null}
@@ -279,7 +277,7 @@ export function OverviewScreen() {
                   <b className="font-semibold">{a.action}</b> · {a.entity}
                 </span>
                 <span className="shrink-0 text-xs text-text-muted tnum">
-                  {n(new Date(a.at).toISOString().slice(0, 10))}
+                  {n(localDay(a.at))}
                 </span>
               </div>
             ))

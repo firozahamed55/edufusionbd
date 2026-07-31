@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileDown, Wallet } from "lucide-react";
+import { Download, Wallet } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Select, Skeleton, EmptyState, ErrorState, PageHeader } from "@/shared/ui";
@@ -49,9 +49,6 @@ export function UnpaidSectionScreen() {
           className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-sunken disabled:opacity-60"
         >
           <Download size={16} /> {t("এক্সপোর্ট", "Export")}
-        </button>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover disabled:opacity-60" disabled>
-          <FileDown size={16} /> {t("PDF ডাউনলোড", "Download PDF")}
         </button>
       </div>
 

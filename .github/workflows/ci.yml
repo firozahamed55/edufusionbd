@@ -100,3 +100,87 @@ jobs:
       - name: Report dev-dependency advisories (non-blocking)
         if: always()
         run: npm audit --audit-level=high || true
+
+      # The service-role key bypasses RLS entirely. It must never reach a
+      # client bundle, and `NEXT_PUBLIC_*` is baked in at build time — so a
+      # single careless import ships a full-tenancy bypass to every browser.
+      # Cheaper as a grep than as an incident (SRA §5.6.2).
+      - name: No service-role key outside the server tier
+        run: |
+          if grep -rn "SUPABASE_SERVICE_ROLE_KEY\|service_role" \
+               src/features src/shared src/app --include=*.ts --include=*.tsx \
+             | grep -v "^src/server/"; then
+            echo "::error::service-role reference found outside src/server/"
+            exit 1
+          fi
+          echo "clean"
+
+  # ── Deploy ────────────────────────────────────────────────────────────────
+  # Before this existed, Vercel built and deployed from the git push on its own,
+  # in parallel with and independent of the gate above — so a commit that failed
+  # typecheck, tests or the RLS suite still reached production and the whole CI
+  # job was advisory (SRA §5.6.3). `needs:` makes it blocking.
+  #
+  # Requires, in the Vercel project: Ignored Build Step = `exit 0` so Vercel does
+  # not also build; and repo secrets VERCEL_TOKEN / VERCEL_ORG_ID /
+  # VERCEL_PROJECT_ID / SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_ID / SUPABASE_DB_PASSWORD.
+
+  migrate:
+    name: apply migrations (production)
+    needs: [verify, rls, audit]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Schema before code, always. Expand-then-contract (add nullable column →
+      # deploy code → backfill → constrain) is what makes that ordering safe and
+      # keeps an app rollback from requiring a schema rollback.
+      - name: Push unapplied migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+          supabase db push
+
+  deploy:
+    name: deploy (production)
+    needs: [migrate]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Build once, here, gated — then upload the prebuilt output. Vercel keeps
+      # hosting, CDN, atomic swap, instant rollback and preview URLs.
+      - run: npx vercel@latest pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: npx vercel@latest build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: npx vercel@latest deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Post-deploy proof, not hope: /api/health echoes the commit it was built
+      # from, so a stale or failed swap fails the pipeline instead of sitting
+      # quietly in production.
+      - name: Smoke — /api/health reports this commit
+        if: vars.PRODUCTION_URL != ''
+        run: |
+          sleep 10
+          body=$(curl -fsS "${{ vars.PRODUCTION_URL }}/api/health")
+          echo "$body"
+          echo "$body" | grep -q "$GITHUB_SHA" || {
+            echo "::error::/api/health did not report $GITHUB_SHA"; exit 1; }
