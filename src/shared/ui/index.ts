@@ -1,4 +1,4 @@
-export { Button, type ButtonProps } from "./Button";
+export { Button, buttonClass, type ButtonProps } from "./Button";
 export { StatCard } from "./StatCard";
 export { Badge, type BadgeTone } from "./Badge";
 export { ThemeToggle } from "./ThemeToggle";

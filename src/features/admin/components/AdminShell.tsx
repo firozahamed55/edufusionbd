@@ -18,8 +18,9 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { createClient } from "@/shared/services/supabase/client";
-import { ADMIN_NAV_ZONES, ADMIN_SETTINGS_MODULE, ADMIN_ALL_MODULES, type AdminModule } from "./adminNav";
-import type { Role } from "@/shared/constants/roles";
+import { ADMIN_NAV_ZONES, ADMIN_SETTINGS_MODULE, ADMIN_ALL_MODULES, canSeeModule, type AdminModule } from "./adminNav";
+import { ROLE_LABELS, type Role } from "@/shared/constants/roles";
+import { useMyPermissions } from "../core/logic/hooks";
 import { resolveActiveModule, resolveActiveTab } from "./resolveNav";
 import { useRailState } from "./useRailState";
 import { useAdminUser } from "./useAdminUser";
@@ -91,6 +92,9 @@ function RailLink({
   );
 }
 
+/** Bangla label for the acting role; an unknown role falls back to its code. */
+const roleLabel = (role: Role) => ROLE_LABELS[role]?.bn ?? String(role).replace(/_/g, " ");
+
 /**
  * Sticky rail + sticky context topbar + scrolling content — the shared admin
  * chrome, fully token-driven so one code path is correct in light and dark.
@@ -121,10 +125,13 @@ function AdminShellInner({ children }: { children: ReactNode }) {
 
   const activeModule = resolveActiveModule(pathname);
   const activeTab = resolveActiveTab(activeModule, pathname);
-  // B-7: a module the operator's role can't use should not be discoverable.
-  // RLS already blocks the data; this stops the UI advertising dead ends.
-  const canSee = (mod: AdminModule) =>
-    !mod.roles || (me?.role ? mod.roles.includes(me.role as Role) : false);
+  // B-7 / SRA F-4: a module the operator cannot use should not be
+  // discoverable. RLS already blocks the data; this stops the rail advertising
+  // dead ends — and it is what makes delegation visible, since an accountant
+  // now sees a Fees-shaped product instead of every module in the school.
+  // The rule itself (and why it fails open) lives in adminNav.ts.
+  const { data: myPermissions } = useMyPermissions();
+  const canSee = (mod: AdminModule) => canSeeModule(mod, myPermissions);
   const pinnedModules = pins
     .map((k) => ADMIN_ALL_MODULES.find((m) => m.key === k))
     .filter((m): m is AdminModule => Boolean(m) && canSee(m as AdminModule));
@@ -354,8 +361,10 @@ function AdminShellInner({ children }: { children: ReactNode }) {
                   <span className="block max-w-32 truncate text-meta font-semibold text-text-primary">
                     {me?.name ?? tx("লোড হচ্ছে…", "Loading…")}
                   </span>
+                  {/* A-0.4 point 5. This read `me.role.replace(/_/g, " ")` —
+                      the raw enum, in English, on a Bangla-only product. */}
                   {me?.role ? (
-                    <span className="block text-micro text-text-muted">{me.role.replace(/_/g, " ")}</span>
+                    <span className="block text-micro text-text-muted">{roleLabel(me.role as Role)}</span>
                   ) : null}
                 </span>
                 <ChevronDown size={16} className="hidden text-text-muted sm:block" />

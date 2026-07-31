@@ -12,7 +12,6 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
-import type { Role } from "@/shared/constants/roles";
 
 /**
  * Admin IA — rail addresses AREAS, the page addresses SCREENS within an area
@@ -52,13 +51,20 @@ export type AdminModule = {
   /** Visual accent treatment (EduSathi). */
   accent?: boolean;
   /**
-   * Roles that may see this module. Omitted => visible to anyone who can reach
-   * /admin at all, which middleware already restricts to admin|super_admin
-   * (audit B-7). Nothing sets this today because the role model has no
-   * sub-admin roles yet — the moment a registrar/accountant role is added,
-   * listing it here is the whole change; the rail already filters on it.
+   * The permission code that makes this module usable (SRA F-4 / A-0.4).
+   *
+   * Filtering on a PERMISSION rather than on the JWT role is the point. The
+   * JWT role answers "may this person reach /admin at all" — middleware's job,
+   * unchanged — while the database models access as permissions, and those are
+   * what every RLS policy and RPC guard is written against. Keying the rail to
+   * the same codes means navigation and authorization agree by construction
+   * instead of by two lists someone has to remember to keep in sync.
+   *
+   * `roles?: readonly Role[]` used to live here, filtered on `admin | teacher |
+   * parent | student | super_admin`, and was set by exactly nothing — a
+   * vocabulary the database never shared.
    */
-  roles?: readonly Role[];
+  permission?: string;
   /** Omitted => single-screen module, no tab bar (Dashboard, EduSathi, Reports). */
   tabs?: AdminTab[];
 };
@@ -72,8 +78,8 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
   {
     label: { bn: "ওভারভিউ", en: "Overview" },
     items: [
-      { key: "dashboard", href: "/admin/dashboard", match: "/admin/dashboard", icon: LayoutDashboard, bn: "ড্যাশবোর্ড", en: "Dashboard" },
-      { key: "edusathi", href: "/admin/edusathi", match: "/admin/edusathi", icon: Sparkles, bn: "এডুসাথী এআই", en: "EduSathi AI", accent: true },
+      { key: "dashboard", href: "/admin/dashboard", match: "/admin/dashboard", icon: LayoutDashboard, bn: "ড্যাশবোর্ড", en: "Dashboard", permission: "dashboard.view" },
+      { key: "edusathi", href: "/admin/edusathi", match: "/admin/edusathi", icon: Sparkles, bn: "এডুসাথী এআই", en: "EduSathi AI", accent: true, permission: "dashboard.view" },
     ],
   },
   {
@@ -86,6 +92,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
         icon: Users,
         bn: "শিক্ষার্থী",
         en: "Students",
+        permission: "student.view",
         tabs: [
           { href: "/admin/student/registration", bn: "ভর্তি", en: "Admissions" },
           { href: "/admin/student/update-basic", bn: "তথ্য হালনাগাদ", en: "Update Info" },
@@ -103,6 +110,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
         icon: GraduationCap,
         bn: "শিক্ষক ও কর্মী",
         en: "Teachers & Staff",
+        permission: "teacher.view",
         tabs: [
           { href: "/admin/teacher/list", bn: "শিক্ষক তালিকা", en: "Directory" },
           { href: "/admin/teacher/registration", bn: "নিবন্ধন", en: "Onboarding" },
@@ -121,6 +129,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
         icon: CalendarCheck,
         bn: "উপস্থিতি",
         en: "Attendance",
+        permission: "attendance.view",
         tabs: [
           { href: "/admin/attendance/section", bn: "সেকশন উপস্থিতি", en: "Take (Section)" },
           { href: "/admin/attendance/exam", bn: "পরীক্ষা উপস্থিতি", en: "Take (Exam)" },
@@ -137,6 +146,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
         icon: ClipboardList,
         bn: "পরীক্ষা ও ফলাফল",
         en: "Exam & Results",
+        permission: "exam.view",
         tabs: [
           { href: "/admin/exam/settings", bn: "সাধারণ সেটিংস", en: "General Settings", group: { bn: "সেটআপ", en: "Setup" } },
           { href: "/admin/exam/mark-config", bn: "মার্ক কনফিগ", en: "Mark Config", group: { bn: "সেটআপ", en: "Setup" } },
@@ -162,6 +172,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
         icon: Wallet,
         bn: "ফি ও অর্থ",
         en: "Fees & Finance",
+        permission: "fee.view",
         tabs: [
           { href: "/admin/fee/quick-collection-list", bn: "কুইক কালেকশন", en: "Quick Collection", group: { bn: "কালেকশন", en: "Collection" } },
           { href: "/admin/fee/quick-collection-form", bn: "কালেকশন ফর্ম", en: "Collection Form", group: { bn: "কালেকশন", en: "Collection" } },
@@ -180,6 +191,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
         icon: Award,
         bn: "ডকুমেন্টস",
         en: "Documents",
+        permission: "certificate.view",
         tabs: [
           { href: "/admin/certificate/template", bn: "টেমপ্লেট ফরম্যাট", en: "Template Format" },
           { href: "/admin/certificate/id-card", bn: "আইডি কার্ড", en: "ID Card" },
@@ -197,6 +209,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
         icon: MessageSquare,
         bn: "কমিউনিকেশন",
         en: "Communication",
+        permission: "sms.view",
         tabs: [
           { href: "/admin/sms-notice/send", bn: "এসএমএস পাঠান", en: "Send SMS" },
           { href: "/admin/sms-notice/notice-board", bn: "নোটিশ বোর্ড", en: "Notice Board" },
@@ -213,7 +226,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
       // Canonical single home for Reports (closes N-2: this used to also exist
       // as a top-level "Reports" entry AND a Students sub-item, both active on
       // the same route at once). Same physical route as the Students tab.
-      { key: "report", href: "/admin/student/reports-summary", match: "/admin/student/reports-summary", icon: BarChart3, bn: "রিপোর্ট", en: "Reports" },
+      { key: "report", href: "/admin/student/reports-summary", match: "/admin/student/reports-summary", icon: BarChart3, bn: "রিপোর্ট", en: "Reports", permission: "student.view" },
     ],
   },
 ];
@@ -225,6 +238,7 @@ export const ADMIN_SETTINGS_MODULE: AdminModule = {
   icon: Settings,
   bn: "সেটিংস",
   en: "Settings",
+  permission: "core.settings",
   tabs: [
     { href: "/admin/core/basic-config", bn: "বেসিক কনফিগ", en: "Basic Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/startup", bn: "স্টার্টআপ", en: "StartUp", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
@@ -233,10 +247,27 @@ export const ADMIN_SETTINGS_MODULE: AdminModule = {
     { href: "/admin/core/subject", bn: "বিষয় তালিকা", en: "Subject List", group: { bn: "বিষয়", en: "Subjects" } },
     { href: "/admin/core/subject-group", bn: "বিষয় গ্রুপ", en: "Subject Group", group: { bn: "বিষয়", en: "Subjects" } },
     { href: "/admin/core/grading", bn: "গ্রেডিং স্কিম", en: "Grading Scheme", group: { bn: "বিষয়", en: "Subjects" } },
-    { href: "/admin/core/user-list", bn: "ইউজার তালিকা", en: "User List", group: { bn: "ইউজার", en: "Users" } },
+    { href: "/admin/core/user-list", bn: "ইউজার ও ভূমিকা", en: "Users & Roles", group: { bn: "ইউজার", en: "Users" } },
+    { href: "/admin/core/permissions", bn: "অনুমতি ম্যাট্রিক্স", en: "Permission Matrix", group: { bn: "ইউজার", en: "Users" } },
     { href: "/admin/core/audit-log", bn: "পরিবর্তনের ইতিহাস", en: "Audit Log", group: { bn: "ইউজার", en: "Users" } },
   ],
 };
+
+/**
+ * Whether the rail should show a module, given the caller's permission codes
+ * from `fn_my_permissions()` (SRA F-4).
+ *
+ * PERMISSIVE UNTIL PROVEN OTHERWISE. `undefined` (still loading) and `[]` (an
+ * account whose `user_role` rows were never seeded) both show everything.
+ * Failing open is deliberate: an empty rail reads as a broken product rather
+ * than as an access decision, and that is exactly the rollout failure risk R-5
+ * names. RLS is the control; this is only the map.
+ */
+export function canSeeModule(mod: AdminModule, permissions: readonly string[] | undefined): boolean {
+  if (!mod.permission) return true;
+  if (!permissions || permissions.length === 0) return true;
+  return permissions.includes(mod.permission);
+}
 
 /** Every module in rail order — used for longest-prefix active resolution and the command palette. */
 export const ADMIN_ALL_MODULES: AdminModule[] = [

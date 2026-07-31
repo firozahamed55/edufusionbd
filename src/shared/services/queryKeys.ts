@@ -81,7 +81,10 @@ export const queryKeys = {
     signatures: ["core", "signatures"] as const,
     classSectionsAll: ["core", "classSections"] as const,
     classSections: (classId: Id, yearId: Id) => ["core", "classSections", classId, yearId] as const,
-    users: (page: number) => ["core", "users", "list", page] as const,
+    usersAll: ["core", "users"] as const,
+    users: (params: Filters) => ["core", "users", "list", params] as const,
+    myPermissions: ["core", "my-permissions"] as const,
+    permissionMatrix: ["core", "permission-matrix"] as const,
     setting: (key: string, scope: string) => ["core", "setting", key, scope] as const,
   },
 

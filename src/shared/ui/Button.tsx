@@ -28,6 +28,20 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
+ * The Button's classes, for the one case a Button cannot serve: navigation.
+ * A `<button onClick={router.push}>` is not a link — no middle-click, no
+ * "open in new tab", no prefetch, and the wrong role for assistive tech. Put
+ * this on a `<Link>` instead of copying the class string per call site.
+ */
+export const buttonClass = (variant: Variant = "primary", size: Size = "md", className?: string) =>
+  cn(
+    "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+    variants[variant],
+    sizes[size],
+    className,
+  );
+
+/**
  * Design-system Button. Colors are semantic tokens → correct in light & dark.
  *
  * `loading` exists so async actions stop re-implementing pending UI at every
@@ -51,12 +65,7 @@ export function Button({
       type={type ?? "button"}
       aria-busy={loading || undefined}
       disabled={disabled || loading}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
-        variants[variant],
-        sizes[size],
-        className,
-      )}
+      className={buttonClass(variant, size, className)}
       {...props}
     >
       {loading ? <Loader2 size={15} className="shrink-0 animate-spin" aria-hidden /> : null}

@@ -18,8 +18,19 @@ export const useSubjects = () => useQuery({ queryKey: queryKeys.core.subjects, q
 export const useSubjectGroups = () => useQuery({ queryKey: queryKeys.core.groups, queryFn: () => api.fetchSubjectGroups(c()) });
 export const useGradeSchemes = () => useQuery({ queryKey: queryKeys.core.schemes, queryFn: () => api.fetchGradeSchemes(c()) });
 export const useSignatures = () => useQuery({ queryKey: queryKeys.core.signatures, queryFn: () => api.fetchSignatures(c()) });
-export const useUsers = (page: number) =>
-  useQuery({ queryKey: queryKeys.core.users(page), queryFn: () => api.fetchUsers(c(), { page }), placeholderData: (prev) => prev });
+export const useUsers = (params: { page: number; q?: string; status?: string }) =>
+  useQuery({ queryKey: queryKeys.core.users(params), queryFn: () => api.fetchUsers(c(), params), placeholderData: (prev) => prev });
+
+/**
+ * The caller's own permission codes (SRA F-4). Long staleTime: permissions
+ * change when someone edits a role, not while an operator works, and this
+ * gates the navigation rail on every render.
+ */
+export const useMyPermissions = () =>
+  useQuery({ queryKey: queryKeys.core.myPermissions, queryFn: () => api.fetchMyPermissions(c()), staleTime: 5 * 60_000 });
+
+export const usePermissionMatrix = () =>
+  useQuery({ queryKey: queryKeys.core.permissionMatrix, queryFn: () => api.fetchPermissionMatrix(c()) });
 export const useClassSections = (classId: string | null) => {
   const yearId = useCurrentYearId();
   return useQuery({
@@ -51,3 +62,20 @@ export const useUpsertSignature = () => useMut((p: RpcPayload) => api.upsertSign
 export const useDeleteSignature = () => useMut((id: string) => api.deleteSignature(c(), id), [queryKeys.core.signatures]);
 export const useUpsertClassSection = () => useMut((p: RpcPayload) => api.upsertClassSection(c(), p), [queryKeys.core.classSectionsAll, queryKeys.core.classes]);
 export const useDeleteClassSection = () => useMut((id: string) => api.deleteClassSection(c(), id), [queryKeys.core.classSectionsAll, queryKeys.core.classes]);
+
+/**
+ * Role assignment and suspension. Both invalidate `myPermissions` as well as
+ * the list: an admin who changes their OWN roles must see the rail redraw, and
+ * an operator who is not told their access changed will file the bug as "the
+ * menu is broken".
+ */
+export const useSetUserRoles = () =>
+  useMut(
+    (v: { profileId: string; roleIds: string[] }) => api.setUserRoles(c(), v.profileId, v.roleIds),
+    [queryKeys.core.usersAll, queryKeys.core.myPermissions],
+  );
+export const useSetUserStatus = () =>
+  useMut(
+    (v: { profileId: string; status: "active" | "suspended" }) => api.setUserStatus(c(), v.profileId, v.status),
+    [queryKeys.core.usersAll],
+  );

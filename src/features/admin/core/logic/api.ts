@@ -134,7 +134,7 @@ export async function fetchSignatures(s: BrowserClient): Promise<SignatureRow[]>
 export const upsertSignature = (s: BrowserClient, payload: RpcPayload) => call(s, "fn_upsert_signature", { payload });
 export const deleteSignature = (s: BrowserClient, id: string) => call(s, "fn_delete_signature", { p_id: id });
 
-/* users (read-only list) */
+/* users */
 export type UserRow = {
   id: string;
   full_name: string | null;
@@ -149,19 +149,24 @@ export type UserRow = {
   lastLoginAt: string | null;
 };
 
-const USERS_PAGE_SIZE = 25;
+export const USERS_PAGE_SIZE = 25;
 
 export async function fetchUsers(
   s: BrowserClient,
-  { page = 1, perPage = USERS_PAGE_SIZE }: { page?: number; perPage?: number } = {},
+  { page = 1, perPage = USERS_PAGE_SIZE, q = "", status = "" }: { page?: number; perPage?: number; q?: string; status?: string } = {},
 ): Promise<{ rows: UserRow[]; total: number }> {
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
-  const { data, error, count } = await s
+  let query = s
     .from("profile")
     .select("id, full_name, phone, status, last_login_at, roles:user_role(role_id, role:role_id(name))", { count: "exact" })
-    .order("created_at")
-    .range(from, to);
+    .order("created_at");
+
+  const needle = q.trim().replace(/[%,]/g, "");
+  if (needle) query = query.or(`full_name.ilike.%${needle}%,phone.ilike.%${needle}%`);
+  if (status) query = query.eq("status", status);
+
+  const { data, error, count } = await query.range(from, to);
   if (error) throw error;
   const rows = (data ?? []).map((r) => ({
     id: r.id,
