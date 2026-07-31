@@ -14,7 +14,7 @@ begin;
 -- Created inside the test transaction and rolled back with it, so pgTAP never
 -- lands in a real database. Nothing in production needs this extension.
 create extension if not exists pgtap with schema extensions;
-select plan(40);
+select plan(48);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures — four accounts on one tenant, differing only in role/linkage.
@@ -244,6 +244,93 @@ select cmp_ok((select public.fn_generate_monthly_invoices())::int, '>', 0,
   'first invoice-generation run creates lines');
 select is((select public.fn_generate_monthly_invoices())::int, 0,
   'second run for the same month creates zero — idempotent by constraint');
+
+-- ---------------------------------------------------------------------------
+-- 3 — the anon surface. Everything below was open on 2026-07-31 and is closed
+-- by 20260731093000. These assertions exist because the advisors and the prose
+-- both said the RPC surface was already locked, and neither was checked
+-- against the live grants.
+-- ---------------------------------------------------------------------------
+
+-- 3.1 — the three attendance views ran as their OWNER, so RLS never applied and
+-- an unauthenticated caller got every institution's per-student attendance rate
+-- from `GET /rest/v1/v_attendance_student_summary`. Verified live before the
+-- fix; this keeps it fixed.
+select is(
+  (select count(*) from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname in ('v_attendance_daily_summary','v_attendance_student_summary','v_attendance_trend')
+      and not coalesce((select option_value::boolean
+                          from pg_options_to_table(c.reloptions)
+                         where option_name = 'security_invoker'), false))::int,
+  0, 'attendance summary views are security_invoker');
+
+-- 3.2 — partitions of `attendance`/`mark` carry their own RLS. A parent's
+-- policies apply only when the data is read THROUGH the parent, so a partition
+-- with RLS off is ungoverned on a direct read. PostgREST hides partitions today;
+-- that is a PostgREST behaviour, not an authorization control.
+select is(
+  (select count(*) from pg_class c
+     join pg_inherits i on i.inhrelid = c.oid
+     join pg_class parent on parent.oid = i.inhparent
+     join pg_namespace n on n.oid = parent.relnamespace
+    where n.nspname = 'public' and parent.relname in ('attendance','mark')
+      and not (c.relrowsecurity and c.relforcerowsecurity))::int,
+  0, 'every attendance/mark partition has RLS enabled and forced');
+
+select is(
+  (select count(*) from pg_class c
+     join pg_inherits i on i.inhrelid = c.oid
+     join pg_class parent on parent.oid = i.inhparent
+     join pg_namespace n on n.oid = parent.relnamespace
+    where n.nspname = 'public' and parent.relname in ('attendance','mark')
+      and (has_table_privilege('anon', c.oid, 'SELECT')
+        or has_table_privilege('authenticated', c.oid, 'SELECT')))::int,
+  0, 'no client role can address a partition directly');
+
+-- 3.3 — new partitions are secured at birth. The trigger on `academic_year`
+-- created two public tables per year; without this the gap returns annually and
+-- nobody is looking.
+select lives_ok(
+  $q$insert into public.academic_year (id, institution_id, year_label, start_date, end_date, is_current)
+     select '0f0f0f0f-0000-0000-0000-00000000f00d', i.id, '2099', '2099-01-01', '2099-12-31', false
+       from public.institution i limit 1$q$,
+  'creating an academic year provisions its partitions');
+
+select is(
+  (select count(*) from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname in ('attendance_y0f0f0f0f0000000000000000000f00d','mark_y0f0f0f0f0000000000000000000f00d')
+      and c.relrowsecurity and c.relforcerowsecurity)::int,
+  2, 'partitions created by the trigger have RLS enabled and forced');
+
+select is(
+  (select count(*) from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname in ('attendance_y0f0f0f0f0000000000000000000f00d','mark_y0f0f0f0f0000000000000000000f00d')
+      and (has_table_privilege('anon', c.oid, 'SELECT')
+        or has_table_privilege('authenticated', c.oid, 'SELECT')))::int,
+  0, 'partitions created by the trigger are not client-addressable');
+
+-- 3.4 — nothing in this product is callable before sign-in. The permission
+-- wrapper would refuse anyway; this removes the reliance on one function's
+-- logic being the only thing in the way.
+select is(
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname like 'fn\_%'
+      and has_function_privilege('anon', p.oid, 'EXECUTE'))::int,
+  0, 'no public fn_* is executable by anon');
+
+-- 3.5 — and the authenticated surface is still intact, i.e. 3.4 did not fix
+-- the hole by breaking the product.
+select cmp_ok(
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname like 'fn\_%'
+      and has_function_privilege('authenticated', p.oid, 'EXECUTE'))::int,
+  '>', 40, 'the RPC surface is still executable by authenticated');
 
 select * from finish();
 rollback;
