@@ -3,29 +3,33 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, Search, Pencil, Download, Send } from "lucide-react";
+import { UserPlus, Pencil, Send } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
   Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination,
-  SortableTH, RowActions, Checkbox, Button, PageHeader, LiveRegion, type Sort,
+  SortableTH, RowActions, Checkbox, Button, PageHeader, LiveRegion,
+  DataToolbar, BulkBar, BulkAction,
 } from "@/shared/ui";
-import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
-import { useQueryState } from "@/shared/lib/useQueryState";
+import { useDataScreen } from "@/shared/lib/useDataScreen";
 import { exportCsv } from "@/shared/lib/exportCsv";
+import { localDay } from "@/shared/lib/format";
 import { useDepartments } from "@/shared/services/lookups/hooks";
 import { useTeachers } from "./logic/useTeachers";
 import { fetchTeachers } from "./logic/api";
 import { createClient } from "@/shared/services/supabase/client";
 import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 
-const PER_PAGE = 20;
-
 /**
  * Teacher list — LIVE from Supabase (teacher + designation + main subject +
  * class-teacher flag), RLS-scoped to the caller's institution.
  *
- * The reference implementation of the §Phase-2 data-interaction layer: search /
- * filter / sort / page live in the URL (`useQueryState`), so this view is
+ * Was the hand-rolled reference implementation of the data-interaction layer.
+ * That layer now lives in `useDataScreen` + `DataToolbar` (SRA A-0.1) and this
+ * screen is its first consumer — migrated first precisely so the extraction is
+ * proven against the one screen whose behaviour was already correct, rather
+ * than validated only on the thirteen that had none of it.
+ *
+ * Search / filter / sort / page still live in the URL, so this view is
  * bookmarkable, shareable, survives refresh and the back button, and can hand
  * its selection to another screen.
  */
@@ -33,23 +37,16 @@ export function ListScreen() {
   const { t, isBn, n } = useT();
   const router = useRouter();
 
-  const [{ q, departmentId, page, sortKey, sortDir }, setQuery] = useQueryState({
-    q: "",
-    departmentId: "",
-    page: 1,
-    sortKey: "",
-    sortDir: "",
-  });
-  const debouncedQ = useDebouncedValue(q, 300);
-  const sort: Sort = sortKey ? { key: sortKey, dir: sortDir === "desc" ? "desc" : "asc" } : null;
+  const ds = useDataScreen({ filters: { departmentId: "" } });
+  const { page, sort, debouncedQ } = ds;
+  const { departmentId } = ds.filters;
 
   const [exportingAll, setExportingAll] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data, isLoading, isError, refetch } = useTeachers(page, debouncedQ, departmentId, sort);
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const selection = ds.useSelection(rows.map((r) => r.id));
   // Server-side distinct list — not derived from `rows`, which only ever holds
   // the current page and silently shrinks the filter as you page (audit W-3).
   const { data: departments = [] } = useDepartments();
@@ -72,33 +69,11 @@ export function ListScreen() {
         departmentId,
         sort,
       });
-      exportCsv(`teachers-all-${new Date().toISOString().slice(0, 10)}.csv`, all.rows.map(toCsvRow));
+      exportCsv(`teachers-all-${localDay()}.csv`, all.rows.map(toCsvRow));
     } finally {
       setExportingAll(false);
     }
   };
-
-  const toggleOne = (id: string) =>
-    setSelected((s) => {
-      const next = new Set(s);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
-  // Page-aware (audit W-8): `selected` spans pages, so "all" means every row on
-  // THIS page, not a count comparison that misreports once selections span pages.
-  const pageIds = rows.map((r) => r.id);
-  const selectedOnPage = pageIds.filter((id) => selected.has(id)).length;
-  const allOnPage = pageIds.length > 0 && selectedOnPage === pageIds.length;
-  const someOnPage = selectedOnPage > 0 && !allOnPage;
-  const toggleAll = () =>
-    setSelected((s) => {
-      const next = new Set(s);
-      if (allOnPage) pageIds.forEach((id) => next.delete(id));
-      else pageIds.forEach((id) => next.add(id));
-      return next;
-    });
 
   return (
     <div className="flex flex-col gap-5">
@@ -125,59 +100,41 @@ export function ListScreen() {
         </Link>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border-control bg-surface px-3 py-2.5 sm:max-w-75 sm:flex-none">
-          <Search size={16} className="text-text-muted" />
-          <input
-            value={q}
-            onChange={(e) => setQuery({ q: e.target.value, page: 1 })}
-            placeholder={t("নাম, আইডি বা মোবাইল খুঁজুন", "Search name, ID or mobile")}
-            aria-label={t("শিক্ষক খুঁজুন", "Search teachers")}
-            className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
-          />
-        </div>
-        <div className="hidden flex-1 sm:block" />
-        <select
-          value={departmentId}
-          onChange={(e) => setQuery({ departmentId: e.target.value, page: 1 })}
-          aria-label={t("বিভাগ ফিল্টার", "Filter by department")}
-          className="rounded-lg border border-border-control bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary"
-        >
-          <option value="">{t("বিভাগ: সব", "Department: All")}</option>
-          {departments.map((d) => (
-            <option key={d.value} value={d.value}>{isBn ? d.label_bn : d.label_en}</option>
-          ))}
-        </select>
-        <Button
-          variant="secondary"
-          onClick={() => exportCsv(`teachers-page${page}-${new Date().toISOString().slice(0, 10)}.csv`, rows.map(toCsvRow))}
-          disabled={rows.length === 0}
-        >
-          <Download size={14} /> {t(`এই পাতা এক্সপোর্ট (${n(rows.length)})`, `Export this page (${rows.length})`)}
-        </Button>
-        <Button variant="secondary" onClick={exportAll} disabled={total === 0} loading={exportingAll}>
-          {!exportingAll ? <Download size={14} /> : null}
-          {exportingAll ? t("এক্সপোর্ট হচ্ছে…", "Exporting…") : t(`সব এক্সপোর্ট (${n(total)})`, `Export all (${total})`)}
-        </Button>
-      </div>
+      <DataToolbar
+        q={ds.q}
+        onQChange={ds.setQ}
+        placeholder={t("নাম, আইডি বা মোবাইল খুঁজুন", "Search name, ID or mobile")}
+        searchLabel={t("শিক্ষক খুঁজুন", "Search teachers")}
+        filters={
+          <select
+            value={departmentId}
+            onChange={(e) => ds.setFilter("departmentId", e.target.value)}
+            aria-label={t("বিভাগ ফিল্টার", "Filter by department")}
+            className="rounded-lg border border-border-control bg-surface px-3 py-2.5 text-meta font-medium text-text-secondary"
+          >
+            <option value="">{t("বিভাগ: সব", "Department: All")}</option>
+            {departments.map((d) => (
+              <option key={d.value} value={d.value}>{isBn ? d.label_bn : d.label_en}</option>
+            ))}
+          </select>
+        }
+        isFiltered={ds.isFiltered}
+        onReset={ds.reset}
+        onExportPage={() => exportCsv(`teachers-page${page}-${localDay()}.csv`, rows.map(toCsvRow))}
+        exportPageCount={rows.length}
+        onExportAll={exportAll}
+        exportAllCount={total}
+        exportingAll={exportingAll}
+      />
 
-      {selected.size > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary-subtle px-4 py-2.5 text-meta font-medium text-primary">
-          <span>{t(`${n(selected.size)} জন নির্বাচিত`, `${selected.size} selected`)}</span>
-          <div className="ml-auto flex gap-2">
-            <button
-              onClick={() => router.push(`/admin/sms-notice/send?recipients=${Array.from(selected).join(",")}`)}
-              className="flex items-center gap-1.5 rounded-md bg-surface px-3 py-1.5 text-text-primary hover:bg-sunken"
-            >
-              <Send size={14} /> {t("এসএমএস পাঠান", "Send SMS")}
-            </button>
-            <button onClick={() => setSelected(new Set())} className="rounded-md px-3 py-1.5 hover:bg-sunken">
-              {t("বাতিল", "Clear")}
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <BulkBar count={selection.count} onClear={selection.clear}>
+        <BulkAction
+          icon={<Send size={14} />}
+          onClick={() => router.push(`/admin/sms-notice/send?recipients=${selection.asArray().join(",")}`)}
+        >
+          {t("এসএমএস পাঠান", "Send SMS")}
+        </BulkAction>
+      </BulkBar>
 
       {isError ? (
         <ErrorState
@@ -190,16 +147,16 @@ export function ListScreen() {
             <TR>
               <TH className="w-10">
                 <Checkbox
-                  checked={allOnPage}
-                  indeterminate={someOnPage}
-                  onChange={toggleAll}
+                  checked={selection.allOnPage}
+                  indeterminate={selection.someOnPage}
+                  onChange={selection.toggleAll}
                   aria-label={t("সব নির্বাচন করুন", "Select all")}
                 />
               </TH>
               <SortableTH
                 sortKey="name"
                 sort={sort}
-                onSort={(s) => setQuery({ sortKey: s?.key ?? "", sortDir: s?.dir ?? "", page: 1 })}
+                onSort={ds.setSort}
               >
                 {t("শিক্ষক", "Teacher")}
               </SortableTH>
@@ -209,7 +166,7 @@ export function ListScreen() {
               <SortableTH
                 sortKey="status"
                 sort={sort}
-                onSort={(s) => setQuery({ sortKey: s?.key ?? "", sortDir: s?.dir ?? "", page: 1 })}
+                onSort={ds.setSort}
               >
                 {t("স্ট্যাটাস", "Status")}
               </SortableTH>
@@ -238,8 +195,8 @@ export function ListScreen() {
                   <TR key={r.id}>
                     <TD>
                       <Checkbox
-                        checked={selected.has(r.id)}
-                        onChange={() => toggleOne(r.id)}
+                        checked={selection.has(r.id)}
+                        onChange={() => selection.toggle(r.id)}
                         aria-label={t("নির্বাচন করুন", "Select row")}
                       />
                     </TD>
@@ -298,12 +255,12 @@ export function ListScreen() {
       {total > 0 ? (
         <Pagination
           label={t(
-            `${n((page - 1) * PER_PAGE + 1)}–${n(Math.min(page * PER_PAGE, total))} দেখানো হচ্ছে · মোট ${n(total)} জন`,
-            `Showing ${(page - 1) * PER_PAGE + 1}-${Math.min(page * PER_PAGE, total)} of ${total}`,
+            `${n(ds.from)}–${n(ds.to(total))} দেখানো হচ্ছে · মোট ${n(total)} জন`,
+            `Showing ${ds.from}-${ds.to(total)} of ${total}`,
           )}
-          pages={pages}
+          pages={ds.pages(total)}
           current={page}
-          onPageChange={(p) => setQuery({ page: p })}
+          onPageChange={ds.setPage}
         />
       ) : null}
     </div>
