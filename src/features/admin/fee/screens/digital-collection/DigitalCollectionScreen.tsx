@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { CreditCard, Download } from "lucide-react";
+import { CreditCard } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { Skeleton, EmptyState, ErrorState, PageHeader, Pagination } from "@/shared/ui";
+import {
+  Skeleton, EmptyState, ErrorState, PageHeader, Pagination, LiveRegion,
+  Table, THead, TBody, TR, TH, TD, TableEmpty, DataToolbar,
+} from "@/shared/ui";
+import { useDataScreen } from "@/shared/lib/useDataScreen";
 import { exportCsv } from "@/shared/lib/exportCsv";
+import { localDay, formatDateTime } from "@/shared/lib/format";
 import { useDigitalTransactions, useDigitalTransactionStats } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -27,12 +31,15 @@ const PER_PAGE = 25;
 export function DigitalCollectionScreen() {
   const { t, n, isBn } = useT();
   const msg = useErrorMessage();
-  const [page, setPage] = useState(1);
+  // Transactions only ever grow — server-paged, so "export" is honest about
+  // being this page (a whole-history export needs a bounded second fetch, and
+  // there is no reconciliation view to hang it off yet).
+  const ds = useDataScreen({ perPage: PER_PAGE });
+  const page = ds.page;
   const q = useDigitalTransactions(page);
   const stats = useDigitalTransactionStats();
   const rows = q.data?.rows ?? [];
   const total = q.data?.total ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const s = stats.data;
   const rate = s && s.total > 0 ? Math.round((s.successCount / s.total) * 100) : 0;
 
@@ -45,6 +52,8 @@ export function DigitalCollectionScreen() {
 
   return (
     <div className="flex flex-col gap-6">
+      <LiveRegion message={q.isLoading ? t("লোড হচ্ছে", "Loading transactions") : t(`${n(total)} টি লেনদেন`, `${total} transactions`)} />
+
       <PageHeader
         crumbs={[{ label: t("ফি ও অর্থ", "Fees & Finance"), href: "/admin/fee/quick-collection-list" }, { label: t("ডিজিটাল ফি কালেকশন", "Digital Collection") }]}
         title={t("ডিজিটাল ফি কালেকশন", "Digital Collection")}
@@ -61,72 +70,79 @@ export function DigitalCollectionScreen() {
           ))}
       </div>
 
-      {q.isLoading ? (
-        <div className="flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-e1">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
-      ) : q.isError ? (
+      <DataToolbar
+        onExportPage={() =>
+          exportCsv(
+            `digital-transactions-page${page}-${localDay()}.csv`,
+            rows.map((r) => ({
+              DateTime: r.at,
+              Student: r.name_en,
+              Amount: r.amount,
+              Gateway: r.gateway,
+              TxnId: r.gateway_txn_id ?? "",
+              Status: r.status,
+            })),
+          )
+        }
+        exportPageCount={rows.length}
+      />
+
+      {q.isError ? (
         <ErrorState title={t("লেনদেন লোড করা যায়নি", "Could not load transactions")} description={msg(q.error)} />
-      ) : rows.length === 0 ? (
+      ) : !q.isLoading && total === 0 ? (
         <EmptyState icon={<CreditCard size={22} />} title={t("কোনো ডিজিটাল লেনদেন নেই", "No digital transactions")} description={t("অনলাইন পেমেন্ট এলে এখানে দেখা যাবে।", "Online payments appear here.")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface shadow-e1">
-          <div className="min-w-230">
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-4">
-              <p className="flex-1 text-base font-semibold text-text-primary">{t("অনলাইন লেনদেন", "Online transactions")}</p>
-              <span className="text-meta font-semibold text-primary">{t("মোট", "Total")}: {n(total)}</span>
-              <button
-                onClick={() => exportCsv(
-                  `digital-transactions-${new Date().toISOString().slice(0, 10)}.csv`,
-                  rows.map((r) => ({
-                    DateTime: r.at,
-                    Student: r.name_en,
-                    Amount: r.amount,
-                    Gateway: r.gateway,
-                    TxnId: r.gateway_txn_id ?? "",
-                    Status: r.status,
-                  })),
-                )}
-                className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-meta font-medium text-text-secondary hover:bg-sunken"
-              >
-                <Download size={14} /> {t("এক্সপোর্ট", "Export")}
-              </button>
-            </div>
-            <div className="flex items-center gap-3 border-b border-border-default px-5 py-3 text-meta font-semibold text-text-muted">
-              <div className="w-40">{t("তারিখ ও সময়", "Date & time")}</div>
-              <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
-              <div className="w-22.5 text-right">{t("পরিমাণ", "Amount")}</div>
-              <div className="w-22.5 text-center">{t("মাধ্যম", "Gateway")}</div>
-              <div className="w-32.5">{t("ট্রানজেকশন আইডি", "Txn ID")}</div>
-              <div className="w-27.5 text-center">{t("স্ট্যাটাস", "Status")}</div>
-            </div>
-            {rows.map((r, i) => {
-              const g = gatewayMeta[r.gateway] ?? { bn: r.gateway, en: r.gateway, cls: "bg-sunken text-text-secondary" };
-              const st = statusMeta[r.status] ?? { bn: r.status, en: r.status, cls: "bg-sunken text-text-secondary" };
-              return (
-                <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3.5", i % 2 === 1 && "bg-sunken")}>
-                  <div className="w-40 text-meta text-text-secondary tnum">{n(new Date(r.at).toLocaleString(isBn ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short" }))}</div>
-                  <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
-                  <div className="w-22.5 text-right text-meta font-semibold text-text-primary tnum">৳{n(r.amount)}</div>
-                  <div className="w-22.5 text-center"><span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", g.cls)}>{isBn ? g.bn : g.en}</span></div>
-                  <div className="w-32.5 font-latin text-meta text-text-secondary">{r.gateway_txn_id ?? "—"}</div>
-                  <div className="w-27.5 text-center"><span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", st.cls)}>{isBn ? st.bn : st.en}</span></div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        <>
+          <Table minWidth={920}>
+            <THead>
+              <TR>
+                <TH className="w-44">{t("তারিখ ও সময়", "Date & time")}</TH>
+                <TH>{t("শিক্ষার্থী", "Student")}</TH>
+                <TH className="w-24 text-right">{t("পরিমাণ", "Amount")}</TH>
+                <TH className="w-24 text-center">{t("মাধ্যম", "Gateway")}</TH>
+                <TH className="w-36">{t("ট্রানজেকশন আইডি", "Txn ID")}</TH>
+                <TH className="w-28 text-center">{t("স্ট্যাটাস", "Status")}</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {q.isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TR key={i}>{Array.from({ length: 6 }).map((__, j) => <TD key={j}><Skeleton className="h-5" /></TD>)}</TR>
+                ))
+              ) : rows.length === 0 ? (
+                <TableEmpty colSpan={6} title={t("কোনো লেনদেন নেই", "No transactions")} />
+              ) : (
+                rows.map((r) => {
+                  const g = gatewayMeta[r.gateway] ?? { bn: r.gateway, en: r.gateway, cls: "bg-sunken text-text-secondary" };
+                  const st = statusMeta[r.status] ?? { bn: r.status, en: r.status, cls: "bg-sunken text-text-secondary" };
+                  return (
+                    <TR key={r.id}>
+                      <TD className="text-meta text-text-secondary tnum">{n(formatDateTime(r.at))}</TD>
+                      <TD className="text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</TD>
+                      <TD className="text-right text-meta font-semibold text-text-primary tnum">৳{n(r.amount)}</TD>
+                      <TD className="text-center"><span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", g.cls)}>{isBn ? g.bn : g.en}</span></TD>
+                      <TD className="font-latin text-meta text-text-secondary">{r.gateway_txn_id ?? "—"}</TD>
+                      <TD className="text-center"><span className={cn("inline-block rounded-full px-2.5 py-1 text-xs font-semibold", st.cls)}>{isBn ? st.bn : st.en}</span></TD>
+                    </TR>
+                  );
+                })
+              )}
+            </TBody>
+          </Table>
 
-      {total > 0 ? (
-        <Pagination
-          label={t(
-            `${(page - 1) * PER_PAGE + 1}–${Math.min(page * PER_PAGE, total)} দেখানো হচ্ছে · মোট ${total} জন`,
-            `Showing ${(page - 1) * PER_PAGE + 1}-${Math.min(page * PER_PAGE, total)} of ${total}`,
-          )}
-          pages={pages}
-          current={page}
-          onPageChange={setPage}
-        />
-      ) : null}
+          {total > 0 ? (
+            <Pagination
+              label={t(
+                `${n(ds.from)}–${n(ds.to(total))} দেখানো হচ্ছে · মোট ${n(total)}`,
+                `Showing ${ds.from}-${ds.to(total)} of ${total}`,
+              )}
+              pages={ds.pages(total)}
+              current={page}
+              onPageChange={ds.setPage}
+            />
+          ) : null}
+        </>
+      )}
     </div>
   );
 }
