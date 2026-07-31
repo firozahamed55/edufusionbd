@@ -223,3 +223,60 @@ export async function setUserStatus(s: BrowserClient, profileId: string, status:
   const { error } = await s.rpc("fn_set_user_status", { payload: { profile_id: profileId, status } });
   if (error) throw new Error(error.message);
 }
+
+/* ----------------------------------------------------- global entity search */
+
+/**
+ * Students and teachers by name or code, for the ⌘K palette (SRA §6: the
+ * palette jumps to SCREENS, and "find student 2026-0417" is the single most
+ * frequent intent a registrar has — and it was unserved).
+ *
+ * Two small queries rather than an RPC: both tables are already RLS-scoped to
+ * the institution, both are indexed on the columns searched, and a union would
+ * need a SECURITY DEFINER function to re-derive the tenant scope that RLS
+ * gives for free here.
+ */
+export type EntityHit = { kind: "student" | "teacher"; id: string; code: string | null; name_bn: string; name_en: string; detail: string | null };
+
+export const SEARCH_MIN_CHARS = 2;
+const SEARCH_LIMIT = 6;
+
+export async function searchEntities(s: BrowserClient, term: string): Promise<EntityHit[]> {
+  const needle = term.trim().replace(/[%,]/g, "");
+  if (needle.length < SEARCH_MIN_CHARS) return [];
+  const like = `%${needle}%`;
+
+  const [students, teachers] = await Promise.all([
+    s.from("student")
+      .select("id, student_code, name_bn, name_en, enr:current_enrollment_id(roll_no, cs:class_section_id(class:class_id(name_en), section:section_id(name)))")
+      .or(`student_code.ilike.${like},name_bn.ilike.${like},name_en.ilike.${like}`)
+      .is("deleted_at", null)
+      .limit(SEARCH_LIMIT),
+    s.from("teacher")
+      .select("id, employee_code, name_bn, name_en, designation:designation_id(name)")
+      .or(`employee_code.ilike.${like},name_bn.ilike.${like},name_en.ilike.${like}`)
+      .is("deleted_at", null)
+      .limit(SEARCH_LIMIT),
+  ]);
+  if (students.error) throw students.error;
+  if (teachers.error) throw teachers.error;
+
+  return [
+    ...(students.data ?? []).map((r) => ({
+      kind: "student" as const,
+      id: r.id,
+      code: r.student_code,
+      name_bn: r.name_bn,
+      name_en: r.name_en,
+      detail: [r.enr?.cs?.class?.name_en, r.enr?.cs?.section?.name].filter(Boolean).join(" — ") || null,
+    })),
+    ...(teachers.data ?? []).map((r) => ({
+      kind: "teacher" as const,
+      id: r.id,
+      code: r.employee_code,
+      name_bn: r.name_bn,
+      name_en: r.name_en,
+      detail: r.designation?.name ?? null,
+    })),
+  ];
+}

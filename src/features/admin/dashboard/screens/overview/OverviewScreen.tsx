@@ -24,8 +24,9 @@ import { useT } from "@/shared/i18n/useT";
 import { BarChart, Donut, Skeleton, ErrorState, EmptyState, PageHeader } from "@/shared/ui";
 import { useAdminUser } from "@/features/admin/components/useAdminUser";
 import { SetupChecklist } from "../../components/SetupChecklist";
-import { localDay, weekdayShort } from "@/shared/lib/format";
-import { useDashboard } from "./logic/useDashboard";
+import { localDay, dayOffset, weekdayShort } from "@/shared/lib/format";
+import { useQueryState } from "@/shared/lib/useQueryState";
+import { useDashboard, usePeriodStats } from "./logic/useDashboard";
 import type { AttentionItem } from "./logic/api";
 
 /**
@@ -38,6 +39,43 @@ import type { AttentionItem } from "./logic/api";
  * with made-up ৳ figures — all rendered identically to the three live KPIs
  * beside them, on the surface operators see first and most often.
  */
+
+/**
+ * Period presets (SRA A-1: "no period selector"). Ranges are computed in
+ * institution time via `shared/lib/format`, never from `toISOString()` — after
+ * 18:00 in Dhaka that reports yesterday, which on a "this month" boundary
+ * silently shifts the whole window by a month.
+ */
+type PresetKey = "this_month" | "last_month" | "last_30" | "this_year" | "custom";
+
+const PRESETS: Record<Exclude<PresetKey, "custom">, { bn: string; en: string; collectedBn: string; collectedEn: string }> = {
+  this_month: { bn: "এই মাস", en: "This month", collectedBn: "এ মাসে আদায়", collectedEn: "Collected (month)" },
+  last_month: { bn: "গত মাস", en: "Last month", collectedBn: "গত মাসে আদায়", collectedEn: "Collected (last month)" },
+  last_30: { bn: "গত ৩০ দিন", en: "Last 30 days", collectedBn: "৩০ দিনে আদায়", collectedEn: "Collected (30 days)" },
+  this_year: { bn: "এই বছর", en: "This year", collectedBn: "এ বছরে আদায়", collectedEn: "Collected (year)" },
+};
+
+export function presetRange(
+  key: Exclude<PresetKey, "custom">,
+  // Injectable so the December→January rollover is testable rather than
+  // wall-clock dependent — the same discipline `fetchDashboard` uses for `now`.
+  today = localDay(),
+): { from: string; to: string } {
+  const [y, m] = today.split("-").map(Number);
+  const pad = (v: number) => String(v).padStart(2, "0");
+  const monthStart = (yy: number, mm: number) => `${yy}-${pad(mm)}-01`;
+  // Day 0 of the next month is the last day of this one — no month-length table.
+  const monthEnd = (yy: number, mm: number) => localDay(new Date(yy, mm, 0));
+
+  if (key === "last_month") {
+    const yy = m === 1 ? y - 1 : y;
+    const mm = m === 1 ? 12 : m - 1;
+    return { from: monthStart(yy, mm), to: monthEnd(yy, mm) };
+  }
+  if (key === "last_30") return { from: dayOffset(-30, `${today}T12:00:00`), to: today };
+  if (key === "this_year") return { from: `${y}-01-01`, to: today };
+  return { from: monthStart(y, m), to: today };
+}
 
 const ATTENTION_META: Record<
   string,
@@ -53,20 +91,32 @@ export function OverviewScreen() {
   const { data: me } = useAdminUser();
   const { data, isLoading, isError, refetch } = useDashboard();
 
+  // Period lives in the URL, so "this school in October" is a link (SRA A-1).
+  const [{ preset, from, to }, setPeriod] = useQueryState({
+    preset: "this_month" as PresetKey,
+    ...presetRange("this_month"),
+  });
+  const period = usePeriodStats(from, to);
+
   const bdt = (v: number) => `৳${n(new Intl.NumberFormat("en-IN").format(Math.round(v)))}`;
-  const collected = data?.collectedThisMonth ?? 0;
+  const collected = period.data?.collected ?? 0;
   const due = data?.totalDue ?? 0;
   const collectRate = collected + due > 0 ? Math.round((collected / (collected + due)) * 100) : 0;
+  // A hand-typed `?preset=` in the URL is not guaranteed to be a known key.
+  const presetMeta = PRESETS[preset as Exclude<PresetKey, "custom">];
+  const periodLabel = presetMeta
+    ? t(presetMeta.collectedBn, presetMeta.collectedEn)
+    : t("এই সময়ে আদায়", "Collected (period)");
 
   // Real time-of-day, not a hardcoded "Good morning".
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? t("সুপ্রভাত", "Good morning") : hour < 17 ? t("শুভ অপরাহ্ন", "Good afternoon") : t("শুভ সন্ধ্যা", "Good evening");
 
-  const trend = data?.attendanceTrend ?? [];
-  const avgRate = trend.length > 0 ? Math.round(trend.reduce((s, p) => s + p.rate, 0) / trend.length) : 0;
-  // Last 7 points, labelled by weekday — the chart is a real 30-day rolling
-  // series now, not five invented numbers.
+  const trend = period.data?.attendanceTrend ?? [];
+  const avgRate = period.data?.avgRate ?? 0;
+  // Last 7 points, labelled by weekday — a real series over the chosen period,
+  // not five invented numbers.
   const chartData = trend.slice(-7).map((p) => ({
     label: weekdayShort(`${p.date}T12:00:00Z`),
     value: p.rate,
@@ -213,22 +263,34 @@ export function OverviewScreen() {
         )}
       </Card>
 
-      {/* KPIs */}
+      {/* KPIs. Every tile is a link to the list it summarises (SRA A-1 item 2:
+          the tiles are the most-looked-at objects on the screen and were dead
+          ends — the attention rows below them were already links). */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Kpi grad="grad-indigo" icon={Users} label={t("মোট শিক্ষার্থী", "Total Students")} value={n(data?.activeStudents ?? 0)} delta={n(data?.classSections ?? 0)} period={t("শ্রেণি-শাখা", "class-sections")} />
-        <Kpi grad="grad-emerald" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(studentsPerTeacher)} period={t("শিক্ষার্থী/শিক্ষক", "students/teacher")} />
-        <Kpi grad="grad-sky" icon={Wallet} label={t("এ মাসে আদায়", "Collected (month)")} value={bdt(collected)} delta={bdt(due)} period={t("বকেয়া", "due")} />
+        <Kpi grad="grad-indigo" icon={Users} label={t("মোট শিক্ষার্থী", "Total Students")} value={n(data?.activeStudents ?? 0)} delta={n(data?.classSections ?? 0)} period={t("শ্রেণি-শাখা", "class-sections")} href="/admin/student/update-class" />
+        <Kpi grad="grad-emerald" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(studentsPerTeacher)} period={t("শিক্ষার্থী/শিক্ষক", "students/teacher")} href="/admin/teacher/list" />
+        {/* The statement for exactly this window — the drill-down of a money
+            number is the ledger the number came from, not a generic list. */}
+        <Kpi grad="grad-sky" icon={Wallet} label={periodLabel} value={bdt(collected)} delta={bdt(due)} period={t("বকেয়া", "due")} href={`/admin/fee/income-statement?from=${from}&to=${to}`} />
       </div>
 
       {/* Analytics */}
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="flex-1 text-base font-semibold text-text-primary">{t("সময়কাল অনুযায়ী", "Over a period")}</h2>
+        <PeriodSelector value={preset} from={from} to={to} onChange={setPeriod} />
+      </div>
+      {/* The selector governs THESE two panels and the collection tile, and
+          nothing else. Enrolment counts and outstanding dues are point-in-time
+          facts; a control that appeared to filter them would be reporting a
+          falsehood, which is the defect this dashboard was rebuilt to remove. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_400px]">
         <Card>
           <CardHead
             title={t("উপস্থিতির হার", "Attendance Rate")}
             subtitle={
               trend.length > 0
-                ? t(`গত ৩০ দিনের গড় ${n(avgRate)}%`, `${avgRate}% average over the last 30 days`)
-                : t("এখনো কোনো উপস্থিতি রেকর্ড নেই", "No attendance recorded yet")
+                ? t(`এই সময়ের গড় ${n(avgRate)}%`, `${avgRate}% average over this period`)
+                : t("এই সময়ে কোনো উপস্থিতি রেকর্ড নেই", "No attendance recorded in this period")
             }
           />
           {chartData.length > 0 ? (
@@ -327,6 +389,7 @@ function Kpi({
   value,
   delta,
   period,
+  href,
 }: {
   grad: string;
   icon: LucideIcon;
@@ -334,9 +397,17 @@ function Kpi({
   value: string;
   delta: string;
   period: string;
+  /** The list this number summarises. A KPI without one is a dead end (A-1). */
+  href: string;
 }) {
   return (
-    <div className={cn("relative flex flex-col gap-3.5 overflow-hidden rounded-2xl px-5 py-4.5 text-white shadow-e2", grad)}>
+    <Link
+      href={href}
+      className={cn(
+        "group relative flex flex-col gap-3.5 overflow-hidden rounded-2xl px-5 py-4.5 text-white shadow-e2 transition-transform hover:-translate-y-0.5",
+        grad,
+      )}
+    >
       <div className="flex items-center">
         <p className="flex-1 text-meta font-medium">{label}</p>
         <span className="grid size-9 place-items-center rounded-lg bg-white/20">
@@ -350,7 +421,65 @@ function Kpi({
       <div className="flex items-center gap-1.5 text-meta">
         <span className="font-semibold">{delta}</span>
         <span className="opacity-90">{period}</span>
+        <ChevronRight size={14} className="ml-auto opacity-0 transition-opacity group-hover:opacity-90" />
       </div>
+    </Link>
+  );
+}
+
+/**
+ * Presets plus a custom range, all URL-backed. The custom inputs apply on
+ * change rather than behind a Search button because both ends already have a
+ * value — there is no half-typed range to fire against.
+ */
+function PeriodSelector({
+  value,
+  from,
+  to,
+  onChange,
+}: {
+  value: string;
+  from: string;
+  to: string;
+  onChange: (patch: { preset?: PresetKey; from?: string; to?: string }) => void;
+}) {
+  const { t } = useT();
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        value={value}
+        onChange={(e) => {
+          const next = e.target.value as PresetKey;
+          onChange(next === "custom" ? { preset: next } : { preset: next, ...presetRange(next) });
+        }}
+        aria-label={t("সময়কাল", "Period")}
+        className="rounded-lg border border-border-strong bg-surface px-3 py-2 text-meta font-medium text-text-secondary"
+      >
+        {(Object.keys(PRESETS) as Exclude<PresetKey, "custom">[]).map((k) => (
+          <option key={k} value={k}>{t(PRESETS[k].bn, PRESETS[k].en)}</option>
+        ))}
+        <option value="custom">{t("নির্দিষ্ট সময়", "Custom")}</option>
+      </select>
+      {value === "custom" ? (
+        <>
+          <input
+            type="date"
+            value={from}
+            max={to}
+            onChange={(e) => onChange({ from: e.target.value })}
+            aria-label={t("শুরুর তারিখ", "Start date")}
+            className="rounded-lg border border-border-strong bg-surface px-3 py-2 text-meta text-text-secondary"
+          />
+          <input
+            type="date"
+            value={to}
+            min={from}
+            onChange={(e) => onChange({ to: e.target.value })}
+            aria-label={t("শেষ তারিখ", "End date")}
+            className="rounded-lg border border-border-strong bg-surface px-3 py-2 text-meta text-text-secondary"
+          />
+        </>
+      ) : null}
     </div>
   );
 }

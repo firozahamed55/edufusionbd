@@ -139,7 +139,11 @@ export function UpdateClassScreen() {
                   <TR key={r.enrollmentId}>
                     <TD className="font-latin text-meta font-medium text-text-secondary tnum">{r.code ?? "—"}</TD>
                     <TD className="text-meta text-text-secondary tnum">{r.roll != null ? n(r.roll) : "—"}</TD>
-                    <TD className="text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</TD>
+                    <TD className="text-sm font-medium">
+                      <Link href={`/admin/student/profile?id=${r.studentId}`} className="text-primary hover:underline">
+                        {isBn ? r.name_bn : r.name_en}
+                      </Link>
+                    </TD>
                     <TD className="text-meta text-text-secondary">{r.father ?? "—"}</TD>
                     <TD className="text-meta text-text-secondary tnum">{r.dob ? n(formatDate(r.dob)) : "—"}</TD>
                     <TD className="font-latin text-meta text-text-secondary">{r.phone ? n(r.phone) : "—"}</TD>

@@ -170,3 +170,67 @@ export async function fetchDashboard(
     activity: activityRes.data ?? [],
   };
 }
+
+/* ------------------------------------------------------ period-scoped stats */
+
+export type PeriodStats = {
+  collected: number;
+  attendanceTrend: AttendancePoint[];
+  /** Mean of the daily rates in the window; 0 when nothing was recorded. */
+  avgRate: number;
+};
+
+/**
+ * The two numbers on the dashboard that are genuinely a function of a DATE
+ * RANGE — money collected, and attendance (SRA §A-1: "no period selector").
+ *
+ * Deliberately separate from `fetchDashboard`. The KPI tiles are point-in-time
+ * counts — how many students are enrolled, how much is outstanding right now —
+ * and a period selector that appeared to filter them would be reporting a
+ * falsehood, which is the exact defect the dashboard rebuild set out to remove.
+ * Keeping this a second query also leaves the server prefetch of the main
+ * payload (audit H-5) intact, since its cache key never changes.
+ */
+export async function fetchPeriodStats(
+  supabase: BrowserClient,
+  { from, to, yearId }: { from: string; to: string; yearId?: string | null },
+): Promise<PeriodStats> {
+  const [payments, attendance] = await Promise.all([
+    // `paid_at` is a timestamptz; `to` is an inclusive day, so the upper bound
+    // is the start of the following day rather than midnight of `to` — which
+    // would silently drop everything collected on the last day of the range.
+    supabase
+      .from("fee_payment")
+      .select("amount")
+      .gte("paid_at", from)
+      .lt("paid_at", nextDay(to))
+      .limit(MAX_OPTIONS),
+    (() => {
+      const q = supabase.from("attendance").select("att_date, status").gte("att_date", from).lte("att_date", to);
+      return (yearId ? q.eq("academic_year_id", yearId) : q).limit(MAX_OPTIONS);
+    })(),
+  ]);
+  if (payments.error) throw payments.error;
+  if (attendance.error) throw attendance.error;
+
+  const collected = (payments.data ?? []).reduce((s, r) => s + Number(r.amount ?? 0), 0);
+
+  const byDate = new Map<string, { present: number; total: number }>();
+  for (const row of attendance.data ?? []) {
+    const bucket = byDate.get(row.att_date) ?? { present: 0, total: 0 };
+    bucket.total += 1;
+    if (row.status === "present" || row.status === "late") bucket.present += 1;
+    byDate.set(row.att_date, bucket);
+  }
+  const attendanceTrend: AttendancePoint[] = Array.from(byDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, b]) => ({ date, rate: b.total > 0 ? Math.round((b.present / b.total) * 100) : 0 }));
+
+  const avgRate = attendanceTrend.length > 0
+    ? Math.round(attendanceTrend.reduce((s, p) => s + p.rate, 0) / attendanceTrend.length)
+    : 0;
+
+  return { collected, attendanceTrend, avgRate };
+}
+
+const nextDay = (day: string) => new Date(new Date(`${day}T00:00:00`).getTime() + DAY_MS).toISOString().slice(0, 10);

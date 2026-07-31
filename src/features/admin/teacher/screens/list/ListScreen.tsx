@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, Pencil, Send } from "lucide-react";
+import { UserPlus, Pencil, Send, User } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
   Table, THead, TBody, TR, TH, TD, TableEmpty, Badge, ErrorState, Pagination,
@@ -206,7 +206,12 @@ export function ListScreen() {
                           {name.trim().charAt(0)}
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-text-primary">{name}</span>
+                          <Link
+                            href={`/admin/teacher/profile?id=${r.id}`}
+                            className="block truncate text-sm font-semibold text-primary hover:underline"
+                          >
+                            {name}
+                          </Link>
                           <span className="block truncate text-xs text-text-muted">{r.email ?? "—"}</span>
                         </span>
                       </span>
@@ -235,6 +240,10 @@ export function ListScreen() {
                       <RowActions
                         label={t("অ্যাকশন", "Actions")}
                         actions={[
+                          // Looking someone up is far more frequent than
+                          // editing them, and the Directory used to open only
+                          // into the 31-field form that can save.
+                          { label: t("প্রোফাইল দেখুন", "Open profile"), icon: User, href: `/admin/teacher/profile?id=${r.id}` },
                           { label: t("প্রোফাইল সম্পাদনা", "Edit profile"), icon: Pencil, href: `/admin/teacher/update-profile?id=${r.id}` },
                           {
                             label: t("এসএমএস পাঠান", "Send SMS"),

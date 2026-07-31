@@ -31,6 +31,15 @@ export const useMyPermissions = () =>
 
 export const usePermissionMatrix = () =>
   useQuery({ queryKey: queryKeys.core.permissionMatrix, queryFn: () => api.fetchPermissionMatrix(c()) });
+
+/** Students and teachers by name or code, for the ⌘K palette. */
+export const useEntitySearch = (term: string) =>
+  useQuery({
+    queryKey: queryKeys.core.entitySearch(term),
+    queryFn: () => api.searchEntities(c(), term),
+    enabled: term.trim().length >= api.SEARCH_MIN_CHARS,
+    staleTime: 30_000,
+  });
 export const useClassSections = (classId: string | null) => {
   const yearId = useCurrentYearId();
   return useQuery({

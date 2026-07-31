@@ -33,6 +33,7 @@ export const queryKeys = {
     all: ["dashboard"] as const,
     kpis: (institutionId: string) => ["dashboard", "kpis", institutionId] as const,
     overview: ["dashboard", "overview"] as const,
+    period: (params: Filters) => ["dashboard", "period", params] as const,
   },
 
   /** The current academic year — every year-scoped query keys off its id. */
@@ -84,6 +85,7 @@ export const queryKeys = {
     usersAll: ["core", "users"] as const,
     users: (params: Filters) => ["core", "users", "list", params] as const,
     myPermissions: ["core", "my-permissions"] as const,
+    entitySearch: (term: string) => ["core", "entity-search", term] as const,
     permissionMatrix: ["core", "permission-matrix"] as const,
     setting: (key: string, scope: string) => ["core", "setting", key, scope] as const,
   },
