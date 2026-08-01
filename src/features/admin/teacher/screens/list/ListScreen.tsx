@@ -74,7 +74,7 @@ export function ListScreen() {
         // flattened rather than as a nested shape an auditor cannot filter on.
         {
           kind: "teacher.list_all",
-          params: { q: debouncedQ, departmentId, sort: `${sort.key}:${sort.dir}`, scope: "all" },
+          params: { q: debouncedQ, departmentId, sort: sort ? `${sort.key}:${sort.dir}` : null, scope: "all" },
         },
       );
     } finally {

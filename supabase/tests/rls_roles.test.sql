@@ -14,7 +14,7 @@ begin;
 -- Created inside the test transaction and rolled back with it, so pgTAP never
 -- lands in a real database. Nothing in production needs this extension.
 create extension if not exists pgtap with schema extensions;
-select plan(48);
+select plan(51);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures — four accounts on one tenant, differing only in role/linkage.
@@ -331,6 +331,48 @@ select cmp_ok(
     where n.nspname = 'public' and p.proname like 'fn\_%'
       and has_function_privilege('authenticated', p.oid, 'EXECUTE'))::int,
   '>', 40, 'the RPC surface is still executable by authenticated');
+
+-- ---------------------------------------------------------------------------
+-- 3.6 — Settings audit M-2. Every SECURITY DEFINER function in `public` either
+-- checks a permission or is on `private.unguarded_function_allowlist` with a
+-- written reason.
+--
+-- These functions are owned by `postgres`, which carries `rolbypassrls`, so RLS
+-- does NOT apply inside them regardless of `force row level security` on the
+-- table. The permission call in the body is therefore the ONLY control on a
+-- SECURITY DEFINER RPC. `fn_permission_matrix` shipped without one and handed
+-- the institution's whole authorization model to any signed-in account;
+-- `fn_resolve_sms_recipients` shipped without one and handed out the guardian
+-- directory ten mobile numbers at a time.
+--
+-- Adding a function to the allow-list is a migration, so the reason is written
+-- down and reviewed. That is the point: this assertion is not here to be
+-- silenced, it is here to make silencing it visible.
+-- ---------------------------------------------------------------------------
+select is(
+  (select count(*) from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname like 'fn\_%' and p.prosecdef
+      and p.prosrc not ilike '%require_permission%'
+      and p.prosrc not ilike '%has_permission%'
+      and p.proname not in (select proname from private.unguarded_function_allowlist))::int,
+  0, 'every SECURITY DEFINER fn_* checks a permission or is allow-listed with a reason');
+
+-- 3.7 — and the allow-list has not been used as a dumping ground. Twelve
+-- entries today, all of them either self-scoped to auth.uid() or deliberately
+-- public. A jump here is the review signal.
+select cmp_ok(
+  (select count(*) from private.unguarded_function_allowlist)::int,
+  '<=', 15, 'the unguarded allow-list has not grown unnoticed');
+
+-- 3.8 — the specific regression. A caller with no role must not be able to read
+-- the role x capability matrix.
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-0000-0000-0000-000000000004","role":"authenticated"}', true);
+select throws_ok(
+  $q$select public.fn_permission_matrix()$q$,
+  '42501', null,
+  'a no-role user cannot read the permission matrix');
 
 select * from finish();
 rollback;
