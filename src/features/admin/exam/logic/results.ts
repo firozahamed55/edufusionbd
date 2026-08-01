@@ -54,7 +54,7 @@ export async function fetchTabulation(
 ): Promise<Tabulation> {
   const { data, error } = await s.rpc("fn_exam_tabulation", {
     p_exam_id: examId,
-    p_class_section_id: classSectionId,
+    p_class_section_id: classSectionId ?? undefined,
   });
   if (error) throw new Error(error.message);
   const r = (data ?? {}) as Record<string, unknown>;
@@ -128,7 +128,7 @@ export async function setPublication(
   const { error } = await s.rpc("fn_set_result_publication", {
     p_exam_id: examId,
     p_publish: publish,
-    p_reason: reason,
+    p_reason: reason ?? undefined,
   });
   if (error) throw new Error(error.message);
 }

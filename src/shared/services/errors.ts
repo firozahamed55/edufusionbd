@@ -31,6 +31,7 @@ export type ErrorKind =
   | "invalid"
   | "not_found"
   | "forbidden"
+  | "conflict"
   | "session_expired"
   | "rate_limited"
   | "offline"
@@ -85,6 +86,12 @@ export function classifyError(e: unknown): ErrorKind {
       return "invalid";
     case "42501":
       return "forbidden";
+    // PostgREST maps SQLSTATE PTxxx onto an HTTP status. `fn_save_setting`
+    // raises PT409 when the row moved under the caller (audit M-3), so a
+    // concurrent edit arrives as a real 409 rather than a generic failure the
+    // client would have to string-match.
+    case "PT409":
+      return "conflict";
     case "PGRST116":
       return "not_found";
     case "PGRST301":
@@ -148,6 +155,10 @@ const COPY: Record<ErrorKind, Bilingual> = {
   forbidden: {
     bn: "এই কাজটি করার অনুমতি আপনার নেই।",
     en: "You don't have permission to do this.",
+  },
+  conflict: {
+    bn: "আপনি খোলার পর অন্য কেউ এটি পরিবর্তন করেছেন। রিলোড করে আবার চেষ্টা করুন।",
+    en: "Someone else changed this after you opened it. Reload and try again.",
   },
   session_expired: {
     bn: "আপনার সেশন শেষ হয়ে গেছে। আবার লগইন করুন।",

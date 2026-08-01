@@ -97,7 +97,7 @@ export async function fetchAttendanceSummary(
   // Analytics screen's own default — "All classes & sections" — throw on load.
   // Callers that genuinely require a section (the Report screen) gate with
   // `enabled` instead, which is where a required input belongs.
-  const { data, error } = await supabase.rpc("fn_attendance_summary", { p_class_section_id: classSectionId, p_from: from, p_to: to });
+  const { data, error } = await supabase.rpc("fn_attendance_summary", { p_class_section_id: classSectionId ?? undefined, p_from: from, p_to: to });
   if (error) throw new Error(error.message);
   return data as AttendanceSummary;
 }

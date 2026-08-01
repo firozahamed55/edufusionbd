@@ -64,13 +64,48 @@ export const upsertClassSection = (s: BrowserClient, payload: RpcPayload) => cal
 export const deleteClassSection = (s: BrowserClient, id: string) => call(s, "fn_delete_class_section", { p_id: id });
 
 /* generic institution setting (basic_config etc.) via fn_save_setting */
-export async function fetchSetting(s: BrowserClient, key: string, scope: string): Promise<RpcPayload> {
-  const { data, error } = await s.from("setting").select("value").eq("key", key).eq("scope", scope).maybeSingle();
+
+/**
+ * A setting document and the timestamp it was read at (audit M-3).
+ *
+ * `updatedAt` is what makes a concurrent edit detectable: the client sends it
+ * back on save, and the RPC refuses if the row has moved since. Null means the
+ * row does not exist yet, which cannot conflict with anything.
+ */
+export type SettingDoc = { value: RpcPayload; updatedAt: string | null };
+
+export async function fetchSetting(s: BrowserClient, key: string, scope: string): Promise<SettingDoc> {
+  const { data, error } = await s.from("setting").select("value, updated_at").eq("key", key).eq("scope", scope).maybeSingle();
   if (error) throw error;
-  return ((data as { value: RpcPayload } | null)?.value ?? {}) as RpcPayload;
+  const row = data as { value: RpcPayload; updated_at: string | null } | null;
+  return { value: (row?.value ?? {}) as RpcPayload, updatedAt: row?.updated_at ?? null };
 }
-export async function saveSetting(s: BrowserClient, key: string, scope: string, value: RpcPayload): Promise<void> {
-  await call(s, "fn_save_setting", { p_key: key, p_scope: scope, p_value: value });
+
+/**
+ * Writes only the keys in `value` — the RPC merges rather than replaces, so a
+ * partial payload is the intended shape and two operators editing different
+ * settings never collide.
+ *
+ * Pass `expectedUpdatedAt` to make a same-key collision an error instead of a
+ * silent overwrite; omit it to force the write (the "overwrite anyway" branch
+ * of the conflict dialog). Returns the new timestamp so the caller can advance
+ * its baseline without a refetch.
+ */
+export async function saveSetting(
+  s: BrowserClient,
+  key: string,
+  scope: string,
+  value: RpcPayload,
+  expectedUpdatedAt?: string | null,
+): Promise<string> {
+  const { data, error } = await s.rpc("fn_save_setting", {
+    p_key: key,
+    p_scope: scope,
+    p_value: value,
+    p_expected_updated_at: expectedUpdatedAt ?? undefined,
+  });
+  if (error) throw error;
+  return (data as string) ?? "";
 }
 
 /* classes */

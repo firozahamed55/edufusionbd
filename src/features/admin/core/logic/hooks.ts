@@ -56,9 +56,21 @@ function useMut<T>(fn: (v: T) => Promise<unknown>, keys: readonly (readonly unkn
 }
 
 export const useUpdateInstitution = () => useMut((p: RpcPayload) => api.updateInstitution(c(), p), [queryKeys.core.institution]);
+/**
+ * Save a setting document (audit M-3).
+ *
+ * `value` carries only the changed keys — the RPC merges. `expectedUpdatedAt`
+ * is the timestamp the screen loaded; passing it turns a concurrent same-key
+ * edit into a 409 the screen can offer a choice about, and omitting it forces
+ * the write.
+ */
 export const useSaveSetting = (key: string, scope: string) => {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (value: RpcPayload) => api.saveSetting(c(), key, scope, value), onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.core.setting(key, scope) }) });
+  return useMutation({
+    mutationFn: (v: { value: RpcPayload; expectedUpdatedAt?: string | null }) =>
+      api.saveSetting(c(), key, scope, v.value, v.expectedUpdatedAt),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.core.setting(key, scope) }),
+  });
 };
 export const useUpsertClass = () => useMut((p: RpcPayload) => api.upsertClass(c(), p), [queryKeys.core.classes]);
 export const useDeleteClass = () => useMut((id: string) => api.deleteClass(c(), id), [queryKeys.core.classes]);

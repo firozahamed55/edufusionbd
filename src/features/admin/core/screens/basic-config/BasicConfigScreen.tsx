@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
+import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast, ConfirmDialog } from "@/shared/ui";
 import { useSetting, useSaveSetting, useGradeSchemes } from "../../logic/hooks";
-import { useErrorMessage } from "@/shared/services/errors";
+import { useErrorMessage, classifyError } from "@/shared/services/errors";
 import type { RpcPayload } from "@/shared/services/supabase/types";
 import type { Json } from "@/shared/types/database.types";
 
@@ -74,9 +74,29 @@ export function BasicConfigScreen() {
   const [form, setForm] = useState<RpcPayload>({});
   const [dirty, setDirty] = useState(false);
   const [touched, setTouched] = useState<Set<string>>(new Set());
+  /**
+   * Which keys this operator actually touched (audit M-3).
+   *
+   * Only these are sent. The RPC merges, so an operator who changes the
+   * currency no longer re-writes the fourteen values they merely looked at —
+   * which is what let one admin silently erase another's whole configuration.
+   */
+  const [changed, setChanged] = useState<Set<string>>(new Set());
+  /** The `updated_at` this screen loaded, and the baseline the RPC checks. */
+  const [baseline, setBaseline] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
 
-  useEffect(() => { if (config.data) setForm({ ...config.data }); }, [config.data]);
-  const set = (k: string, v: Json) => { setForm((p) => ({ ...p, [k]: v })); setDirty(true); };
+  useEffect(() => {
+    if (!config.data) return;
+    setForm({ ...config.data.value });
+    setBaseline(config.data.updatedAt);
+  }, [config.data]);
+
+  const set = (k: string, v: Json) => {
+    setForm((p) => ({ ...p, [k]: v }));
+    setChanged((p) => (p.has(k) ? p : new Set(p).add(k)));
+    setDirty(true);
+  };
 
   // Settings survive a browser close far worse than a form does: the operator
   // has no draft and no record of what they changed.
@@ -101,18 +121,56 @@ export function BasicConfigScreen() {
     onBlur: () => setTouched((p) => (p.has(k) ? p : new Set(p).add(k))),
   });
 
+  /** Just the touched keys — see `changed`. */
+  const patch = useMemo(() => {
+    const out: RpcPayload = {};
+    for (const k of changed) out[k] = form[k] as Json;
+    return out;
+  }, [changed, form]);
+
+  /**
+   * `force` skips the baseline check. It is only ever reached from the conflict
+   * dialog's explicit "overwrite" — and even then it overwrites at most the
+   * keys this operator changed, because the write merges.
+   */
+  function submit(force: boolean) {
+    save.mutate(
+      { value: patch, expectedUpdatedAt: force ? undefined : baseline },
+      {
+        onSuccess: (updatedAt) => {
+          toast({ title: t("সংরক্ষিত হয়েছে", "Saved"), variant: "success" });
+          setBaseline(updatedAt);
+          setDirty(false);
+          setTouched(new Set());
+          setChanged(new Set());
+          setConflict(false);
+        },
+        onError: (e: unknown) => {
+          if (classifyError(e) === "conflict") { setConflict(true); return; }
+          toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" });
+        },
+      },
+    );
+  }
+
   function onSave() {
     if (Object.keys(errors).length > 0) {
       setTouched(new Set(Object.keys(NUMERIC_RULES)));
       toast({ title: t("চিহ্নিত ফিল্ডগুলো ঠিক করুন", "Fix the highlighted fields"), variant: "error" });
+      // Land the operator on the problem rather than leaving them on the Save
+      // button with a toast and no route to it (audit A-4 / WCAG 3.3.1).
+      const first = Object.keys(NUMERIC_RULES).find((k) => errors[k]);
+      if (first) document.getElementById(`f-${first}`)?.focus();
       return;
     }
-    save.mutate(form, {
-      onSuccess: () => { toast({ title: t("সংরক্ষিত হয়েছে", "Saved"), variant: "success" }); setDirty(false); setTouched(new Set()); },
-      onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
-    });
+    submit(false);
   }
-  function onReset() { setForm({ ...(config.data ?? {}) }); setDirty(false); setTouched(new Set()); }
+  function onReset() {
+    setForm({ ...(config.data?.value ?? {}) });
+    setDirty(false);
+    setTouched(new Set());
+    setChanged(new Set());
+  }
 
   return (
     <div className="flex flex-col gap-5 pb-6">
@@ -128,7 +186,7 @@ export function BasicConfigScreen() {
           <FormCard title={t("একাডেমিক সেটিংস", "Academic Settings")}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label={t("চলতি শিক্ষাবর্ষ", "Current academic year")} {...bind("academic_year")}>
-                <Input type="number" value={String(form.academic_year ?? "")} onChange={(e) => set("academic_year", e.target.value)} className="font-latin" />
+                <Input type="number" value={String(form.academic_year ?? "")} id="f-academic_year" onChange={(e) => set("academic_year", e.target.value)} className="font-latin" />
               </Field>
               <Field label={t("সেশন শুরুর মাস", "Session start month")}>
                 <Select value={String(form.session_start_month ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(MONTHS, isBn)} onChange={(e) => set("session_start_month", e.target.value)} />
@@ -140,10 +198,10 @@ export function BasicConfigScreen() {
                 <Select value={String(form.working_days ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WORKING_DAYS, isBn)} onChange={(e) => set("working_days", e.target.value)} />
               </Field>
               <Field label={t("দৈনিক পিরিয়ড সংখ্যা", "Daily periods")} {...bind("daily_periods")}>
-                <Input type="number" min={1} value={String(form.daily_periods ?? "")} onChange={(e) => set("daily_periods", e.target.value)} className="font-latin" />
+                <Input type="number" min={1} value={String(form.daily_periods ?? "")} id="f-daily_periods" onChange={(e) => set("daily_periods", e.target.value)} className="font-latin" />
               </Field>
               <Field label={t("পিরিয়ড সময়কাল (মিনিট)", "Period duration (minutes)")} {...bind("period_duration")}>
-                <Input type="number" min={1} value={String(form.period_duration ?? "")} onChange={(e) => set("period_duration", e.target.value)} className="font-latin" />
+                <Input type="number" min={1} value={String(form.period_duration ?? "")} id="f-period_duration" onChange={(e) => set("period_duration", e.target.value)} className="font-latin" />
               </Field>
             </div>
           </FormCard>
@@ -183,7 +241,7 @@ export function BasicConfigScreen() {
                   />
                 </Field>
                 <Field label={t("পাস মার্ক (%)", "Pass mark (%)")} {...bind("pass_mark")}>
-                  <Input type="number" min={0} max={100} value={String(form.pass_mark ?? "")} onChange={(e) => set("pass_mark", e.target.value)} className="font-latin" />
+                  <Input type="number" min={0} max={100} value={String(form.pass_mark ?? "")} id="f-pass_mark" onChange={(e) => set("pass_mark", e.target.value)} className="font-latin" />
                 </Field>
                 <Field label={t("উপস্থিতির ধরন", "Attendance type")}>
                   <Select value={String(form.attendance_type ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(ATTENDANCE_TYPES, isBn)} onChange={(e) => set("attendance_type", e.target.value)} />
@@ -215,6 +273,27 @@ export function BasicConfigScreen() {
             <Button variant="secondary" onClick={onReset} disabled={!dirty}>{t("রিসেট", "Reset")}</Button>
             <Button variant="primary" onClick={onSave} disabled={save.isPending || !dirty}>{save.isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button>
           </SaveBar>
+
+          {/*
+            Audit M-3. The write merges, so "overwrite" here replaces only the
+            keys this operator changed — it cannot undo the other person's
+            unrelated edits. That is what makes offering the choice safe rather
+            than reckless.
+          */}
+          <ConfirmDialog
+            open={conflict}
+            onClose={() => setConflict(false)}
+            onConfirm={() => submit(true)}
+            tone="danger"
+            title={t("অন্য কেউ এই সেটিংস পরিবর্তন করেছেন", "Someone else changed these settings")}
+            description={t(
+              "আপনি পাতাটি খোলার পর অন্য একজন এখানে পরিবর্তন করেছেন। রিলোড করলে তাদের পরিবর্তন দেখতে পাবেন এবং আপনার পরিবর্তন আবার করতে হবে। এগিয়ে গেলে শুধু আপনি যে ঘরগুলো বদলেছেন সেগুলোই লেখা হবে — বাকি সেটিংস অক্ষত থাকবে।",
+              "Another person changed something here after you opened the page. Reloading shows you their version and you re-apply yours. Continuing writes only the fields you changed — the rest of their settings stay as they are.",
+            )}
+            confirmLabel={t("আমার পরিবর্তন রাখুন", "Keep my changes")}
+            cancelLabel={t("রিলোড করুন", "Reload")}
+            loading={save.isPending}
+          />
         </>
       )}
     </div>

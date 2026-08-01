@@ -134,7 +134,7 @@ export async function fetchSessions(s: BrowserClient): Promise<SessionRow[]> {
 }
 
 export async function revokeSession(s: BrowserClient, sessionId: string | null): Promise<number> {
-  const { data, error } = await s.rpc("fn_revoke_session", { p_session_id: sessionId });
+  const { data, error } = await s.rpc("fn_revoke_session", { p_session_id: sessionId ?? undefined });
   if (error) throw new Error(error.message);
   return num(data);
 }

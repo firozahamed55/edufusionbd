@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       academic_calendar: {
         Row: {
+          academic_year_id: string | null
           cal_date: string
           holiday_label: string | null
           id: string
@@ -23,6 +24,7 @@ export type Database = {
           is_working_day: boolean
         }
         Insert: {
+          academic_year_id?: string | null
           cal_date: string
           holiday_label?: string | null
           id?: string
@@ -30,6 +32,7 @@ export type Database = {
           is_working_day?: boolean
         }
         Update: {
+          academic_year_id?: string | null
           cal_date?: string
           holiday_label?: string | null
           id?: string
@@ -37,6 +40,13 @@ export type Database = {
           is_working_day?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "academic_calendar_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_year"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "academic_calendar_institution_id_fkey"
             columns: ["institution_id"]
@@ -255,13 +265,10 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           card_count: number | null
-          created_by: string | null
-          status: string
-          student_ids: string[] | null
-          theme: string | null
           center: string | null
           class_id: string | null
           created_at: string
+          created_by: string | null
           exam_id: string | null
           id: string
           includes: Json
@@ -270,18 +277,18 @@ export type Database = {
           roll_from: number | null
           roll_to: number | null
           section_id: string | null
+          status: string
+          student_ids: string[] | null
+          theme: string | null
         }
         Insert: {
           cancel_reason?: string | null
           cancelled_at?: string | null
           card_count?: number | null
-          created_by?: string | null
-          status?: string
-          student_ids?: string[] | null
-          theme?: string | null
           center?: string | null
           class_id?: string | null
           created_at?: string
+          created_by?: string | null
           exam_id?: string | null
           id?: string
           includes?: Json
@@ -290,18 +297,18 @@ export type Database = {
           roll_from?: number | null
           roll_to?: number | null
           section_id?: string | null
+          status?: string
+          student_ids?: string[] | null
+          theme?: string | null
         }
         Update: {
           cancel_reason?: string | null
           cancelled_at?: string | null
           card_count?: number | null
-          created_by?: string | null
-          status?: string
-          student_ids?: string[] | null
-          theme?: string | null
           center?: string | null
           class_id?: string | null
           created_at?: string
+          created_by?: string | null
           exam_id?: string | null
           id?: string
           includes?: Json
@@ -310,6 +317,9 @@ export type Database = {
           roll_from?: number | null
           roll_to?: number | null
           section_id?: string | null
+          status?: string
+          student_ids?: string[] | null
+          theme?: string | null
         }
         Relationships: [
           {
@@ -317,6 +327,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "class"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admit_card_batch_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
             referencedColumns: ["id"]
           },
           {
@@ -1742,61 +1759,64 @@ export type Database = {
       }
       fee_payment: {
         Row: {
-          receipt_no: string | null
-          reverses_payment_id: string | null
-          void_reason: string | null
-          voided_at: string | null
-          voided_by: string | null
           account_id: string | null
           amount: number
           fee_invoice_id: string
           id: string
+          idempotency_key: string | null
           institution_id: string
           method: string
           paid_at: string
           paid_by: string | null
+          receipt_no: string | null
           received_by: string | null
+          reverses_payment_id: string | null
           sms_sent: boolean
           student_id: string | null
           txn_ref: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
-          receipt_no?: string | null
-          reverses_payment_id?: string | null
-          void_reason?: string | null
-          voided_at?: string | null
-          voided_by?: string | null
           account_id?: string | null
           amount: number
           fee_invoice_id: string
           id?: string
+          idempotency_key?: string | null
           institution_id: string
           method: string
           paid_at?: string
           paid_by?: string | null
+          receipt_no?: string | null
           received_by?: string | null
+          reverses_payment_id?: string | null
           sms_sent?: boolean
           student_id?: string | null
           txn_ref?: string | null
-        }
-        Update: {
-          receipt_no?: string | null
-          reverses_payment_id?: string | null
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
+        }
+        Update: {
           account_id?: string | null
           amount?: number
           fee_invoice_id?: string
           id?: string
+          idempotency_key?: string | null
           institution_id?: string
           method?: string
           paid_at?: string
           paid_by?: string | null
+          receipt_no?: string | null
           received_by?: string | null
+          reverses_payment_id?: string | null
           sms_sent?: boolean
           student_id?: string | null
           txn_ref?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -1842,10 +1862,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fee_payment_reverses_payment_id_fkey"
+            columns: ["reverses_payment_id"]
+            isOneToOne: false
+            referencedRelation: "fee_payment"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fee_payment_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "student"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
             referencedColumns: ["id"]
           },
         ]
@@ -2101,60 +2135,60 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           card_count: number | null
-          created_by: string | null
-          status: string
-          student_ids: string[] | null
-          theme: string | null
           class_color: string | null
           class_id: string | null
           created_at: string
+          created_by: string | null
           id: string
           includes: Json
           institution_id: string
           roll_from: number | null
           roll_to: number | null
           section_id: string | null
+          status: string
+          student_ids: string[] | null
           template: string | null
+          theme: string | null
           valid_till: string | null
         }
         Insert: {
           cancel_reason?: string | null
           cancelled_at?: string | null
           card_count?: number | null
-          created_by?: string | null
-          status?: string
-          student_ids?: string[] | null
-          theme?: string | null
           class_color?: string | null
           class_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           includes?: Json
           institution_id: string
           roll_from?: number | null
           roll_to?: number | null
           section_id?: string | null
+          status?: string
+          student_ids?: string[] | null
           template?: string | null
+          theme?: string | null
           valid_till?: string | null
         }
         Update: {
           cancel_reason?: string | null
           cancelled_at?: string | null
           card_count?: number | null
-          created_by?: string | null
-          status?: string
-          student_ids?: string[] | null
-          theme?: string | null
           class_color?: string | null
           class_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           includes?: Json
           institution_id?: string
           roll_from?: number | null
           roll_to?: number | null
           section_id?: string | null
+          status?: string
+          student_ids?: string[] | null
           template?: string | null
+          theme?: string | null
           valid_till?: string | null
         }
         Relationships: [
@@ -2163,6 +2197,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "class"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "id_card_batch_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
             referencedColumns: ["id"]
           },
           {
@@ -2645,6 +2686,38 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_dashboard_kpi"
             referencedColumns: ["institution_id"]
+          },
+        ]
+      }
+      mfa_recovery_code: {
+        Row: {
+          code_hash: string
+          created_at: string
+          id: string
+          profile_id: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_recovery_code_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3134,34 +3207,34 @@ export type Database = {
       }
       result_approval: {
         Row: {
-          published_at: string | null
-          published_by: string | null
-          unpublish_reason: string | null
           approved_at: string | null
           approved_by: string | null
           exam_id: string
           id: string
+          published_at: string | null
+          published_by: string | null
           status: string | null
+          unpublish_reason: string | null
         }
         Insert: {
-          published_at?: string | null
-          published_by?: string | null
-          unpublish_reason?: string | null
           approved_at?: string | null
           approved_by?: string | null
           exam_id: string
           id?: string
-          status?: string | null
-        }
-        Update: {
           published_at?: string | null
           published_by?: string | null
+          status?: string | null
           unpublish_reason?: string | null
+        }
+        Update: {
           approved_at?: string | null
           approved_by?: string | null
           exam_id?: string
           id?: string
+          published_at?: string | null
+          published_by?: string | null
           status?: string | null
+          unpublish_reason?: string | null
         }
         Relationships: [
           {
@@ -3176,6 +3249,13 @@ export type Database = {
             columns: ["exam_id"]
             isOneToOne: true
             referencedRelation: "exam"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "result_approval_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
             referencedColumns: ["id"]
           },
         ]
@@ -4868,13 +4948,13 @@ export type Database = {
       }
       testimonial: {
         Row: {
-          issued_by: string | null
           cert_no: string | null
           conduct: string | null
           created_at: string
           id: string
           institution_id: string
           issued_at: string | null
+          issued_by: string | null
           language: Database["public"]["Enums"]["app_language"] | null
           parent_name: string | null
           permanent_address: string | null
@@ -4883,13 +4963,13 @@ export type Database = {
           student_id: string
         }
         Insert: {
-          issued_by?: string | null
           cert_no?: string | null
           conduct?: string | null
           created_at?: string
           id?: string
           institution_id: string
           issued_at?: string | null
+          issued_by?: string | null
           language?: Database["public"]["Enums"]["app_language"] | null
           parent_name?: string | null
           permanent_address?: string | null
@@ -4898,13 +4978,13 @@ export type Database = {
           student_id: string
         }
         Update: {
-          issued_by?: string | null
           cert_no?: string | null
           conduct?: string | null
           created_at?: string
           id?: string
           institution_id?: string
           issued_at?: string | null
+          issued_by?: string | null
           language?: Database["public"]["Enums"]["app_language"] | null
           parent_name?: string | null
           permanent_address?: string | null
@@ -4926,6 +5006,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_dashboard_kpi"
             referencedColumns: ["institution_id"]
+          },
+          {
+            foreignKeyName: "testimonial_issued_by_fkey"
+            columns: ["issued_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "testimonial_student_id_fkey"
@@ -5023,13 +5110,13 @@ export type Database = {
       }
       transfer_certificate: {
         Row: {
-          issued_by: string | null
           cert_no: string | null
           cert_type: string | null
           created_at: string
           id: string
           institution_id: string
           issue_date: string | null
+          issued_by: string | null
           language: Database["public"]["Enums"]["app_language"] | null
           parent_name: string | null
           permanent_address: string | null
@@ -5038,13 +5125,13 @@ export type Database = {
           student_id: string
         }
         Insert: {
-          issued_by?: string | null
           cert_no?: string | null
           cert_type?: string | null
           created_at?: string
           id?: string
           institution_id: string
           issue_date?: string | null
+          issued_by?: string | null
           language?: Database["public"]["Enums"]["app_language"] | null
           parent_name?: string | null
           permanent_address?: string | null
@@ -5053,13 +5140,13 @@ export type Database = {
           student_id: string
         }
         Update: {
-          issued_by?: string | null
           cert_no?: string | null
           cert_type?: string | null
           created_at?: string
           id?: string
           institution_id?: string
           issue_date?: string | null
+          issued_by?: string | null
           language?: Database["public"]["Enums"]["app_language"] | null
           parent_name?: string | null
           permanent_address?: string | null
@@ -5081,6 +5168,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_dashboard_kpi"
             referencedColumns: ["institution_id"]
+          },
+          {
+            foreignKeyName: "transfer_certificate_issued_by_fkey"
+            columns: ["issued_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transfer_certificate_student_id_fkey"
@@ -5507,40 +5601,35 @@ export type Database = {
         Args: { p_profile_id: string; p_reason: string }
         Returns: undefined
       }
-      fn_consume_recovery_code: { Args: { p_code: string }; Returns: boolean }
-      fn_generate_recovery_codes: { Args: never; Returns: string[] }
-      fn_my_profile: { Args: never; Returns: Json }
-      fn_my_security_events: { Args: { p_limit?: number }; Returns: Json }
-      fn_my_sessions: { Args: never; Returns: Json }
-      fn_record_security_event: { Args: { p_action: string }; Returns: undefined }
-      fn_recovery_code_count: { Args: never; Returns: number }
-      fn_revoke_session: { Args: { p_session_id?: string | null }; Returns: number }
-      fn_update_my_profile: { Args: { payload: Json }; Returns: undefined }
       fn_attach_student_file: { Args: { payload: Json }; Returns: undefined }
       fn_attendance_summary: {
-        // `p_class_section_id` is nullable and means institution-wide. The
-        // generator emits every uuid argument as non-null; keep this hand
-        // widened, or the Analytics screen cannot express its own default.
-        Args: { p_class_section_id: string | null; p_from: string; p_to: string }
+        Args: { p_class_section_id?: string; p_from?: string; p_to?: string }
         Returns: Json
       }
       fn_calendar_day: { Args: { p_date: string }; Returns: Json }
-      fn_calendar_range: { Args: { p_from: string; p_to: string }; Returns: Json }
+      fn_calendar_range: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       fn_cancel_document_batch: {
-        Args: { p_kind: string; p_id: string; p_reason: string }
+        Args: { p_id: string; p_kind: string; p_reason: string }
         Returns: undefined
       }
-      fn_clear_calendar_range: { Args: { p_from: string; p_to: string }; Returns: number }
+      fn_clear_calendar_range: {
+        Args: { p_from: string; p_to: string }
+        Returns: number
+      }
       fn_collect_fee: { Args: { payload: Json }; Returns: string }
+      fn_consume_recovery_code: { Args: { p_code: string }; Returns: boolean }
       fn_create_admit_batch: { Args: { payload: Json }; Returns: string }
       fn_create_id_card_batch: { Args: { payload: Json }; Returns: string }
       fn_create_testimonial: { Args: { payload: Json }; Returns: string }
       fn_create_transfer: { Args: { payload: Json }; Returns: string }
+      fn_delete_academic_term: { Args: { p_id: string }; Returns: undefined }
       fn_delete_certificate_template: {
         Args: { p_id: string }
         Returns: undefined
       }
-      fn_delete_academic_term: { Args: { p_id: string }; Returns: undefined }
       fn_delete_class: { Args: { p_id: string }; Returns: undefined }
       fn_delete_class_section: { Args: { p_id: string }; Returns: undefined }
       fn_delete_fee_invoice: { Args: { payload: Json }; Returns: number }
@@ -5553,35 +5642,31 @@ export type Database = {
       fn_delete_subject_group: { Args: { p_id: string }; Returns: undefined }
       fn_digital_transaction_stats: { Args: never; Returns: Json }
       fn_exam_tabulation: {
-        Args: { p_exam_id: string; p_class_section_id?: string | null }
+        Args: { p_class_section_id?: string; p_exam_id: string }
         Returns: Json
-      }
-      fn_result_status: { Args: { p_exam_id: string }; Returns: Json }
-      fn_set_calendar_range: { Args: { payload: Json }; Returns: number }
-      fn_set_result_publication: {
-        Args: { p_exam_id: string; p_publish: boolean; p_reason?: string | null }
-        Returns: undefined
       }
       fn_fee_day_book: {
-        Args: { p_date: string; p_collector?: string | null }
+        Args: { p_collector?: string; p_date: string }
         Returns: Json
       }
-      fn_fee_receipt: { Args: { p_payment_id: string }; Returns: Json }
       fn_fee_income_statement: {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      fn_fee_receipt: { Args: { p_payment_id: string }; Returns: Json }
       fn_generate_code: { Args: { p_entity: string }; Returns: string }
       fn_generate_monthly_invoices: { Args: never; Returns: number }
+      fn_generate_recovery_codes: { Args: never; Returns: string[] }
       fn_import_marks: { Args: { payload: Json }; Returns: Json }
       fn_import_students: { Args: { payload: Json }; Returns: Json }
       fn_import_teachers: { Args: { payload: Json }; Returns: Json }
       fn_log_export: { Args: { payload: Json }; Returns: undefined }
       fn_mark_attendance: { Args: { payload: Json }; Returns: number }
       fn_my_permissions: { Args: never; Returns: string[] }
+      fn_my_profile: { Args: never; Returns: Json }
+      fn_my_security_events: { Args: { p_limit?: number }; Returns: Json }
+      fn_my_sessions: { Args: never; Returns: Json }
       fn_permission_matrix: { Args: never; Returns: Json }
-      fn_set_user_roles: { Args: { payload: Json }; Returns: undefined }
-      fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
       fn_process_exam_result: {
         Args: { p_exam_id: string }
         Returns: undefined
@@ -5592,12 +5677,19 @@ export type Database = {
       }
       fn_pushback_migration: { Args: { p_batch_id: string }; Returns: number }
       fn_record_file_upload: { Args: { payload: Json }; Returns: string }
+      fn_record_security_event: {
+        Args: { p_action: string }
+        Returns: undefined
+      }
+      fn_recovery_code_count: { Args: never; Returns: number }
       fn_register_student: { Args: { payload: Json }; Returns: string }
       fn_register_teacher: { Args: { payload: Json }; Returns: string }
       fn_resolve_sms_recipients: {
         Args: { p_audience: string; p_class_section_id?: string }
         Returns: Json
       }
+      fn_result_status: { Args: { p_exam_id: string }; Returns: Json }
+      fn_revoke_session: { Args: { p_session_id?: string }; Returns: number }
       fn_run_migration: { Args: { payload: Json }; Returns: string }
       fn_save_exam_config: {
         Args: { p_kind: string; payload: Json }
@@ -5605,25 +5697,30 @@ export type Database = {
       }
       fn_save_marks: { Args: { payload: Json }; Returns: number }
       fn_save_setting: {
-        Args: { p_key: string; p_scope: string; p_value: Json }
-        Returns: undefined
+        Args: {
+          p_expected_updated_at?: string
+          p_key: string
+          p_scope: string
+          p_value: Json
+        }
+        Returns: string
       }
       fn_send_sms_campaign: { Args: { payload: Json }; Returns: string }
+      fn_set_calendar_range: { Args: { payload: Json }; Returns: number }
+      fn_set_result_publication: {
+        Args: { p_exam_id: string; p_publish: boolean; p_reason?: string }
+        Returns: undefined
+      }
+      fn_set_user_roles: { Args: { payload: Json }; Returns: undefined }
+      fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
       fn_sms_campaign_totals: { Args: never; Returns: Json }
       fn_student_report_summary: {
-        Args: { p_academic_year_id?: string }
+        Args: { p_academic_year_id?: string; p_filters?: Json }
         Returns: Json
       }
       fn_unpaid_by_institute: { Args: never; Returns: Json }
-      fn_void_fee_payment: {
-        Args: { p_payment_id: string; p_reason: string }
-        Returns: string
-      }
-      fn_verify_document: {
-        Args: { p_kind: string; p_id: string }
-        Returns: Json
-      }
       fn_update_institution: { Args: { payload: Json }; Returns: undefined }
+      fn_update_my_profile: { Args: { payload: Json }; Returns: undefined }
       fn_update_student_basic: { Args: { payload: Json }; Returns: string }
       fn_update_teacher: { Args: { payload: Json }; Returns: string }
       fn_upsert_academic_term: { Args: { payload: Json }; Returns: string }
@@ -5641,6 +5738,14 @@ export type Database = {
       fn_upsert_sms_template: { Args: { payload: Json }; Returns: string }
       fn_upsert_subject: { Args: { payload: Json }; Returns: string }
       fn_upsert_subject_group: { Args: { payload: Json }; Returns: string }
+      fn_verify_document: {
+        Args: { p_id: string; p_kind: string }
+        Returns: Json
+      }
+      fn_void_fee_payment: {
+        Args: { p_payment_id: string; p_reason: string }
+        Returns: string
+      }
     }
     Enums: {
       app_language: "bn" | "en"

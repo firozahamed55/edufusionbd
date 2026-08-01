@@ -73,7 +73,7 @@ export function CalendarScreen() {
 
   const marks = useCalendarRange(from, to);
   const config = useSetting("basic_config", "core");
-  const weekend = weekendDows(config.data?.weekend);
+  const weekend = weekendDows(config.data?.value.weekend);
 
   const setRange = useSetCalendarRange();
   const clearRange = useClearCalendarRange();

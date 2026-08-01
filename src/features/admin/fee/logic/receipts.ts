@@ -97,7 +97,7 @@ export type DayBook = {
 };
 
 export async function fetchDayBook(s: BrowserClient, date: string, collector: string | null): Promise<DayBook> {
-  const { data, error } = await s.rpc("fn_fee_day_book", { p_date: date, p_collector: collector });
+  const { data, error } = await s.rpc("fn_fee_day_book", { p_date: date, p_collector: collector ?? undefined });
   if (error) throw new Error(error.message);
   const r = (data ?? {}) as Record<string, unknown>;
   return {
