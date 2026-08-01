@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
+import { useMyPermissions } from "@/features/admin/core/logic/hooks";
 import { getModule } from "./getModule";
+import { canSeeTab } from "./adminNav";
 
 /**
  * Generalised `SettingsShell` (final_admin.md §9.5) — the in-page sub-nav
@@ -19,18 +21,26 @@ import { getModule } from "./getModule";
  *
  * Renders nothing for single-screen modules (no `tabs`) — Dashboard, EduSathi,
  * Reports — so this is safe to drop into every module layout unconditionally.
+ *
+ * TABS ARE FILTERED ON PERMISSION (Settings audit M-4). A tab the caller cannot
+ * use is removed rather than disabled: a disabled tab still advertises a screen
+ * and still invites the click that produces the support ticket. Fail-open while
+ * permissions load, so the strip never flickers from eleven tabs to eight to
+ * eleven again on a slow connection.
  */
 export function ModuleTabs({ moduleKey }: { moduleKey: string }) {
   const pathname = usePathname();
   const { t } = useT();
+  const permissions = useMyPermissions();
   const mod = getModule(moduleKey);
-  if (!mod.tabs || mod.tabs.length === 0) return null;
+  const tabs = (mod.tabs ?? []).filter((tab) => canSeeTab(mod, tab, permissions.data));
+  if (tabs.length === 0) return null;
 
   let lastGroup: string | undefined;
 
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-border-default" role="tablist" aria-label={t(mod.bn, mod.en)}>
-      {mod.tabs.map((tab) => {
+      {tabs.map((tab) => {
         const groupKey = tab.group ? t(tab.group.bn, tab.group.en) : undefined;
         const showGroup = groupKey && groupKey !== lastGroup;
         lastGroup = groupKey;

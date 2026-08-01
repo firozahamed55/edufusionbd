@@ -37,6 +37,21 @@ export type AdminTab = {
   en: string;
   /** Optional group heading rendered before this tab (and any tabs sharing it). */
   group?: { bn: string; en: string };
+  /**
+   * The permission code that makes this SCREEN usable (Settings audit M-4).
+   *
+   * A module's permission answers "does this area belong to you"; a tab's
+   * answers "does this screen". Settings is where the two diverge: eleven
+   * screens sat behind `core.settings` alone while the database gated
+   * `profile`/`user_role` writes on `core.user_manage` and `audit_log` reads on
+   * `audit.read`. An operator holding only `core.settings` was shown Users &
+   * Roles, clicked it, and got an empty table — RLS working exactly as
+   * designed, and indistinguishable from a school that has added nobody yet.
+   *
+   * Omitted means "inherits the module's permission", which is the right
+   * default for every other module: their tabs are screens of one capability.
+   */
+  permission?: string;
 };
 
 export type AdminModule = {
@@ -272,17 +287,17 @@ export const ADMIN_SETTINGS_MODULE: AdminModule = {
   en: "Settings",
   permission: "core.settings",
   tabs: [
-    { href: "/admin/core/basic-config", bn: "বেসিক কনফিগ", en: "Basic Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
-    { href: "/admin/core/startup", bn: "স্টার্টআপ", en: "StartUp", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
-    { href: "/admin/core/class", bn: "ক্লাস কনফিগ", en: "Class Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
-    { href: "/admin/core/calendar", bn: "শিক্ষাপঞ্জি", en: "Academic Calendar", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
-    { href: "/admin/core/signature", bn: "স্বাক্ষর", en: "Signature", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
-    { href: "/admin/core/subject", bn: "বিষয় তালিকা", en: "Subject List", group: { bn: "বিষয়", en: "Subjects" } },
-    { href: "/admin/core/subject-group", bn: "বিষয় গ্রুপ", en: "Subject Group", group: { bn: "বিষয়", en: "Subjects" } },
-    { href: "/admin/core/grading", bn: "গ্রেডিং স্কিম", en: "Grading Scheme", group: { bn: "বিষয়", en: "Subjects" } },
-    { href: "/admin/core/user-list", bn: "ইউজার ও ভূমিকা", en: "Users & Roles", group: { bn: "ইউজার", en: "Users" } },
-    { href: "/admin/core/permissions", bn: "অনুমতি ম্যাট্রিক্স", en: "Permission Matrix", group: { bn: "ইউজার", en: "Users" } },
-    { href: "/admin/core/audit-log", bn: "পরিবর্তনের ইতিহাস", en: "Audit Log", group: { bn: "ইউজার", en: "Users" } },
+    { href: "/admin/core/basic-config", bn: "বেসিক কনফিগ", en: "Basic Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" }, permission: "core.settings" },
+    { href: "/admin/core/startup", bn: "স্টার্টআপ", en: "StartUp", group: { bn: "প্রতিষ্ঠান", en: "Institution" }, permission: "core.settings" },
+    { href: "/admin/core/class", bn: "ক্লাস কনফিগ", en: "Class Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" }, permission: "core.settings" },
+    { href: "/admin/core/calendar", bn: "শিক্ষাপঞ্জি", en: "Academic Calendar", group: { bn: "প্রতিষ্ঠান", en: "Institution" }, permission: "core.settings" },
+    { href: "/admin/core/signature", bn: "স্বাক্ষর", en: "Signature", group: { bn: "প্রতিষ্ঠান", en: "Institution" }, permission: "core.settings" },
+    { href: "/admin/core/subject", bn: "বিষয় তালিকা", en: "Subject List", group: { bn: "বিষয়", en: "Subjects" }, permission: "core.settings" },
+    { href: "/admin/core/subject-group", bn: "বিষয় গ্রুপ", en: "Subject Group", group: { bn: "বিষয়", en: "Subjects" }, permission: "core.settings" },
+    { href: "/admin/core/grading", bn: "গ্রেডিং স্কিম", en: "Grading Scheme", group: { bn: "বিষয়", en: "Subjects" }, permission: "core.settings" },
+    { href: "/admin/core/user-list", bn: "ইউজার ও ভূমিকা", en: "Users & Roles", group: { bn: "ইউজার", en: "Users" }, permission: "core.user_manage" },
+    { href: "/admin/core/permissions", bn: "অনুমতি ম্যাট্রিক্স", en: "Permission Matrix", group: { bn: "ইউজার", en: "Users" }, permission: "core.user_manage" },
+    { href: "/admin/core/audit-log", bn: "পরিবর্তনের ইতিহাস", en: "Audit Log", group: { bn: "ইউজার", en: "Users" }, permission: "audit.read" },
   ],
 };
 
@@ -297,9 +312,42 @@ export const ADMIN_SETTINGS_MODULE: AdminModule = {
  * names. RLS is the control; this is only the map.
  */
 export function canSeeModule(mod: AdminModule, permissions: readonly string[] | undefined): boolean {
-  if (!mod.permission) return true;
+  return holdsPermission(mod.permission, permissions);
+}
+
+/**
+ * The same question for one SCREEN (Settings audit M-4).
+ *
+ * Identical fail-open semantics on purpose. Two different answers to "what does
+ * an unknown permission set mean" would produce a rail that shows a module and
+ * a tab strip that hides all of its screens — a worse outcome than either rule
+ * alone, and one nobody would be able to reason about from a bug report.
+ *
+ * A tab with no `permission` of its own inherits the module's, so every other
+ * module's tabs behave exactly as they did before this field existed.
+ */
+export function canSeeTab(
+  mod: AdminModule,
+  tab: AdminTab,
+  permissions: readonly string[] | undefined,
+): boolean {
+  return holdsPermission(tab.permission ?? mod.permission, permissions);
+}
+
+/**
+ * Fail-open permission check, shared by the rail, the tab strip and the
+ * per-screen gate so all three agree by construction.
+ *
+ * `undefined` (still loading) and `[]` (an account whose `user_role` rows were
+ * never seeded) both mean yes. RLS is the control; this is only the map.
+ */
+export function holdsPermission(
+  permission: string | undefined,
+  permissions: readonly string[] | undefined,
+): boolean {
+  if (!permission) return true;
   if (!permissions || permissions.length === 0) return true;
-  return permissions.includes(mod.permission);
+  return permissions.includes(permission);
 }
 
 /** Every module in rail order — used for longest-prefix active resolution and the command palette. */

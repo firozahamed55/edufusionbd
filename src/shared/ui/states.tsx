@@ -121,11 +121,14 @@ export function NoAccessState({
   title,
   description,
   permission,
+  action,
   className,
 }: {
   title: string;
   description?: string;
   permission?: string;
+  /** Usually a "request access" link — see `SettingsGate` for the mailto. */
+  action?: ReactNode;
   className?: string;
 }) {
   return (
@@ -147,6 +150,7 @@ export function NoAccessState({
           <p className="mx-auto mt-1 font-latin text-micro text-text-muted">{permission}</p>
         ) : null}
       </div>
+      {action}
     </div>
   );
 }

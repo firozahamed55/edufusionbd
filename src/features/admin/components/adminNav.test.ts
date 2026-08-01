@@ -7,7 +7,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
-import { ADMIN_ALL_MODULES, canSeeModule } from "./adminNav";
+import { ADMIN_ALL_MODULES, ADMIN_SETTINGS_MODULE, canSeeModule, canSeeTab } from "./adminNav";
 
 const APP_DIR = join(__dirname, "..", "..", "..", "app", "(admin)");
 
@@ -72,6 +72,62 @@ describe("canSeeModule", () => {
     ]);
     for (const m of ADMIN_ALL_MODULES) {
       if (m.permission) expect(SEEDED.has(m.permission), `${m.key} → ${m.permission}`).toBe(true);
+    }
+  });
+});
+
+/**
+ * Settings audit M-4 — one permission used to gate all eleven Settings screens
+ * while the database gated three of them on two other codes.
+ *
+ * A NOTE ON THE AUDIT'S OWN WORDING. §4 Phase 1.1 asks for "accountant sees 8
+ * tabs". The seeded accountant (`20260726043308`) holds no `core.*` permission
+ * at all, so it sees ZERO Settings tabs — and never reaches them, because
+ * `canSeeModule` already hides the whole module from it (asserted above). The
+ * case the audit means is a caller holding `core.settings` and nothing else,
+ * which is what is asserted here.
+ */
+const settingsTabsFor = (permissions: readonly string[] | undefined) =>
+  (ADMIN_SETTINGS_MODULE.tabs ?? []).filter((tab) =>
+    canSeeTab(ADMIN_SETTINGS_MODULE, tab, permissions),
+  );
+
+describe("canSeeTab · Settings", () => {
+  it("gives a core.settings-only caller the eight configuration screens", () => {
+    const tabs = settingsTabsFor(["core.settings"]);
+    expect(tabs).toHaveLength(8);
+    expect(tabs.map((t) => t.href)).not.toContain("/admin/core/user-list");
+    expect(tabs.map((t) => t.href)).not.toContain("/admin/core/permissions");
+    expect(tabs.map((t) => t.href)).not.toContain("/admin/core/audit-log");
+  });
+
+  it("gives an institution admin all eleven", () => {
+    expect(settingsTabsFor(["core.settings", "core.user_manage", "audit.read"])).toHaveLength(11);
+  });
+
+  it("fails OPEN while loading and for an account with no roles", () => {
+    expect(settingsTabsFor(undefined)).toHaveLength(11);
+    expect(settingsTabsFor([])).toHaveLength(11);
+  });
+
+  it("shows audit-log to audit.read alone, and not the two user screens", () => {
+    const tabs = settingsTabsFor(["audit.read"]);
+    expect(tabs.map((t) => t.href)).toEqual(["/admin/core/audit-log"]);
+  });
+
+  it("leaves every other module's tabs inheriting the module permission", () => {
+    // Only Settings sets per-tab codes. If a second module ever does, this
+    // test is the place to say so deliberately rather than by accident.
+    const withTabPermissions = ADMIN_ALL_MODULES.filter((m) =>
+      (m.tabs ?? []).some((t) => t.permission),
+    );
+    expect(withTabPermissions.map((m) => m.key)).toEqual(["core"]);
+  });
+
+  it("keys every Settings tab to a permission the database actually seeds", () => {
+    const CORE_SEEDED = new Set(["core.settings", "core.user_manage", "audit.read"]);
+    for (const tab of ADMIN_SETTINGS_MODULE.tabs ?? []) {
+      expect(CORE_SEEDED.has(tab.permission ?? ""), `${tab.href} → ${tab.permission}`).toBe(true);
     }
   });
 });
