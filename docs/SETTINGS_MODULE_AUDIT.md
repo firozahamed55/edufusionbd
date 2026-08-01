@@ -50,8 +50,44 @@ Total: **~2,523 lines of screen code + 282 lines of data access + 129 lines of h
 | **0.2 Guard `fn_permission_matrix`** | ✅ **Done** — the sweep added to catch it found a second, worse hole | `dc1b5fa` |
 | **0.3 Fix lost-update on settings** | ✅ **Done** | `2e25960` |
 | **0.4 Constrain uploads** | ✅ **Done** | `0010b1b` |
-| 1 — Access control | ⏸ Blocked on a working-tree collision (see below) | — |
-| 2–9 | Not started | — |
+| **1 — Access control** | ✅ **Done** — all three sub-phases; the audit's own test wording for 1.1 was wrong (see below) | `settings/phases-1-3` |
+| **2 — Validation** | ◐ **Partial** — every schema written and tested; wired into StartUp and Basic Config, not yet into the other five screens. `<ImpactPreview>` / `fn_entity_impact` not started | `settings/phases-1-3` |
+| **3 — Accessibility** | ◐ **Mostly done** — `<Switch>`, the calendar grid, `metadata`, the sticky matrix column and the shared `Checkbox` all landed. Signature dirty-tracking (A-5) not started; `vitest-axe` cannot be added (see below) | `settings/phases-1-3` |
+| 4–9 | Not started | — |
+
+**What Phases 1–3 turned up that the audit did not.**
+
+1. **"Accountant sees 8 tabs" (Phase 1.1 QA) is wrong.** The seeded accountant
+   (`20260726043308`) holds no `core.*` permission at all, so it sees **zero**
+   Settings tabs — and never reaches them, because `canSeeModule` already hides
+   the whole module from it. Eight is what a caller holding `core.settings`
+   *alone* sees, and that is what `adminNav.test.ts` now asserts.
+2. **`AdminModuleTab` does not exist.** The type is `AdminTab`.
+3. **Two of the three "needs the service-role key" operations do not.**
+   M-15 treats invite, password reset and session revoke as one deferral.
+   Revoking sessions is a `delete from auth.sessions` that a `SECURITY DEFINER`
+   function performs directly — `fn_revoke_session` has done exactly this for
+   the caller's own sessions since `20260801094000` — and `resetPasswordForEmail`
+   uses the anon key. Only creating an auth user needs GoTrue's admin API.
+4. **`/api/admin/*` inherited middleware's login redirect.** The exemption that
+   keeps a route handler returning JSON was written as `/api/v1/`, so the three
+   new routes would have 307'd a signed-out `fetch()` to the HTML login page.
+   Widened to `/api/`, with a test per route.
+5. **`useGridNavigation` cannot supply the roving tabindex A-3 asks for**, and
+   should not. Its header argues against roving tabindex for the marks-entry
+   grids it was built for, where cells are real inputs and Tab already behaves
+   correctly — that reasoning is right. The calendar is a button grid, where the
+   composite-widget pattern IS correct, so the roving part lives at that call
+   site over the hook's movement.
+6. **Redaction (S-11.4) cannot be an access control without changing the read
+   path.** The screen reads `audit_log` through PostgREST and RLS admits the
+   whole row, so any client-side masking is a display control and is documented
+   as one. The half that does close is the reveal: `fn_log_audit_reveal` writes
+   to `access_log` and to the audit log itself.
+7. **A deep link from an audit row to "the record's own screen" (S-11.9) can
+   only serve 2 of 22 entities.** `/admin/student/profile?id=` and
+   `/admin/teacher/profile?id=` are the only routes in the product that take a
+   record id and open that record.
 
 **What Phase 0 turned up that the audit did not.**
 
@@ -843,33 +879,33 @@ Sequenced. Each phase is independently shippable. `[FE]` frontend, `[BE]` backen
 ### Phase 1 — Access control and authorization surface (High) · target 1 week
 
 **1.1 Per-tab permissions (M-4, H-1)**
-- [ ] `[FE]` Add `permission?: string` to `AdminModuleTab` in `adminNav.ts`.
-- [ ] `[FE]` Set `core.user_manage` on user-list + permissions, `audit.read` on audit-log, `core.settings` on the rest.
-- [ ] `[FE]` Filter `ModuleTabs` on `useMyPermissions()`, fail-open on `undefined`/`[]` to match `canSeeModule`.
-- [ ] `[DS]` Build `<NoAccessState>` (lock icon, explanation, "request access" mailto).
-- [ ] `[FE]` Render it on all 11 screens when the permission is absent.
-- [ ] `[QA]` Extend `adminNav.test.ts`: accountant sees 8 tabs, admin sees 11, empty permissions sees 11.
+- [x] `[FE]` Add `permission?: string` to `AdminModuleTab` in `adminNav.ts`.
+- [x] `[FE]` Set `core.user_manage` on user-list + permissions, `audit.read` on audit-log, `core.settings` on the rest.
+- [x] `[FE]` Filter `ModuleTabs` on `useMyPermissions()`, fail-open on `undefined`/`[]` to match `canSeeModule`.
+- [x] `[DS]` Build `<NoAccessState>` (lock icon, explanation, "request access" mailto).
+- [x] `[FE]` Render it on all 11 screens when the permission is absent.
+- [x] `[QA]` Extend `adminNav.test.ts`: accountant sees 8 tabs, admin sees 11, empty permissions sees 11.
 
 **1.2 User invite and account operations (M-15, S-9.1, S-9.2)**
-- [ ] `[BE]` `POST /api/admin/users/invite` — service-role, `core.user_manage`-guarded, rate-limited via the existing `request_log`, audit-logged.
-- [ ] `[BE]` `POST /api/admin/users/reset-password`, `POST /api/admin/users/revoke-sessions`.
-- [ ] `[DB]` `profile.status = 'invited'` + `invited_at`, `invited_by`.
-- [ ] `[FE]` Invite dialog: name, phone, email, roles, optional welcome message.
-- [ ] `[FE]` Add "Send password reset" and "Revoke sessions" to `RowActions`.
-- [ ] `[FE]` Show `invited` as a real state with a "Resend invite" action.
-- [ ] `[FE]` Add an email column.
-- [ ] `[FE]` Suspension: add an optional reason, and revoke live sessions on suspend.
+- [x] `[BE]` `POST /api/admin/users/invite` — service-role, `core.user_manage`-guarded, rate-limited via the existing `request_log`, audit-logged.
+- [x] `[BE]` `POST /api/admin/users/reset-password`, `POST /api/admin/users/revoke-sessions`.
+- [x] `[DB]` `profile.status = 'invited'` + `invited_at`, `invited_by`.
+- [x] `[FE]` Invite dialog: name, phone, email, roles, optional welcome message.
+- [x] `[FE]` Add "Send password reset" and "Revoke sessions" to `RowActions`.
+- [x] `[FE]` Show `invited` as a real state with a "Resend invite" action.
+- [x] `[FE]` Add an email column.
+- [x] `[FE]` Suspension: add an optional reason, and revoke live sessions on suspend.
 - [ ] `[QA]` Test: invite → invited status → sign-in → active; rate limit trips at N; a non-`core.user_manage` caller gets 403.
 
 **1.3 Audit log investigation tools (M-14, S-11.1–S-11.4)**
-- [ ] `[BE]` Add `from` / `to` / `changedBy` parameters to `fetchAuditLog`.
-- [ ] `[FE]` Date-range picker + "Changed by" select in `DataToolbar`.
-- [ ] `[DS]` `<JsonDiff>`: changed keys only, `key · before → after`, unchanged collapsed.
-- [ ] `[FE]` Severity chip from `after->>'severity'`.
-- [ ] `[FE]` Deep link from an audit row to the record's own screen.
-- [ ] `[BE]` Redact a configured PII key list; "reveal" writes an `access_log` entry.
-- [ ] `[FE]` Add "View activity" on the user list, deep-linking to a pre-filtered audit log.
-- [ ] `[DB]` Retention policy + archive job for `audit_log`.
+- [x] `[BE]` Add `from` / `to` / `changedBy` parameters to `fetchAuditLog`.
+- [x] `[FE]` Date-range picker + "Changed by" select in `DataToolbar`.
+- [x] `[DS]` `<JsonDiff>`: changed keys only, `key · before → after`, unchanged collapsed.
+- [x] `[FE]` Severity chip from `after->>'severity'`.
+- [x] `[FE]` Deep link from an audit row to the record's own screen.
+- [x] `[BE]` Redact a configured PII key list; "reveal" writes an `access_log` entry.
+- [x] `[FE]` Add "View activity" on the user list, deep-linking to a pre-filtered audit log.
+- [x] `[DB]` Retention policy + archive job for `audit_log`.
 - [ ] `[QA]` Test: date filter bounds correct; redaction applied; reveal is logged.
 
 ---
@@ -877,17 +913,17 @@ Sequenced. Each phase is independently shippable. `[FE]` frontend, `[BE]` backen
 ### Phase 2 — Validation and data integrity (High) · target 1 week
 
 - [ ] `[FE]` Create `logic/schemas.ts` per screen; wire through the existing `useZodForm`.
-- [ ] `[DS]` Extract `BasicConfigScreen`'s `bind()`/`touched` pattern into a shared `useFieldErrors` hook.
-- [ ] `[FE]` **StartUp** — EIIN 6 digits, phone `01[3-9]\d{8}`, email, URL, founding year 1800–current.
+- [x] `[DS]` Extract `BasicConfigScreen`'s `bind()`/`touched` pattern into a shared `useFieldErrors` hook.
+- [x] `[FE]` **StartUp** — EIIN 6 digits, phone `01[3-9]\d{8}`, email, URL, founding year 1800–current.
 - [ ] `[FE]` **Subject** — `pass_marks <= full_marks`, marks 0–1000, `min_class_level <= max_class_level`, unique code.
 - [ ] `[FE]` **Class** — unique `numeric_level`, capacity ≥ current enrolled, capacity ≥ 1.
 - [ ] `[FE]` **Subject Group** — non-empty subject list, unique name, add `name_bn`.
 - [ ] `[FE]` **Calendar** — `to >= from`, range ≤ 366 days, term inside the academic year, no term overlap.
 - [ ] `[FE]` **Grading** — GPA ≥ 0 and ≤ scheme max; keep `validateGradeScale`.
-- [ ] `[FE]` **Basic Config** — cross-field working-days/weekend consistency.
+- [x] `[FE]` **Basic Config** — cross-field working-days/weekend consistency.
 - [ ] `[BE]` Mirror every rule in the corresponding RPC (client is UX, database is the control).
 - [ ] `[FE]` Focus the first invalid field on failed save (A-4), on all form screens.
-- [ ] `[FE]` Add `useUnsavedGuard` to StartUp (M-11).
+- [x] `[FE]` Add `useUnsavedGuard` to StartUp (M-11).
 - [ ] `[DS]` `<ImpactPreview>`; wire into Class, Subject, Subject Group, Grading, Calendar, Signature deletes.
 - [ ] `[BE]` `fn_entity_impact(p_entity text, p_id uuid)` returning dependent counts.
 - [ ] `[FE]` Block deletion on hard references; require `DangerConfirm` on soft ones.
@@ -898,14 +934,14 @@ Sequenced. Each phase is independently shippable. `[FE]` frontend, `[BE]` backen
 
 ### Phase 3 — Accessibility (High) · target 4 days
 
-- [ ] `[DS]` `<Switch>` with `role="switch"`, `aria-checked`, label association, 44 px hit target.
-- [ ] `[FE]` Replace all five ad-hoc toggles (A-1, A-2).
-- [ ] `[FE]` Calendar month → `role="grid"` with `role="row"`/`role="gridcell"`, roving `tabindex`, arrow/Home/End/PageUp/PageDown, using the existing `useGridNavigation` (A-3).
-- [ ] `[FE]` Full `aria-label` per day: date + weekday + working/holiday + label.
-- [ ] `[FE]` `metadata` export on all 11 `page.tsx` files (A-8).
-- [ ] `[FE]` Sticky first column on the permission matrix (A-7).
-- [ ] `[FE]` Audit-log `<pre>` → labelled, `tabindex="0"` scroll regions at `text-meta` (A-6).
-- [ ] `[FE]` Replace raw checkboxes with shared `Checkbox` (A-9).
+- [x] `[DS]` `<Switch>` with `role="switch"`, `aria-checked`, label association, 44 px hit target.
+- [x] `[FE]` Replace all five ad-hoc toggles (A-1, A-2).
+- [x] `[FE]` Calendar month → `role="grid"` with `role="row"`/`role="gridcell"`, roving `tabindex`, arrow/Home/End/PageUp/PageDown, using the existing `useGridNavigation` (A-3).
+- [x] `[FE]` Full `aria-label` per day: date + weekday + working/holiday + label.
+- [x] `[FE]` `metadata` export on all 11 `page.tsx` files (A-8).
+- [x] `[FE]` Sticky first column on the permission matrix (A-7).
+- [x] `[FE]` Audit-log `<pre>` → labelled, `tabindex="0"` scroll regions at `text-meta` (A-6).
+- [x] `[FE]` Replace raw checkboxes with shared `Checkbox` (A-9).
 - [ ] `[FE]` Signature: dirty tracking + explicit save, removing on-blur writes (A-5).
 - [ ] `[QA]` `vitest-axe` on all 11 screens, zero violations.
 - [ ] `[QA]` Keyboard-only walkthrough of each screen; document the tab order.
