@@ -151,7 +151,7 @@ export function AuditLogScreen() {
               Action: r.action,
               ChangedBy: r.changedByName ?? "System",
             })),
-            { kind: "core.audit_log" },
+            { kind: "core.audit_log", params: { q: ds.debouncedQ, entity, action, page: ds.page, scope: "page" } },
           )
         }
         exportPageCount={rows.length}

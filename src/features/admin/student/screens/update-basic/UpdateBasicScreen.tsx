@@ -107,6 +107,7 @@ export function UpdateBasicScreen() {
                 NameBn: r.name_bn,
                 Category: r.category ?? "",
               })),
+              { kind: "student.update_basic", params: { sectionId: sectionId || null, q: ds.debouncedQ, scope: "all" } },
             )
           }
           exportAllCount={all.length}

@@ -16,8 +16,14 @@ export type ExportAudit = {
    * a copy edit.
    */
   kind: string;
-  /** The filters the export ran under — "how much of the roll did they take". */
-  params?: Record<string, unknown>;
+  /**
+   * The filters the export ran under — "how much of the roll did they take".
+   *
+   * Scalars only, because the column is `jsonb` and this value is written to
+   * it verbatim. `Record<string, unknown>` would compile at the call site and
+   * fail at the RPC boundary, which is the wrong end to find out.
+   */
+  params?: Record<string, string | number | boolean | null>;
 };
 
 /**

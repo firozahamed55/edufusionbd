@@ -63,6 +63,7 @@ export function ReportsSummaryScreen() {
              * time a breakdown is added.
              */
             reportRows(report.data),
+            { kind: "student.reports_summary" },
           )}
           disabled={!report.data}
         >

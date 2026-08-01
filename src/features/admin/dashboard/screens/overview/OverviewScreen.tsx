@@ -172,7 +172,12 @@ export function OverviewScreen() {
   const bdt = (v: number) => `৳${n(new Intl.NumberFormat("en-IN").format(Math.round(v)))}`;
   const collected = period.data?.collected ?? 0;
   const due = data?.totalDue ?? 0;
-  const collectRate = collected + due > 0 ? Math.round((collected / (collected + due)) * 100) : 0;
+  /**
+   * D-3. `billing` is the window's own invoices — what fell due, and how much
+   * of it has been settled. `null` means nothing fell due in the window, which
+   * is not 0% and must not be drawn as a donut at all.
+   */
+  const billing = period.data?.billing ?? null;
   // A hand-typed `?preset=` in the URL is not guaranteed to be a known key.
   const presetMeta = PRESETS[preset as Exclude<PresetKey, "custom">];
   const periodLabel = presetMeta
@@ -556,27 +561,65 @@ export function OverviewScreen() {
           <CardHead
             title={t("ফি আদায়", "Fee Collection")}
             /*
-              D-3. The ratio is `collected in this period / (that + everything
-              outstanding ever)`, which mixes a flow with a stock: a school
-              carrying two years of arrears reads a permanently depressed rate
-              that no month's collecting can move. Naming what the denominator
-              actually is does not fix the measure, but it stops it being read
-              as "we collected 31% of this month's bills", which is what an
-              unlabelled donut on a dashboard means to everyone who sees it.
-              The honest measure is billed-in-period, and it needs the invoice
-              period join that `v_dashboard_kpi` does not expose yet.
+              D-3, fixed. The ratio WAS `collected in this period / (that +
+              everything outstanding ever)` — a flow over a stock. A school
+              carrying two years of arrears read a permanently depressed rate
+              that no month's collecting could move, and a school with no
+              arrears read 100% in a month it billed nothing. It is now the
+              window's own invoices: what fell due here, less what was waived,
+              against what has been settled. The denominator is stated on the
+              card, because a rate whose definition is not discoverable from
+              the screen is a rate that will be quoted wrongly.
             */
-            subtitle={t(
-              "মোট বকেয়ার তুলনায় এই সময়ের আদায়",
-              "This period's collection against all outstanding dues",
-            )}
+            subtitle={
+              billing
+                ? t(
+                    `এই সময়ে ধার্য ${bdt(billing.billed - billing.waived)} (ছাড় বাদে) এর তুলনায়`,
+                    `Against ${bdt(billing.billed - billing.waived)} billed for this period, net of waivers`,
+                  )
+                : t(
+                    "এই সময়ে কোনো ফি ধার্য হয়নি",
+                    "No fees fell due in this period",
+                  )
+            }
           />
-          <div className="flex items-center justify-center py-2">
-            <Donut percent={collectRate} valueLabel={`${n(collectRate)}%`} label={t("আদায় হয়েছে", "collected")} caption={t("ফি আদায়ের হার", "Fee collection rate")} />
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <LegendRow color="bg-primary" label={t("আদায়", "Collected")} value={bdt(collected)} />
-            <LegendRow color="bg-border-strong" label={t("বকেয়া", "Due")} value={bdt(due)} />
+          {/*
+            No donut when nothing was billed. "0% collected" and "there was
+            nothing to collect" are different statements, and the first one
+            accuses somebody.
+          */}
+          {billing ? (
+            <>
+              <div className="flex items-center justify-center py-2">
+                <Donut percent={billing.rate} valueLabel={`${n(billing.rate)}%`} label={t("আদায় হয়েছে", "collected")} caption={t("এই সময়ের ধার্য ফি আদায়ের হার", "Collection rate against this period's billing")} />
+              </div>
+              <div className="flex flex-col gap-2.5">
+                <LegendRow color="bg-primary" label={t("আদায়", "Collected")} value={bdt(billing.collected)} />
+                <LegendRow color="bg-border-strong" label={t("এই সময়ের বকেয়া", "Outstanding for this period")} value={bdt(billing.outstanding)} />
+                {/* Only when there is one. A permanent "৳0 waived" row would
+                    make the exception look like a standing category. */}
+                {billing.waived > 0 ? (
+                  <LegendRow color="bg-sunken" label={t("ছাড়", "Waived")} value={bdt(billing.waived)} />
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <p className="py-4 text-center text-meta text-text-muted">
+              {t(
+                "এই সময়ের মধ্যে কোনো ইনভয়েসের শেষ তারিখ পড়েনি",
+                "No invoice fell due inside this period",
+              )}
+            </p>
+          )}
+
+          {/*
+            The all-time outstanding balance keeps its place, as its own line
+            rather than as the donut's denominator. It is a real and important
+            figure; it is simply not a fact about this period.
+          */}
+          <div className="flex flex-col gap-2.5 border-t border-border-default pt-3">
+            <LegendRow color="bg-border-strong" label={t("সর্বমোট বকেয়া (সব সময়ের)", "Total outstanding, all time")} value={bdt(due)} />
+            <LegendRow color="bg-primary" label={t("এই সময়ে নগদ আদায়", "Cash taken in this period")} value={bdt(collected)} />
           </div>
 
           {/*

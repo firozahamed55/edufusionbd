@@ -157,6 +157,41 @@ jobs:
           supabase link --project-ref "$SUPABASE_PROJECT_ID"
           supabase db push
 
+      # `db push` exiting 0 does NOT mean every migration was applied.
+      #
+      # It compares VERSION TIMESTAMPS against the remote history and applies
+      # only what sorts after the newest recorded one. A migration whose
+      # filename timestamp is older than the last-applied version — which is
+      # what you get the moment anything writes to the remote history out of
+      # band (a Studio SQL run, an MCP apply_migration, a hotfix) — is skipped
+      # in silence, with a zero exit code.
+      #
+      # That is not hypothetical. `20260801096000_academic_calendar.sql` and
+      # `20260801095000_bulk_import.sql` were both committed, both went green
+      # through this pipeline, and neither ever reached the database: nine RPCs
+      # missing, the Academic Calendar screen dead, bulk import dead, and
+      # `fn_attendance_summary` still counting Eid as a working day. The repo
+      # had 64 migration files and the project reported 64 applied migrations,
+      # so every count anyone thought to check agreed.
+      #
+      # `migration list` prints LOCAL and REMOTE columns. A row with a local
+      # version and an empty remote one is a migration that did not apply.
+      - name: Assert every migration actually applied
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list > /tmp/migrations.txt
+          cat /tmp/migrations.txt
+          # Body rows look like `  20260801096000 |                | 2026-08-01`.
+          # Local set, remote empty → skipped.
+          if awk -F'|' 'NR>2 && $1 ~ /[0-9]{14}/ && $2 !~ /[0-9]{14}/ { print; found=1 }
+                        END { exit !found }' /tmp/migrations.txt; then
+            echo "::error::the migrations above are in the repo but not in the remote history — db push skipped them (out-of-order version timestamps). Run 'supabase migration repair --status applied <version>' or re-stamp the file."
+            exit 1
+          fi
+          echo "every local migration is recorded remotely"
+
   deploy:
     name: deploy (production)
     needs: [migrate]

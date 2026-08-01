@@ -62,6 +62,7 @@ export function IncomeStatementScreen() {
                 ...d.expense.map((r) => ({ Section: "Expenditure", Head: r.head, Debit: r.amount, Credit: "" })),
                 { Section: "Net", Head: "Excess of income over expenditure", Debit: "", Credit: d.total_income - d.total_expense },
               ],
+              { kind: "fee.income_statement", params: { from: range.from, to: range.to } },
             )}
           >
             <Download size={16} /> {t("এক্সপোর্ট", "Export")}

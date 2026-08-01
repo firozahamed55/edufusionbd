@@ -93,6 +93,7 @@ export function UpdateClassScreen() {
                 DOB: r.dob ?? "",
                 GuardianPhone: r.phone ?? "",
               })),
+              { kind: "student.update_class", params: { sectionId: section || null, q: ds.debouncedQ, scope: "page" } },
             )
           }
           exportPageCount={rows.length}

@@ -82,6 +82,7 @@ export function DigitalCollectionScreen() {
               TxnId: r.gateway_txn_id ?? "",
               Status: r.status,
             })),
+            { kind: "fee.digital_collection", params: { page, scope: "page" } },
           )
         }
         exportPageCount={rows.length}

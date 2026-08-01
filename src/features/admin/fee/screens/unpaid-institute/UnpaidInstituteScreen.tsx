@@ -66,6 +66,7 @@ export function UnpaidInstituteScreen() {
               DueStudents: r.due_students,
               DueAmount: r.due_amount,
             })),
+            { kind: "fee.unpaid_institute", params: { scope: "institution" } },
           )
         }
         exportAllCount={d?.rows.length ?? 0}

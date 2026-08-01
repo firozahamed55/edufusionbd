@@ -141,7 +141,7 @@ export function UserListScreen() {
               Status: r.status,
               LastSignIn: r.lastLoginAt ?? "",
             })),
-            { kind: "core.user_list" },
+            { kind: "core.user_list", params: { q: ds.debouncedQ, status: ds.filters.status, page: ds.page, scope: "page" } },
           )
         }
         exportPageCount={rows.length}

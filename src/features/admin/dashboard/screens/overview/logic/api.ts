@@ -435,8 +435,45 @@ export function collapseActivity(
 /** One class-section's attendance over the window (D-12). */
 export type SectionRate = { id: string; label_bn: string; label_en: string; rate: number; records: number };
 
+/**
+ * What the school BILLED for this window, and how much of it has been settled
+ * (D-3).
+ *
+ * The defect this replaces: the donut divided `collected in this period` by
+ * `that + every unpaid invoice ever raised`. A flow over a stock. A school
+ * carrying two years of arrears reads a permanently depressed rate that no
+ * month's collecting can move, and a school with no arrears reads 100% in a
+ * month it billed nothing — the measure is insensitive to the thing it claims
+ * to measure.
+ *
+ * ANCHORED ON `due_date`, not on `period` and not on `created_at`. `period` is
+ * a text month label, so it cannot answer "last 30 days" or a custom range at
+ * all; `created_at` is when the row was written, which for a bulk generation
+ * run is one instant for a whole year's invoices. The due date is when the
+ * school expects the money, which is what a collection rate for a month means.
+ *
+ * WAIVERS COME OUT OF THE DENOMINATOR. A waived amount was decided not to be
+ * collected; leaving it in makes generosity look like failure.
+ *
+ * `null` when nothing was due in the window. A rate of 0% and "nothing was
+ * billed" are different facts, and only one of them is about collecting.
+ */
+export type BillingStats = {
+  billed: number;
+  waived: number;
+  /** Settled against those invoices — NOT the same as cash taken in the window. */
+  collected: number;
+  outstanding: number;
+  invoices: number;
+  students: number;
+  /** `collected / (billed − waived)`, rounded. */
+  rate: number;
+};
+
 export type PeriodStats = {
   collected: number;
+  /** Billed vs settled for this window (D-3); `null` when nothing fell due. */
+  billing: BillingStats | null;
   attendanceTrend: AttendancePoint[];
   /** Mean of the daily rates in the window; 0 when nothing was recorded. */
   avgRate: number;
@@ -465,7 +502,7 @@ export async function fetchPeriodStats(
   supabase: BrowserClient,
   { from, to, yearId }: { from: string; to: string; yearId?: string | null },
 ): Promise<PeriodStats> {
-  const [payments, attendance, sectionsRes] = await Promise.all([
+  const [payments, attendance, sectionsRes, billingRes] = await Promise.all([
     // `paid_at` is a timestamptz; `to` is an inclusive day, so the upper bound
     // is the start of the following day rather than midnight of `to` — which
     // would silently drop everything collected on the last day of the range.
@@ -492,11 +529,25 @@ export async function fetchPeriodStats(
         .is("deleted_at", null);
       return (yearId ? q.eq("academic_year_id", yearId) : q).limit(MAX_OPTIONS);
     })(),
+    // What fell due in this window, however much of it has been settled (D-3).
+    // Not year-scoped: the range IS the scope, and a due date inside the window
+    // belongs to the window whichever year row carries it.
+    supabase
+      .from("fee_invoice")
+      .select("student_id, total_amount, paid_amount, waiver_amount")
+      .is("deleted_at", null)
+      .gte("due_date", from)
+      .lte("due_date", to)
+      .limit(MAX_OPTIONS),
   ]);
   if (payments.error) throw payments.error;
   if (attendance.error) throw attendance.error;
 
   const collected = (payments.data ?? []).reduce((s, r) => s + Number(r.amount ?? 0), 0);
+
+  // --- Billed vs settled (D-3) ---
+  const invoices = billingRes.data ?? [];
+  const billing = invoices.length > 0 ? summariseBilling(invoices) : null;
 
   const byDate = new Map<string, { present: number; total: number }>();
   for (const row of attendance.data ?? []) {
@@ -539,7 +590,43 @@ export async function fetchPeriodStats(
     })
     .sort((a, b) => a.rate - b.rate);
 
-  return { collected, attendanceTrend, avgRate, bySection };
+  return { collected, billing, attendanceTrend, avgRate, bySection };
+}
+
+/**
+ * Fold a window's invoices into the billed/settled picture (D-3).
+ *
+ * Exported and pure so the arithmetic is testable without a database. The one
+ * rule worth stating: the rate's denominator is `billed − waived`, and when a
+ * window is entirely waived that denominator is zero — reported as 100%,
+ * because nothing was left to collect and 0% would name a failure that did not
+ * happen.
+ */
+export function summariseBilling(
+  rows: { student_id: string; total_amount: number; paid_amount: number; waiver_amount: number }[],
+): BillingStats {
+  let billed = 0;
+  let waived = 0;
+  let collected = 0;
+  const students = new Set<string>();
+  for (const r of rows) {
+    billed += Number(r.total_amount ?? 0);
+    waived += Number(r.waiver_amount ?? 0);
+    collected += Number(r.paid_amount ?? 0);
+    students.add(r.student_id);
+  }
+  const collectable = billed - waived;
+  return {
+    billed,
+    waived,
+    collected,
+    // Clamped: an overpayment recorded against one invoice must not render a
+    // negative outstanding balance for the window.
+    outstanding: Math.max(0, collectable - collected),
+    invoices: rows.length,
+    students: students.size,
+    rate: collectable > 0 ? Math.round((collected / collectable) * 100) : 100,
+  };
 }
 
 const nextDay = (day: string) => new Date(new Date(`${day}T00:00:00`).getTime() + DAY_MS).toISOString().slice(0, 10);

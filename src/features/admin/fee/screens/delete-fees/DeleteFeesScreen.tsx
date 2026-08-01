@@ -119,6 +119,7 @@ export function DeleteFeesScreen() {
               Due: r.due,
               Status: r.status,
             })),
+            { kind: "fee.applied_fees", params: { q: ds.debouncedQ, status: ds.filters.status, page: ds.page, scope: "page" } },
           )
         }
         exportPageCount={rows.length}

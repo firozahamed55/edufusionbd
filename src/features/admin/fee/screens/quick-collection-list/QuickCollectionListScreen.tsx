@@ -87,6 +87,7 @@ export function QuickCollectionListScreen() {
             exportCsv(
               `collection-roster-${localDay()}.csv`,
               rows.map((r) => ({ StudentID: r.code ?? "", Roll: r.roll ?? "", Name: r.name_en, Category: r.category ?? "" })),
+              { kind: "fee.collection_list", params: { sectionId: sectionId || null, q: ds.debouncedQ } },
             )
           }
           exportPageCount={rows.length}

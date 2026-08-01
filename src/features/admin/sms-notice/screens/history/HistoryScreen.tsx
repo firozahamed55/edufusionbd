@@ -52,6 +52,7 @@ export function HistoryScreen() {
         Count: r.recipient_count ?? 0,
         Cost: Math.round(r.est_cost ?? 0),
         })),
+        { kind: "sms.history", params: { q: ds.debouncedQ, scope: "all" } },
       );
     } finally {
       setExportingAll(false);

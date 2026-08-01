@@ -96,6 +96,7 @@ export function UnpaidSectionScreen() {
                 Detail: r.detail ?? "",
                 Due: r.due,
               })),
+              { kind: "fee.unpaid_section", params: { sectionId: sectionId || null, q: ds.debouncedQ, scope: "all" } },
             )
           }
           exportAllCount={all.length}

@@ -69,7 +69,14 @@ export function ListScreen() {
         departmentId,
         sort,
       });
-      exportCsv(`teachers-all-${localDay()}.csv`, all.rows.map(toCsvRow));
+      exportCsv(`teachers-all-${localDay()}.csv`, all.rows.map(toCsvRow),
+        // `sort` is an object; the params column is scalar jsonb, so it goes in
+        // flattened rather than as a nested shape an auditor cannot filter on.
+        {
+          kind: "teacher.list_all",
+          params: { q: debouncedQ, departmentId, sort: `${sort.key}:${sort.dir}`, scope: "all" },
+        },
+      );
     } finally {
       setExportingAll(false);
     }
@@ -120,7 +127,12 @@ export function ListScreen() {
         }
         isFiltered={ds.isFiltered}
         onReset={ds.reset}
-        onExportPage={() => exportCsv(`teachers-page${page}-${localDay()}.csv`, rows.map(toCsvRow))}
+        onExportPage={() =>
+          exportCsv(`teachers-page${page}-${localDay()}.csv`, rows.map(toCsvRow), {
+            kind: "teacher.list",
+            params: { page, q: ds.debouncedQ, ...ds.filters },
+          })
+        }
         exportPageCount={rows.length}
         onExportAll={exportAll}
         exportAllCount={total}

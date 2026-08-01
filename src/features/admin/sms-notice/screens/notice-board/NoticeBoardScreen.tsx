@@ -122,6 +122,7 @@ export function NoticeBoardScreen() {
                   EventDate: r.event_date ?? "",
                   Status: lab(STATUSES, r.status, false),
                 })),
+                { kind: "sms.notice_board", params: { q: ds.debouncedQ, status: ds.filters.status, page: ds.page, scope: "page" } },
               )
             }
             exportPageCount={rows.length}

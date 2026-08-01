@@ -56,6 +56,7 @@ export function DayBookScreen() {
         amount: e.amount,
         status: e.voided ? "voided" : e.reversal ? "reversal" : "ok",
       })),
+      { kind: "fee.day_book", params: { date, collector: collector || null } },
     );
   }
 
