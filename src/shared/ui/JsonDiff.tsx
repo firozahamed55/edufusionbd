@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { diffJson, formatJsonValue, type JsonChangeKind } from "@/shared/lib/jsonDiff";

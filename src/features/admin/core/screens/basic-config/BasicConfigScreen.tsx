@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
+import { useFieldErrors, fieldId } from "@/shared/lib/useFieldErrors";
+import { weekendConflict } from "../../logic/schemas";
 import { useT } from "@/shared/i18n/useT";
 import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast, ConfirmDialog } from "@/shared/ui";
 import { useSetting, useSaveSetting, useGradeSchemes } from "../../logic/hooks";
@@ -73,7 +75,6 @@ export function BasicConfigScreen() {
   const save = useSaveSetting(SETTING_KEY, SCOPE);
   const [form, setForm] = useState<RpcPayload>({});
   const [dirty, setDirty] = useState(false);
-  const [touched, setTouched] = useState<Set<string>>(new Set());
   /**
    * Which keys this operator actually touched (audit M-3).
    *
@@ -112,14 +113,25 @@ export function BasicConfigScreen() {
         out[key] = t(rule.bn, rule.en);
       }
     }
+    /**
+     * The rule `NUMERIC_RULES` structurally cannot express (audit S-1.10).
+     * Two selects over the same seven days, never checked against each other:
+     * a Sun–Thu working week with a Sat–Sun weekend claims Sunday is both, and
+     * attendance reads one key while the calendar paints the other.
+     */
+    const clash = weekendConflict(form.working_days, form.weekend);
+    if (clash.length > 0) {
+      const names = clash.map((d) => t(DAYS[d][1], DAYS[d][2])).join(", ");
+      out.weekend = t(
+        `${names} একই সাথে কার্যদিবস ও সাপ্তাহিক ছুটি হিসেবে ধরা হয়েছে`,
+        `${names} is set as both a working day and a weekend`,
+      );
+    }
     return out;
   }, [form, t]);
 
-  /** `error` + `touch` in one spread — see the note on `Field`'s `onBlur`. */
-  const bind = (k: string) => ({
-    error: touched.has(k) ? errors[k] : undefined,
-    onBlur: () => setTouched((p) => (p.has(k) ? p : new Set(p).add(k))),
-  });
+  /** `error` + `touch` in one spread — now the shared hook (audit M-7). */
+  const { bind, revealAll, clear: clearTouched } = useFieldErrors(errors);
 
   /** Just the touched keys — see `changed`. */
   const patch = useMemo(() => {
@@ -141,7 +153,7 @@ export function BasicConfigScreen() {
           toast({ title: t("সংরক্ষিত হয়েছে", "Saved"), variant: "success" });
           setBaseline(updatedAt);
           setDirty(false);
-          setTouched(new Set());
+          clearTouched();
           setChanged(new Set());
           setConflict(false);
         },
@@ -153,14 +165,15 @@ export function BasicConfigScreen() {
     );
   }
 
+  /** Screen order, not schema order — this is what `revealAll` focuses along. */
+  const FIELD_ORDER = ["academic_year", "daily_periods", "period_duration", "weekend", "pass_mark"] as const;
+
   function onSave() {
     if (Object.keys(errors).length > 0) {
-      setTouched(new Set(Object.keys(NUMERIC_RULES)));
-      toast({ title: t("চিহ্নিত ফিল্ডগুলো ঠিক করুন", "Fix the highlighted fields"), variant: "error" });
       // Land the operator on the problem rather than leaving them on the Save
       // button with a toast and no route to it (audit A-4 / WCAG 3.3.1).
-      const first = Object.keys(NUMERIC_RULES).find((k) => errors[k]);
-      if (first) document.getElementById(`f-${first}`)?.focus();
+      revealAll(FIELD_ORDER);
+      toast({ title: t("চিহ্নিত ফিল্ডগুলো ঠিক করুন", "Fix the highlighted fields"), variant: "error" });
       return;
     }
     submit(false);
@@ -168,7 +181,7 @@ export function BasicConfigScreen() {
   function onReset() {
     setForm({ ...(config.data?.value ?? {}) });
     setDirty(false);
-    setTouched(new Set());
+    clearTouched();
     setChanged(new Set());
   }
 
@@ -186,7 +199,7 @@ export function BasicConfigScreen() {
           <FormCard title={t("একাডেমিক সেটিংস", "Academic Settings")}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label={t("চলতি শিক্ষাবর্ষ", "Current academic year")} {...bind("academic_year")}>
-                <Input type="number" value={String(form.academic_year ?? "")} id="f-academic_year" onChange={(e) => set("academic_year", e.target.value)} className="font-latin" />
+                <Input type="number" value={String(form.academic_year ?? "")} id={fieldId("academic_year")} onChange={(e) => set("academic_year", e.target.value)} className="font-latin" />
               </Field>
               <Field label={t("সেশন শুরুর মাস", "Session start month")}>
                 <Select value={String(form.session_start_month ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(MONTHS, isBn)} onChange={(e) => set("session_start_month", e.target.value)} />
@@ -198,10 +211,10 @@ export function BasicConfigScreen() {
                 <Select value={String(form.working_days ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WORKING_DAYS, isBn)} onChange={(e) => set("working_days", e.target.value)} />
               </Field>
               <Field label={t("দৈনিক পিরিয়ড সংখ্যা", "Daily periods")} {...bind("daily_periods")}>
-                <Input type="number" min={1} value={String(form.daily_periods ?? "")} id="f-daily_periods" onChange={(e) => set("daily_periods", e.target.value)} className="font-latin" />
+                <Input type="number" min={1} value={String(form.daily_periods ?? "")} id={fieldId("daily_periods")} onChange={(e) => set("daily_periods", e.target.value)} className="font-latin" />
               </Field>
               <Field label={t("পিরিয়ড সময়কাল (মিনিট)", "Period duration (minutes)")} {...bind("period_duration")}>
-                <Input type="number" min={1} value={String(form.period_duration ?? "")} id="f-period_duration" onChange={(e) => set("period_duration", e.target.value)} className="font-latin" />
+                <Input type="number" min={1} value={String(form.period_duration ?? "")} id={fieldId("period_duration")} onChange={(e) => set("period_duration", e.target.value)} className="font-latin" />
               </Field>
             </div>
           </FormCard>
@@ -223,8 +236,8 @@ export function BasicConfigScreen() {
               <Field label={t("সংখ্যা পদ্ধতি", "Number system")}>
                 <Select value={String(form.number_system ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(NUMBER_SYSTEMS, isBn)} onChange={(e) => set("number_system", e.target.value)} />
               </Field>
-              <Field label={t("সপ্তাহান্ত", "Weekend")}>
-                <Select value={String(form.weekend ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WEEKENDS, isBn)} onChange={(e) => set("weekend", e.target.value)} />
+              <Field label={t("সপ্তাহান্ত", "Weekend")} {...bind("weekend")}>
+                <Select id={fieldId("weekend")} value={String(form.weekend ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WEEKENDS, isBn)} onChange={(e) => set("weekend", e.target.value)} />
               </Field>
             </div>
           </FormCard>
@@ -241,7 +254,7 @@ export function BasicConfigScreen() {
                   />
                 </Field>
                 <Field label={t("পাস মার্ক (%)", "Pass mark (%)")} {...bind("pass_mark")}>
-                  <Input type="number" min={0} max={100} value={String(form.pass_mark ?? "")} id="f-pass_mark" onChange={(e) => set("pass_mark", e.target.value)} className="font-latin" />
+                  <Input type="number" min={0} max={100} value={String(form.pass_mark ?? "")} id={fieldId("pass_mark")} onChange={(e) => set("pass_mark", e.target.value)} className="font-latin" />
                 </Field>
                 <Field label={t("উপস্থিতির ধরন", "Attendance type")}>
                   <Select value={String(form.attendance_type ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(ATTENDANCE_TYPES, isBn)} onChange={(e) => set("attendance_type", e.target.value)} />
