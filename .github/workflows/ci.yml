@@ -128,7 +128,14 @@ jobs:
   migrate:
     name: apply migrations (production)
     needs: [verify, rls, audit]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # `master`, not just `main`. The `verify` trigger above has always listed
+    # both; these two listed only `main`, and this repository's default branch
+    # is `master` — so every push ran the full gate, went green, and then
+    # silently skipped both the migration and the deploy. A pipeline that is
+    # green and does nothing is worse than a red one.
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
@@ -153,7 +160,14 @@ jobs:
   deploy:
     name: deploy (production)
     needs: [migrate]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # `master`, not just `main`. The `verify` trigger above has always listed
+    # both; these two listed only `main`, and this repository's default branch
+    # is `master` — so every push ran the full gate, went green, and then
+    # silently skipped both the migration and the deploy. A pipeline that is
+    # green and does nothing is worse than a red one.
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
