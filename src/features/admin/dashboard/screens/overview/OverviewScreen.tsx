@@ -119,6 +119,19 @@ const ATTENTION_META: Record<string, { icon: LucideIcon; cta: { bn: string; en: 
   no_guardian_contact: { icon: PhoneOff, cta: { bn: "তথ্য পূরণ করুন", en: "Fill in" } },
 };
 
+/**
+ * The exam pipeline, in the order a term runs (D-6). An unknown status falls
+ * back to rendering the raw value rather than vanishing — the Exam module owns
+ * this vocabulary and may extend it.
+ */
+const EXAM_STAGES: Record<string, { bn: string; en: string; tone: keyof typeof toneMap }> = {
+  draft: { bn: "খসড়া", en: "Draft", tone: "neutral" },
+  scheduled: { bn: "নির্ধারিত", en: "Scheduled", tone: "info" },
+  ongoing: { bn: "চলমান", en: "Ongoing", tone: "info" },
+  locked: { bn: "মার্ক লক", en: "Marks locked", tone: "warning" },
+  published: { bn: "প্রকাশিত", en: "Published", tone: "success" },
+};
+
 const AGEING_LABELS: Record<AgeingBucket["key"], { bn: string; en: string }> = {
   d0_30: { bn: "০–৩০ দিন", en: "0–30 days" },
   d31_60: { bn: "৩১–৬০ দিন", en: "31–60 days" },
@@ -127,7 +140,7 @@ const AGEING_LABELS: Record<AgeingBucket["key"], { bn: string; en: string }> = {
 };
 
 export function OverviewScreen() {
-  const { t, n } = useT();
+  const { t, n, isBn } = useT();
   const { data: me } = useAdminUser();
   const { data, isLoading, isError, refetch } = useDashboard();
   const today = useToday();
@@ -178,6 +191,7 @@ export function OverviewScreen() {
 
   const trend = period.data?.attendanceTrend ?? [];
   const avgRate = period.data?.avgRate ?? 0;
+  const bySection = period.data?.bySection ?? [];
 
   /**
    * A delta is only shown when the previous window HAS data. Against a zero
@@ -491,8 +505,41 @@ export function OverviewScreen() {
             }
           />
           {chartData.length > 0 ? (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col gap-4">
               <BarChart data={chartData} unit="%" max={100} caption={t("দৈনিক উপস্থিতির হার", "Daily attendance rate")} />
+
+              {/*
+                D-12. The institution average is exactly the number that hides
+                which section is producing it. Worst first — that is the row the
+                reader came for — and only when there is more than one section
+                with records, because "the one section, again" is not a ranking.
+              */}
+              {bySection.length > 1 ? (
+                <div className="flex flex-col gap-2 border-t border-border-default pt-3">
+                  <p className="text-meta font-medium text-text-secondary">
+                    {t("শাখা অনুযায়ী (কম থেকে)", "By section, lowest first")}
+                  </p>
+                  {bySection.slice(0, 5).map((s) => (
+                    <div key={s.id} className="flex items-center gap-3">
+                      <span className="w-28 shrink-0 truncate text-meta text-text-secondary" title={isBn ? s.label_bn : s.label_en}>
+                        {isBn ? s.label_bn : s.label_en}
+                      </span>
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-sunken">
+                        <div
+                          className={cn(
+                            "h-full rounded-full",
+                            s.rate < 75 ? "bg-danger-solid" : s.rate < 90 ? "bg-warning-fg" : "bg-primary",
+                          )}
+                          style={{ width: `${s.rate}%` }}
+                        />
+                      </div>
+                      <span className="w-11 shrink-0 text-right text-meta font-semibold text-text-primary tnum">
+                        {n(s.rate)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : (
             <EmptyState
@@ -566,6 +613,44 @@ export function OverviewScreen() {
         </Card>
         ) : null}
       </div>
+
+      {/*
+        THIS TERM (D-6). "results_pending" counts exams sitting in `locked` —
+        the last stage before publication — and says nothing about the earlier,
+        longer stages where a term actually gets stuck. This is every exam and
+        where each one has got to, so the answer to "who is holding the term up"
+        is on the screen rather than three clicks into the Exam module.
+      */}
+      {can("exam.view") && (data?.exams.length ?? 0) > 0 ? (
+        <Card className="gap-2">
+          <div className="flex items-center pb-1">
+            <h3 className="flex-1 text-base font-semibold text-text-primary">
+              {t("এই শিক্ষাবর্ষের পরীক্ষা", "Exams this year")}
+            </h3>
+            <Link href="/admin/exam/result-process" className="text-meta font-medium text-primary">
+              {t("ফলাফল প্রসেস", "Result process")}
+            </Link>
+          </div>
+          {data?.exams.map((e) => {
+            const stage = EXAM_STAGES[e.status] ?? { bn: e.status, en: e.status, tone: "neutral" as const };
+            return (
+              <Link
+                key={e.id}
+                href="/admin/exam/result-process"
+                className="flex items-center gap-3 rounded-xl bg-sunken px-3 py-2.5 transition-colors hover:bg-primary-subtle"
+              >
+                <span className="min-w-0 flex-1 truncate text-meta font-medium text-text-primary">{e.name}</span>
+                {e.endDate ? (
+                  <span className="shrink-0 text-xs text-text-muted tnum">{n(e.endDate)}</span>
+                ) : null}
+                <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-micro font-semibold", toneMap[stage.tone])}>
+                  {t(stage.bn, stage.en)}
+                </span>
+              </Link>
+            );
+          })}
+        </Card>
+      ) : null}
 
       {/* Activity + quick actions */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_400px]">

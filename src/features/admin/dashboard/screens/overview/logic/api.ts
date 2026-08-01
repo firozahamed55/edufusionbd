@@ -29,6 +29,17 @@ export type AttendancePoint = { date: string; rate: number };
  */
 export type AgeingBucket = { key: "d0_30" | "d31_60" | "d61_90" | "d90_plus"; amount: number; students: number };
 
+/**
+ * Where each exam has got to (D-6).
+ *
+ * The term-end bottleneck was represented on this screen by one alert counting
+ * exams sitting in `locked` — the LAST stage before publication. It said
+ * nothing about the earlier and much longer stages, which is where a term
+ * actually gets stuck. The pipeline is the exam's own `status`, so this costs
+ * one query and cannot drift from what the Exam module believes.
+ */
+export type ExamProgress = { id: string; name: string; status: string; endDate: string | null };
+
 export type ActivityItem = {
   id: string;
   action: string;
@@ -62,6 +73,7 @@ export type DashboardData = {
    */
   attentionFacts: Omit<AttentionFacts, "sectionsTotal" | "sectionsAwaitingAttendance" | "hour">;
   ageing: AgeingBucket[];
+  exams: ExamProgress[];
   attendanceTrend: AttendancePoint[];
   activity: ActivityItem[];
   /** When this payload was assembled (D-14). */
@@ -102,6 +114,7 @@ export async function fetchDashboard(
     subjectRes,
     noTeacherRes,
     guardianGapRes,
+    examRes,
   ] = await Promise.all([
     supabase.from("v_dashboard_kpi").select("*").maybeSingle(),
     supabase
@@ -169,6 +182,15 @@ export async function fetchDashboard(
       .not("student_guardian.guardian.mobile", "is", null)
       .neq("student_guardian.guardian.mobile", "")
       .limit(MAX_OPTIONS),
+    // The term's exams and where each has got to (D-6).
+    (() => {
+      const q = supabase
+        .from("exam")
+        .select("id, name, status, end_date")
+        .order("end_date", { ascending: false, nullsFirst: false })
+        .limit(6);
+      return yearId ? q.eq("academic_year_id", yearId) : q;
+    })(),
   ]);
 
   if (kpiRes.error) throw kpiRes.error;
@@ -249,6 +271,12 @@ export async function fetchDashboard(
       studentsWithoutGuardianContact,
     },
     ageing,
+    exams: (examRes.data ?? []).map((e) => ({
+      id: e.id,
+      name: e.name,
+      status: e.status,
+      endDate: e.end_date,
+    })),
     attendanceTrend,
     activity: collapseActivity(activityRes.data ?? [], 6, ACTIVITY_FETCH),
     fetchedAt: now,
@@ -404,11 +432,22 @@ export function collapseActivity(
 
 /* ------------------------------------------------------ period-scoped stats */
 
+/** One class-section's attendance over the window (D-12). */
+export type SectionRate = { id: string; label_bn: string; label_en: string; rate: number; records: number };
+
 export type PeriodStats = {
   collected: number;
   attendanceTrend: AttendancePoint[];
   /** Mean of the daily rates in the window; 0 when nothing was recorded. */
   avgRate: number;
+  /**
+   * D-12. Every figure on this screen was a single institution-level number,
+   * so a head teacher could see that attendance was 87% and not which of nine
+   * sections was dragging it there — the institution average is precisely the
+   * number that hides the answer. Worst first, because that is the one the
+   * reader is looking for.
+   */
+  bySection: SectionRate[];
 };
 
 /**
@@ -426,7 +465,7 @@ export async function fetchPeriodStats(
   supabase: BrowserClient,
   { from, to, yearId }: { from: string; to: string; yearId?: string | null },
 ): Promise<PeriodStats> {
-  const [payments, attendance] = await Promise.all([
+  const [payments, attendance, sectionsRes] = await Promise.all([
     // `paid_at` is a timestamptz; `to` is an inclusive day, so the upper bound
     // is the start of the following day rather than midnight of `to` — which
     // would silently drop everything collected on the last day of the range.
@@ -437,7 +476,20 @@ export async function fetchPeriodStats(
       .lt("paid_at", nextDay(to))
       .limit(MAX_OPTIONS),
     (() => {
-      const q = supabase.from("attendance").select("att_date, status").gte("att_date", from).lte("att_date", to);
+      // `class_section_id` rides along for the per-section split (D-12) — the
+      // rows are already being read, so segmenting them costs one column.
+      const q = supabase
+        .from("attendance")
+        .select("att_date, status, class_section_id")
+        .gte("att_date", from)
+        .lte("att_date", to);
+      return (yearId ? q.eq("academic_year_id", yearId) : q).limit(MAX_OPTIONS);
+    })(),
+    (() => {
+      const q = supabase
+        .from("class_section")
+        .select("id, class:class_id(name_bn, name_en, numeric_level), section:section_id(name)")
+        .is("deleted_at", null);
       return (yearId ? q.eq("academic_year_id", yearId) : q).limit(MAX_OPTIONS);
     })(),
   ]);
@@ -461,7 +513,33 @@ export async function fetchPeriodStats(
     ? Math.round(attendanceTrend.reduce((s, p) => s + p.rate, 0) / attendanceTrend.length)
     : 0;
 
-  return { collected, attendanceTrend, avgRate };
+  // --- Per class-section (D-12) ---
+  const bySectionId = new Map<string, { present: number; total: number }>();
+  for (const row of attendance.data ?? []) {
+    if (!row.class_section_id) continue;
+    const b = bySectionId.get(row.class_section_id) ?? { present: 0, total: 0 };
+    b.total += 1;
+    if (row.status === "present" || row.status === "late") b.present += 1;
+    bySectionId.set(row.class_section_id, b);
+  }
+  const bySection: SectionRate[] = (sectionsRes.data ?? [])
+    .flatMap((s) => {
+      const b = bySectionId.get(s.id);
+      // A section with no records in the window is omitted rather than shown
+      // at 0%. "No register was taken" and "nobody came" are different facts,
+      // and only one of them is about the students.
+      if (!b || b.total === 0) return [];
+      return [{
+        id: s.id,
+        label_bn: `${s.class?.name_bn ?? ""} — ${s.section?.name ?? ""}`,
+        label_en: `${s.class?.name_en ?? ""} — ${s.section?.name ?? ""}`,
+        rate: Math.round((b.present / b.total) * 100),
+        records: b.total,
+      }];
+    })
+    .sort((a, b) => a.rate - b.rate);
+
+  return { collected, attendanceTrend, avgRate, bySection };
 }
 
 const nextDay = (day: string) => new Date(new Date(`${day}T00:00:00`).getTime() + DAY_MS).toISOString().slice(0, 10);
