@@ -66,6 +66,22 @@ begin
         from enr group by numeric_level, name_bn, name_en
       ) t
     ),
+    -- Class x religion cross-tab. `not_recorded` is a first-class column rather
+    -- than an omission, so each row's parts sum to its own total and a reader
+    -- can see coverage per class instead of inferring it from a shortfall.
+    'by_class_religion', (
+      select coalesce(jsonb_agg(to_jsonb(t) order by t.numeric_level), '[]'::jsonb) from (
+        select numeric_level, name_bn, name_en,
+               count(*) filter (where religion = 'islam')     as islam,
+               count(*) filter (where religion = 'hindu')     as hindu,
+               count(*) filter (where religion = 'christian') as christian,
+               count(*) filter (where religion = 'buddhist')  as buddhist,
+               count(*) filter (where religion = 'other')     as other,
+               count(*) filter (where religion is null)       as not_recorded,
+               count(*) as total
+        from enr group by numeric_level, name_bn, name_en
+      ) t
+    ),
     -- Religion, with "not recorded" kept as its own number rather than folded
     -- into the enum's own `other` value, which means something different.
     'by_religion', (

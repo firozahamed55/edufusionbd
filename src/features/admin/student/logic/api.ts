@@ -123,6 +123,26 @@ export type StudentReport = {
   by_religion: Record<string, number>;
   by_age: Record<string, number>;
   /**
+   * Class × religion cross-tab. `not_recorded` is a real column, not an
+   * omission, so each row's parts sum to its own total and coverage is visible
+   * per class rather than inferred from a shortfall.
+   *
+   * Optional for the same reason as the counters below — a cached payload
+   * minted before the migration simply renders no table.
+   */
+  by_class_religion?: {
+    numeric_level: number;
+    name_bn: string;
+    name_en: string;
+    islam: number;
+    hindu: number;
+    christian: number;
+    buddhist: number;
+    other: number;
+    not_recorded: number;
+    total: number;
+  }[];
+  /**
    * Coverage counters for the two fields that are routinely blank on an
    * imported roll (C-6). `by_age` is now aggregated over `age_known` rows only,
    * so the screen MUST use these to state the gap rather than letting a bucket

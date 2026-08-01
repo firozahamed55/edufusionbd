@@ -20,6 +20,9 @@ import { useErrorMessage } from "@/shared/services/errors";
  * "Stats dashboard" archetype: gradient KPIs + bar charts + breakdown tables.
  */
 
+/** The religion columns of a `by_class_religion` row — keyed by the DB enum. */
+type ReligionKey = "islam" | "hindu" | "christian" | "buddhist" | "other";
+
 const AGE_ORDER = ["5-8", "9-11", "12-14", "15-17", "other"] as const;
 const AGE_LABELS: Record<string, [string, string]> = {
   "5-8": ["৫–৮ বছর", "5–8 yrs"],
@@ -92,6 +95,12 @@ export function ReportsSummaryScreen() {
           const ageKnown = d.age_known ?? d.total;
           const dobMissing = d.dob_missing ?? 0;
           const religionMissing = d.religion_missing ?? 0;
+          const classReligion = d.by_class_religion ?? [];
+          // Only the traditions actually present get a column.
+          const religionCols = RELIGION.filter((r) =>
+            classReligion.some((c) => c[r.value as ReligionKey] > 0),
+          );
+          const anyNotRecorded = classReligion.some((c) => c.not_recorded > 0);
           const KPIS = [
             { label: t("মোট শিক্ষার্থী", "Total Students"), value: d.total, grad: "grad-indigo", shadow: "shadow-e2", up: true },
             { label: t("ছেলে", "Boys"), value: d.boys, sub: `${pct(d.boys, d.total)}%`, grad: "grad-emerald", shadow: "shadow-e2" },
@@ -195,6 +204,72 @@ export function ReportsSummaryScreen() {
                 </Table>
               </div>
 
+              {/*
+                Class × religion. The two breakdown cards below answer "how many
+                of each" for the school as a whole; this answers "where", which
+                is the question a head teacher actually acts on. Columns are
+                filtered to the traditions PRESENT — a fixed five-column table
+                would be three empty columns wide for most Bangladeshi schools.
+              */}
+              {classReligion.length > 0 && religionCols.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  <CardHead
+                    title={t("শ্রেণিভিত্তিক ধর্মীয় বিন্যাস", "Religion by Class")}
+                    subtitle={t("প্রতি শ্রেণিতে ধর্ম অনুযায়ী শিক্ষার্থী সংখ্যা", "Students by religion in each class")}
+                  />
+                  <Table minWidth={640}>
+                    <THead>
+                      <TR>
+                        <TH>{t("শ্রেণি", "Class")}</TH>
+                        {religionCols.map((r) => (
+                          <TH key={r.value} className="w-22.5 text-right">{isBn ? r.bn : r.en}</TH>
+                        ))}
+                        {anyNotRecorded ? (
+                          <TH className="w-28 text-right">{t("রেকর্ড নেই", "Not recorded")}</TH>
+                        ) : null}
+                        <TH className="w-22.5 text-right">{t("মোট", "Total")}</TH>
+                      </TR>
+                    </THead>
+                    <TBody>
+                      {classReligion.map((c) => (
+                        <TR key={c.numeric_level}>
+                          <TH scope="row" className="text-left text-sm font-semibold text-text-primary">
+                            {isBn ? c.name_bn : c.name_en}
+                          </TH>
+                          {religionCols.map((r) => (
+                            <TD key={r.value} className="text-right text-meta text-text-secondary tnum">
+                              {n(c[r.value as ReligionKey])}
+                            </TD>
+                          ))}
+                          {anyNotRecorded ? (
+                            <TD className="text-right text-meta text-text-muted tnum">{n(c.not_recorded)}</TD>
+                          ) : null}
+                          <TD className="text-right text-meta font-semibold text-text-primary tnum">{n(c.total)}</TD>
+                        </TR>
+                      ))}
+                    </TBody>
+                    <tfoot>
+                      <tr className="border-t border-border-strong bg-sunken text-meta font-bold text-text-primary">
+                        <th scope="row" className="px-5 py-3 text-left">{t("সর্বমোট", "Grand total")}</th>
+                        {religionCols.map((r) => (
+                          <td key={r.value} className="px-5 py-3 text-right tnum">
+                            {n(classReligion.reduce((s, c) => s + c[r.value as ReligionKey], 0))}
+                          </td>
+                        ))}
+                        {anyNotRecorded ? (
+                          <td className="px-5 py-3 text-right tnum">
+                            {n(classReligion.reduce((s, c) => s + c.not_recorded, 0))}
+                          </td>
+                        ) : null}
+                        <td className="px-5 py-3 text-right tnum">
+                          {n(classReligion.reduce((s, c) => s + c.total, 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </Table>
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {/*
                   Both cards render a NotRecorded note instead of vanishing when
@@ -273,6 +348,20 @@ function reportRows(d: StudentReport) {
   const ageKnown = d.age_known ?? d.total;
   for (const [k, v] of Object.entries(d.by_age)) {
     rows.push({ Section: "Age group", Item: k, Count: v, Percent: pctOf(v, ageKnown) });
+  }
+  // Class × religion, one row per cell — the same long format, so adding the
+  // cross-tab to the screen does not re-open the C-3 gap it was fixed for.
+  for (const c of d.by_class_religion ?? []) {
+    for (const k of ["islam", "hindu", "christian", "buddhist", "other", "not_recorded"] as const) {
+      if (c[k] > 0) {
+        rows.push({
+          Section: `Religion · ${c.name_en}`,
+          Item: k === "not_recorded" ? "Not recorded" : k,
+          Count: c[k],
+          Percent: pctOf(c[k], c.total),
+        });
+      }
+    }
   }
 
   rows.push({ Section: "Data quality", Item: "Date of birth not recorded", Count: d.dob_missing ?? 0, Percent: pctOf(d.dob_missing ?? 0, d.total) });
