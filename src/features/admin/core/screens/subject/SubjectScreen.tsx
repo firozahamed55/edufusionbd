@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, BookOpen, Search } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import {
   Field, Input, Select, Button, Badge, ConfirmDialog, Modal, useToast, PageHeader, Skeleton,

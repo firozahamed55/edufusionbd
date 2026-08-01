@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, Plus, Trash2, Pencil } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
@@ -11,6 +11,7 @@ import {
 import { useErrorMessage } from "@/shared/services/errors";
 import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 import { localDay } from "@/shared/lib/format";
+import { useGridNavigation } from "@/shared/lib/useGridNavigation";
 import { monthGrid, type TermRow } from "../../logic/calendar";
 import {
   useCalendarRange, useSetCalendarRange, useClearCalendarRange,
@@ -27,6 +28,16 @@ const MONTHS = [
 const DOW = [
   ["শনি", "Sat"], ["রবি", "Sun"], ["সোম", "Mon"], ["মঙ্গল", "Tue"],
   ["বুধ", "Wed"], ["বৃহঃ", "Thu"], ["শুক্র", "Fri"],
+] as const;
+
+/**
+ * The same seven days spelled out. The column headers are abbreviated because
+ * a 7-column grid has no room; an accessible name has all the room it needs,
+ * and "বৃহঃ" is not a word a screen reader can pronounce.
+ */
+const DOW_FULL = [
+  ["শনিবার", "Saturday"], ["রবিবার", "Sunday"], ["সোমবার", "Monday"], ["মঙ্গলবার", "Tuesday"],
+  ["বুধবার", "Wednesday"], ["বৃহস্পতিবার", "Thursday"], ["শুক্রবার", "Friday"],
 ] as const;
 
 /**
@@ -117,6 +128,83 @@ export function CalendarScreen() {
   }
 
   const monthLabel = `${t(MONTHS[cursor.m][0], MONTHS[cursor.m][1])} ${n(cursor.y)}`;
+
+  /* ------------------------------------------------- A-3: the grid's keyboard */
+
+  /** `monthGrid` is flat; a `role="grid"` needs its rows to be rows. */
+  const weeks = useMemo(() => {
+    const out: (string | null)[][] = [];
+    for (let i = 0; i < cells.length; i += 7) out.push(cells.slice(i, i + 7));
+    return out;
+  }, [cells]);
+
+  const firstDate = useMemo(() => cells.find((d): d is string => d !== null) ?? null, [cells]);
+  /**
+   * The one cell that is tabbable. Today when today is in view, otherwise the
+   * first of the month — so arriving at the grid lands somewhere meaningful
+   * rather than on the 1st of a month the operator navigated away from.
+   */
+  const [activeDate, setActiveDate] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const todayIso = localDay(today);
+    setActiveDate(cells.includes(todayIso) ? todayIso : firstDate);
+    // `cells` changes exactly when the month does, which is when the roving
+    // anchor must be re-chosen.
+  }, [cells, firstDate, today]);
+
+  const grid = useGridNavigation({ rows: weeks.length, cols: 7 });
+
+  const focusActive = useCallback(() => {
+    if (!activeDate) return;
+    gridRef.current?.querySelector<HTMLButtonElement>(`[data-day="${activeDate}"]`)?.focus();
+  }, [activeDate]);
+
+  /**
+   * The keys `useGridNavigation` does not cover, because they only make sense
+   * for a date grid: Home/End are the row's ends, and PageUp/PageDown are the
+   * month — the movement that saves an operator planning a year the most time.
+   *
+   * Returns true when it handled the key, so the caller can skip the hook.
+   */
+  const onGridKey = useCallback(
+    (e: React.KeyboardEvent, rowIndex: number, colIndex: number): boolean => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return false;
+      const row = weeks[rowIndex] ?? [];
+      const focusIn = (list: (string | null)[], from: "start" | "end") => {
+        const found = from === "start"
+          ? list.find((d): d is string => d !== null)
+          : [...list].reverse().find((d): d is string => d !== null);
+        if (!found) return false;
+        setActiveDate(found);
+        gridRef.current?.querySelector<HTMLButtonElement>(`[data-day="${found}"]`)?.focus();
+        return true;
+      };
+      switch (e.key) {
+        case "Home":
+          e.preventDefault();
+          return focusIn(row, "start");
+        case "End":
+          e.preventDefault();
+          return focusIn(row, "end");
+        case "PageUp":
+          e.preventDefault();
+          setCursor((c) => (c.m === 0 ? { y: c.y - 1, m: 11 } : { ...c, m: c.m - 1 }));
+          return true;
+        case "PageDown":
+          e.preventDefault();
+          setCursor((c) => (c.m === 11 ? { y: c.y + 1, m: 0 } : { ...c, m: c.m + 1 }));
+          return true;
+        default:
+          // Column index is unused on this path but is part of the signature
+          // the caller already has; keeping it makes the two handlers read the
+          // same way at the call site.
+          void colIndex;
+          return false;
+      }
+    },
+    [weeks],
+  );
   const nonWorking = (marks.data ?? []).filter((d) => !d.working);
 
   return (
@@ -177,46 +265,102 @@ export function CalendarScreen() {
           <ErrorState title={t("পঞ্জি লোড করা যায়নি", "Could not load the calendar")} description={msg(marks.error)} />
         ) : (
           <div className="p-4">
-            <div className="grid grid-cols-7 gap-1.5">
-              {DOW.map(([bn, en]) => (
-                <div key={en} className="pb-1 text-center text-micro font-semibold uppercase tracking-wide text-text-muted">
-                  {t(bn, en)}
+            {/*
+              A-3 / WCAG 1.3.1, 2.1.1, 2.4.6.
+              What was here: a plain `div` grid of 42 buttons, each named by its
+              day number alone ("৫"). No month, no weekday, no holiday state,
+              no relationship between a cell and its column header — and no
+              arrow keys, so reaching 28 April was 28 Tab presses.
+
+              Now a real `role="grid"`: column headers the cells are associated
+              with, one tab stop for the whole month (roving `tabindex`, the
+              pattern for a composite widget), arrows to move, Home/End for the
+              row, PageUp/PageDown for the month, and a full accessible name
+              per day.
+
+              `useGridNavigation` supplies the arrows and the ref map. It
+              deliberately does NOT do roving tabindex — its own header explains
+              why, and the reason is sound for the two MARKS-ENTRY grids it was
+              built for, where cells are real inputs and Tab already means
+              something correct. This grid is buttons, where the composite
+              pattern is right and Tab-per-cell is the failure. So the roving
+              part lives here, over the hook's movement, rather than being
+              pushed into a hook whose other two callers would be made worse
+              by it.
+            */}
+            <div
+              role="grid"
+              ref={gridRef}
+              aria-label={t(`${monthLabel} এর পঞ্জিকা`, `Calendar for ${monthLabel}`)}
+              className="grid grid-cols-7 gap-1.5"
+              /* One tab stop in, one out: focus lands on the active cell. */
+              onFocus={(e) => { if (e.target === e.currentTarget) focusActive(); }}
+            >
+              <div role="row" className="col-span-7 grid grid-cols-7 gap-1.5">
+                {DOW.map(([bn, en]) => (
+                  <div
+                    key={en}
+                    role="columnheader"
+                    className="pb-1 text-center text-micro font-semibold uppercase tracking-wide text-text-muted"
+                  >
+                    {t(bn, en)}
+                  </div>
+                ))}
+              </div>
+              {weeks.map((week, rowIndex) => (
+                <div role="row" key={`row-${rowIndex}`} className="col-span-7 grid grid-cols-7 gap-1.5">
+                  {week.map((date, colIndex) => {
+                    if (!date) return <div role="gridcell" key={`pad-${rowIndex}-${colIndex}`} />;
+                    const mark = byDate.get(date);
+                    const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
+                    // An explicit row wins over the weekly holiday in both
+                    // directions — a make-up class on a Friday is a working day.
+                    const holiday = mark ? !mark.working : weekend.includes(dow);
+                    const isToday = date === localDay(today);
+                    const active = date === activeDate;
+                    return (
+                      <div role="gridcell" key={date}>
+                        <button
+                          type="button"
+                          ref={grid.register(rowIndex, colIndex)}
+                          data-day={date}
+                          /* Roving: exactly one cell is tabbable at a time. */
+                          tabIndex={active ? 0 : -1}
+                          aria-current={isToday ? "date" : undefined}
+                          aria-label={dayLabel({ date, dow, holiday, label: mark?.label ?? null, isToday, t, n })}
+                          onFocus={() => setActiveDate(date)}
+                          onKeyDown={(e) => {
+                            if (onGridKey(e, rowIndex, colIndex)) return;
+                            grid.onKeyDown(rowIndex, colIndex)(e);
+                          }}
+                          onClick={() =>
+                            setEditing({ from: date, to: date, label: mark?.label ?? "", working: mark ? mark.working : !holiday })
+                          }
+                          className={cn(
+                            "flex min-h-16 w-full flex-col items-start gap-0.5 rounded-lg border p-2 text-left transition-colors",
+                            holiday
+                              ? "border-danger-fg/25 bg-danger-bg hover:border-danger-fg/50"
+                              : "border-border-default bg-surface hover:bg-sunken",
+                            isToday && "ring-2 ring-primary ring-offset-1 ring-offset-surface",
+                          )}
+                        >
+                          {/* The visible number is decorative now: the button's
+                              aria-label carries the whole answer, and reading
+                              both would announce the date twice. */}
+                          <span aria-hidden className={cn("text-meta font-semibold tnum", holiday ? "text-danger-fg" : "text-text-primary")}>
+                            {n(Number(date.slice(8)))}
+                          </span>
+                          {mark?.label ? (
+                            <span aria-hidden className="line-clamp-2 text-micro leading-tight text-text-secondary">{mark.label}</span>
+                          ) : holiday ? (
+                            <span aria-hidden className="text-micro text-text-muted">{t("সাপ্তাহিক ছুটি", "Weekly holiday")}</span>
+                          ) : null}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
-              {cells.map((date, i) => {
-                if (!date) return <div key={`pad-${i}`} />;
-                const mark = byDate.get(date);
-                const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
-                // An explicit row wins over the weekly holiday in both
-                // directions — a make-up class on a Friday is a working day.
-                const holiday = mark ? !mark.working : weekend.includes(dow);
-                const isToday = date === localDay(today);
-                return (
-                  <button
-                    key={date}
-                    type="button"
-                    onClick={() =>
-                      setEditing({ from: date, to: date, label: mark?.label ?? "", working: mark ? mark.working : !holiday })
-                    }
-                    className={cn(
-                      "flex min-h-16 flex-col items-start gap-0.5 rounded-lg border p-2 text-left transition-colors",
-                      holiday
-                        ? "border-danger-fg/25 bg-danger-bg hover:border-danger-fg/50"
-                        : "border-border-default bg-surface hover:bg-sunken",
-                      isToday && "ring-2 ring-primary ring-offset-1 ring-offset-surface",
-                    )}
-                  >
-                    <span className={cn("text-meta font-semibold tnum", holiday ? "text-danger-fg" : "text-text-primary")}>
-                      {n(Number(date.slice(8)))}
-                    </span>
-                    {mark?.label ? (
-                      <span className="line-clamp-2 text-micro leading-tight text-text-secondary">{mark.label}</span>
-                    ) : holiday ? (
-                      <span className="text-micro text-text-muted">{t("সাপ্তাহিক ছুটি", "Weekly holiday")}</span>
-                    ) : null}
-                  </button>
-                );
-              })}
             </div>
             {marks.isLoading ? <Skeleton className="mt-3 h-4 w-40" /> : (
               <p className="mt-3 text-micro text-text-muted">
@@ -466,4 +610,51 @@ function TermsPanel({ yearId }: { yearId: string | undefined }) {
       />
     </div>
   );
+}
+
+/**
+ * The whole answer for one day, as one accessible name (audit A-3, WCAG 2.4.6).
+ *
+ * The old name was the day number alone: "৫". A screen-reader user tabbing the
+ * month heard forty-two numbers and had to hold the month, the weekday and the
+ * holiday state in their head to know what any of them meant. The audit's own
+ * example of what it should say is
+ * "১৫ এপ্রিল ২০২৬, বৃহস্পতিবার — ঈদুল ফিতরের ছুটি", and that is what this builds.
+ *
+ * Order is date, weekday, state, label — the same order the eye reads the cell,
+ * and the most identifying part first so a user scanning by voice can stop
+ * early.
+ */
+function dayLabel({
+  date,
+  dow,
+  holiday,
+  label,
+  isToday,
+  t,
+  n,
+}: {
+  date: string;
+  /** 0 = Sunday, matching `Date#getUTCDay`. */
+  dow: number;
+  holiday: boolean;
+  label: string | null;
+  isToday: boolean;
+  t: (bn: string, en: string) => string;
+  n: (value: string | number) => string;
+}): string {
+  const [year, month, dayOfMonth] = date.split("-");
+  const monthIndex = Number(month) - 1;
+  const monthName = t(MONTHS[monthIndex][0], MONTHS[monthIndex][1]);
+  // `DOW` is Saturday-first to match the grid's columns; `getUTCDay` is
+  // Sunday-first. Index across rather than reordering either.
+  const weekday = t(DOW_FULL[(dow + 1) % 7][0], DOW_FULL[(dow + 1) % 7][1]);
+
+  const parts = [
+    `${n(Number(dayOfMonth))} ${monthName} ${n(year)}, ${weekday}`,
+    holiday ? t("ছুটি", "Holiday") : t("কর্মদিবস", "Working day"),
+  ];
+  if (label) parts.push(label);
+  if (isToday) parts.push(t("আজ", "Today"));
+  return parts.join(" — ");
 }
