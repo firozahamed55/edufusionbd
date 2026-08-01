@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   ShieldAlert,
   ClipboardCheck,
+  UserCog,
+  PhoneOff,
   UserPlus,
   CalendarCheck,
   CreditCard,
@@ -17,6 +19,7 @@ import {
   Megaphone,
   ChevronRight,
   History,
+  RefreshCw,
   TrendingUp,
   TrendingDown,
   type LucideIcon,
@@ -27,11 +30,13 @@ import { BarChart, Donut, Skeleton, ErrorState, EmptyState, PageHeader } from "@
 import { useAdminUser } from "@/features/admin/components/useAdminUser";
 import { useMyPermissions } from "@/features/admin/core/logic/hooks";
 import { SetupChecklist } from "../../components/SetupChecklist";
-import { localDay, dayOffset, weekdayShort, formatDateTime } from "@/shared/lib/format";
+import { TodayBand } from "../../components/TodayBand";
+import { localDay, dayOffset, weekdayShort, formatDateTime, institutionHour } from "@/shared/lib/format";
 import { useQueryState } from "@/shared/lib/useQueryState";
-import { useDashboard, usePeriodStats } from "./logic/useDashboard";
+import { useDashboard, usePeriodStats, useToday } from "./logic/useDashboard";
 import { activitySentence, activityHref } from "../../logic/activityLabel";
-import type { AttentionItem } from "./logic/api";
+import { evaluateAttention, type AttentionItem } from "../../logic/attentionRules";
+import type { AgeingBucket } from "./logic/api";
 
 /**
  * Admin dashboard overview.
@@ -97,19 +102,35 @@ export function presetRange(
   return { from: monthStart(y, m), to: today };
 }
 
-const ATTENTION_META: Record<
-  string,
-  { icon: LucideIcon; cta: { bn: string; en: string }; permission: string }
-> = {
-  overdue_fees: { icon: AlertTriangle, cta: { bn: "তাগাদা পাঠান", en: "Send reminders" }, permission: "fee.view" },
-  attendance_low: { icon: ShieldAlert, cta: { bn: "তালিকা দেখুন", en: "View list" }, permission: "attendance.view" },
-  results_pending: { icon: ClipboardCheck, cta: { bn: "পর্যালোচনা", en: "Review" }, permission: "exam.view" },
+/**
+ * How each rule in `logic/attentionRules` is drawn. Presentation only — when it
+ * fires, how loudly and where it links live with the rule (D-11), so adding a
+ * rule is a row there plus a row here, and never a change to this screen's body.
+ *
+ * An unrecognised key still renders (see `attentionLabel`): a new rule must not
+ * vanish because nobody added it to this table.
+ */
+const ATTENTION_META: Record<string, { icon: LucideIcon; cta: { bn: string; en: string } }> = {
+  attendance_pending: { icon: CalendarCheck, cta: { bn: "উপস্থিতি নিন", en: "Take attendance" } },
+  overdue_fees: { icon: AlertTriangle, cta: { bn: "তাগাদা পাঠান", en: "Send reminders" } },
+  results_pending: { icon: ClipboardCheck, cta: { bn: "পর্যালোচনা", en: "Review" } },
+  attendance_low: { icon: ShieldAlert, cta: { bn: "তালিকা দেখুন", en: "View list" } },
+  no_class_teacher: { icon: UserCog, cta: { bn: "শিক্ষক দিন", en: "Assign" } },
+  no_guardian_contact: { icon: PhoneOff, cta: { bn: "তথ্য পূরণ করুন", en: "Fill in" } },
+};
+
+const AGEING_LABELS: Record<AgeingBucket["key"], { bn: string; en: string }> = {
+  d0_30: { bn: "০–৩০ দিন", en: "0–30 days" },
+  d31_60: { bn: "৩১–৬০ দিন", en: "31–60 days" },
+  d61_90: { bn: "৬১–৯০ দিন", en: "61–90 days" },
+  d90_plus: { bn: "৯০+ দিন", en: "90+ days" },
 };
 
 export function OverviewScreen() {
   const { t, n } = useT();
   const { data: me } = useAdminUser();
   const { data, isLoading, isError, refetch } = useDashboard();
+  const today = useToday();
 
   // Period lives in the URL, so "this school in October" is a link (SRA A-1).
   const [{ preset, from, to }, setPeriod] = useQueryState({
@@ -145,10 +166,15 @@ export function OverviewScreen() {
     ? t(presetMeta.collectedBn, presetMeta.collectedEn)
     : t("এই সময়ে আদায়", "Collected (period)");
 
-  // Real time-of-day, not a hardcoded "Good morning".
-  const hour = new Date().getHours();
+  // Real time-of-day, not a hardcoded "Good morning" — and the INSTITUTION's
+  // clock, not the browser's, which is also what the attendance cutoff reads.
+  const institutionHourNow = institutionHour();
   const greeting =
-    hour < 12 ? t("সুপ্রভাত", "Good morning") : hour < 17 ? t("শুভ অপরাহ্ন", "Good afternoon") : t("শুভ সন্ধ্যা", "Good evening");
+    institutionHourNow < 12
+      ? t("সুপ্রভাত", "Good morning")
+      : institutionHourNow < 17
+        ? t("শুভ অপরাহ্ন", "Good afternoon")
+        : t("শুভ সন্ধ্যা", "Good evening");
 
   const trend = period.data?.attendanceTrend ?? [];
   const avgRate = period.data?.avgRate ?? 0;
@@ -183,6 +209,10 @@ export function OverviewScreen() {
     { icon: Send, title: t("SMS পাঠান", "Send SMS"), desc: t("বাল্ক মেসেজিং", "Bulk messaging"), href: "/admin/sms-notice/send", permission: "sms.view" },
   ].filter((a) => can(a.permission));
 
+  // Empty buckets are not rendered — "৳0 in 61–90 days" is a row that says
+  // nothing, and four of them bury the one bucket that matters.
+  const overdueAgeing = (data?.ageing ?? []).filter((b) => b.amount > 0);
+
   const studentsPerTeacher = data?.activeTeachers
     ? Math.round((data.activeStudents ?? 0) / data.activeTeachers)
     : 0;
@@ -191,31 +221,70 @@ export function OverviewScreen() {
   // different state from "zero results for your filter" (B-8).
   const isEmptyInstitution = (data?.activeStudents ?? 0) === 0 && (data?.classSections ?? 0) === 0;
 
-  // An unrecognised key stays visible — a new attention rule must not vanish
-  // because nobody added it to the meta table.
-  const attention = (data?.attention ?? []).filter((a) => {
-    const meta = ATTENTION_META[a.key];
-    return !meta || can(meta.permission);
-  });
+  /**
+   * D-11. The three hardcoded conditions became a rule table; this runs it over
+   * the facts the two queries between them produce. `hour` is institution-local
+   * — `attendance_pending` must not fire at 07:00 Dhaka because the server
+   * happens to be somewhere else.
+   */
+  const attention = evaluateAttention({
+    overdueStudents: data?.attentionFacts.overdueStudents ?? 0,
+    overdueAmount: data?.attentionFacts.overdueAmount ?? 0,
+    avgAttendance30: data?.attentionFacts.avgAttendance30 ?? null,
+    lockedExams: data?.attentionFacts.lockedExams ?? 0,
+    sectionsWithoutClassTeacher: data?.attentionFacts.sectionsWithoutClassTeacher ?? 0,
+    studentsWithoutGuardianContact: data?.attentionFacts.studentsWithoutGuardianContact ?? 0,
+    sectionsTotal: today.data?.sectionsTotal ?? 0,
+    sectionsAwaitingAttendance: today.data?.pendingSections.length ?? 0,
+    hour: institutionHourNow,
+  }).filter((a) => can(a.permission));
 
   const attentionLabel = (a: AttentionItem) => {
-    if (a.key === "overdue_fees")
-      return {
-        title: t(
-          `${bdt(a.amount ?? 0)} ফি বকেয়া · ${n(a.count)} জন`,
-          `${bdt(a.amount ?? 0)} overdue · ${a.count} students`,
-        ),
-        desc: t("নির্ধারিত তারিখ পেরিয়েছে", "Past the due date"),
-      };
-    if (a.key === "attendance_low")
-      return {
-        title: t(`গড় উপস্থিতি ${n(a.count)}%`, `Average attendance ${a.count}%`),
-        desc: t("গত ৩০ দিনে ৭৫% এর নিচে", "Below 75% over the last 30 days"),
-      };
-    return {
-      title: t(`${n(a.count)} টি পরীক্ষার ফলাফল অপেক্ষমাণ`, `${a.count} exam results awaiting publish`),
-      desc: t("মার্ক লক করা হয়েছে, প্রকাশ বাকি", "Marks locked, not yet published"),
-    };
+    switch (a.key) {
+      case "attendance_pending":
+        return {
+          title: t(
+            `${n(a.count)} টি শাখার উপস্থিতি এখনো নেওয়া হয়নি`,
+            `${a.count} sections have not taken attendance`,
+          ),
+          desc: t("আজকের হাজিরা অসম্পূর্ণ", "Today's register is incomplete"),
+        };
+      case "overdue_fees":
+        return {
+          title: t(
+            `${bdt(a.amount ?? 0)} ফি বকেয়া · ${n(a.count)} জন`,
+            `${bdt(a.amount ?? 0)} overdue · ${a.count} students`,
+          ),
+          desc: t("নির্ধারিত তারিখ পেরিয়েছে", "Past the due date"),
+        };
+      case "results_pending":
+        return {
+          title: t(`${n(a.count)} টি পরীক্ষার ফলাফল অপেক্ষমাণ`, `${a.count} exam results awaiting publish`),
+          desc: t("মার্ক লক করা হয়েছে, প্রকাশ বাকি", "Marks locked, not yet published"),
+        };
+      case "attendance_low":
+        return {
+          title: t(`গড় উপস্থিতি ${n(a.count)}%`, `Average attendance ${a.count}%`),
+          desc: t("গত ৩০ দিনে ৭৫% এর নিচে", "Below 75% over the last 30 days"),
+        };
+      case "no_class_teacher":
+        return {
+          title: t(`${n(a.count)} টি শাখায় শ্রেণিশিক্ষক নেই`, `${a.count} sections have no class teacher`),
+          desc: t("হাজিরা ও অভিভাবক যোগাযোগের দায়িত্ব কারও নেই", "Nobody owns the register or parent contact"),
+        };
+      case "no_guardian_contact":
+        return {
+          title: t(
+            `${n(a.count)} জন শিক্ষার্থীর অভিভাবকের মোবাইল নম্বর নেই`,
+            `${a.count} students have no guardian mobile number`,
+          ),
+          desc: t("এদের কাছে কোনো এসএমএস পৌঁছাবে না", "No SMS can reach these families"),
+        };
+      default:
+        // A rule shipped without a label still renders, with its own key rather
+        // than nothing — silence would hide a live condition.
+        return { title: a.key, desc: t("বিস্তারিত দেখুন", "See details") };
+    }
   };
 
   if (isLoading) {
@@ -264,6 +333,23 @@ export function OverviewScreen() {
           title={me?.name ? `${greeting}, ${me.name}` : greeting}
           subtitle={t("এক নজরে আপনার স্কুলের চিত্র", "Your school at a glance")}
         />
+        {/*
+          D-14. TanStack holds this for 60s and the router cache another 30, so
+          a money figure on this screen can be a minute and a half old with
+          nothing saying so. The stamp is the read time, and clicking it
+          refetches — the two things a reader needs when a number looks wrong.
+        */}
+        {data ? (
+          <button
+            type="button"
+            onClick={() => { void refetch(); void today.refetch(); }}
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-meta text-text-muted transition-colors hover:bg-sunken hover:text-text-secondary"
+            title={t("এখনই হালনাগাদ করুন", "Refresh now")}
+          >
+            <RefreshCw size={13} className={cn((data === undefined || today.isFetching) && "animate-spin")} />
+            {t(`হালনাগাদ ${n(formatDateTime(data.fetchedAt))}`, `as of ${formatDateTime(data.fetchedAt)}`)}
+          </button>
+        ) : null}
         {can("student.view") ? (
           <div className="flex items-center gap-2.5">
             <Link href="/admin/student/reports-summary" className="rounded-lg border border-border-control bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-sunken">
@@ -288,6 +374,18 @@ export function OverviewScreen() {
         />
       ) : null}
 
+      {/*
+        TODAY, first (D-10). The screen used to open with enrolment counts —
+        figures that move a few times a year — above everything time-critical.
+      */}
+      <TodayBand
+        data={today.data}
+        isLoading={today.isLoading}
+        canAttendance={can("attendance.view")}
+        canFee={can("fee.view")}
+        canSms={can("sms.view")}
+      />
+
       {/* Needs attention — every row from a live query with a real CTA, and
           only the rows this operator can act on (A-1 item 3). */}
       <Card className="gap-3">
@@ -307,16 +405,18 @@ export function OverviewScreen() {
           </p>
         ) : (
           attention.map((a) => {
+            // A rule with no presentation row still renders, with a neutral
+            // icon and a generic CTA — see the `default` in `attentionLabel`.
             const meta = ATTENTION_META[a.key];
             const label = attentionLabel(a);
             return (
               <Alert
                 key={a.key}
                 tone={a.tone}
-                icon={meta.icon}
+                icon={meta?.icon ?? AlertTriangle}
                 title={label.title}
                 desc={label.desc}
-                cta={t(meta.cta.bn, meta.cta.en)}
+                cta={meta ? t(meta.cta.bn, meta.cta.en) : t("দেখুন", "Open")}
                 ctaTone={a.tone === "danger" ? "danger" : undefined}
                 href={a.href}
               />
@@ -406,7 +506,24 @@ export function OverviewScreen() {
 
         {can("fee.view") ? (
         <Card>
-          <CardHead title={t("ফি আদায়", "Fee Collection")} />
+          <CardHead
+            title={t("ফি আদায়", "Fee Collection")}
+            /*
+              D-3. The ratio is `collected in this period / (that + everything
+              outstanding ever)`, which mixes a flow with a stock: a school
+              carrying two years of arrears reads a permanently depressed rate
+              that no month's collecting can move. Naming what the denominator
+              actually is does not fix the measure, but it stops it being read
+              as "we collected 31% of this month's bills", which is what an
+              unlabelled donut on a dashboard means to everyone who sees it.
+              The honest measure is billed-in-period, and it needs the invoice
+              period join that `v_dashboard_kpi` does not expose yet.
+            */
+            subtitle={t(
+              "মোট বকেয়ার তুলনায় এই সময়ের আদায়",
+              "This period's collection against all outstanding dues",
+            )}
+          />
           <div className="flex items-center justify-center py-2">
             <Donut percent={collectRate} valueLabel={`${n(collectRate)}%`} label={t("আদায় হয়েছে", "collected")} caption={t("ফি আদায়ের হার", "Fee collection rate")} />
           </div>
@@ -414,6 +531,38 @@ export function OverviewScreen() {
             <LegendRow color="bg-primary" label={t("আদায়", "Collected")} value={bdt(collected)} />
             <LegendRow color="bg-border-strong" label={t("বকেয়া", "Due")} value={bdt(due)} />
           </div>
+
+          {/*
+            D-4. "৳84,000 overdue" is one number for two situations that call
+            for opposite actions — last week's slow payers get a reminder, a
+            year-old balance gets a decision. Empty buckets are dropped rather
+            than rendered as zeroes.
+          */}
+          {overdueAgeing.length > 0 ? (
+            <div className="mt-1 flex flex-col gap-2 border-t border-border-default pt-3">
+              <p className="text-meta font-medium text-text-secondary">
+                {t("বকেয়ার বয়স", "Age of the overdue balance")}
+              </p>
+              {overdueAgeing.map((b) => (
+                <div key={b.key} className="flex items-center gap-2">
+                  <span className="flex-1 text-meta text-text-secondary">
+                    {t(AGEING_LABELS[b.key].bn, AGEING_LABELS[b.key].en)}
+                    <span className="ml-1.5 text-text-muted">
+                      {t(`(${n(b.students)} জন)`, `(${b.students})`)}
+                    </span>
+                  </span>
+                  <span
+                    className={cn(
+                      "text-meta font-semibold tnum",
+                      b.key === "d90_plus" ? "text-danger-fg" : "text-text-primary",
+                    )}
+                  >
+                    {bdt(b.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </Card>
         ) : null}
       </div>

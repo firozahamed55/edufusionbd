@@ -4,6 +4,7 @@
 import type { createClient } from "@/shared/services/supabase/client";
 import type { Database } from "@/shared/types/database.types";
 import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
+import type { AttentionFacts } from "../../../logic/attentionRules";
 
 /** Exact browser-client type (avoids supabase-js generic-arity mismatches). */
 export type BrowserClient = ReturnType<typeof createClient>;
@@ -16,16 +17,17 @@ export type DashboardNotice = {
   event_date: string | null;
 };
 
-/** One "needs attention" row — every one is derived from a live query. */
-export type AttentionItem = {
-  key: string;
-  tone: "danger" | "warning" | "info";
-  count: number;
-  amount?: number;
-  href: string;
-};
-
 export type AttendancePoint = { date: string; rate: number };
+
+/**
+ * Outstanding money by how long it has been outstanding (D-4).
+ *
+ * "৳84,000 overdue" is one number covering two situations that call for
+ * completely different actions: last week's slow payers, who need a reminder,
+ * and a year-old balance, which needs a decision. Bucketing is the difference
+ * between a figure and a piece of information.
+ */
+export type AgeingBucket = { key: "d0_30" | "d31_60" | "d61_90" | "d90_plus"; amount: number; students: number };
 
 export type ActivityItem = {
   id: string;
@@ -52,9 +54,18 @@ export type DashboardData = {
   /** Drives the setup checklist's "add subjects" step (was hardcoded false). */
   subjects: number;
   notices: DashboardNotice[];
-  attention: AttentionItem[];
+  /**
+   * The half of the attention facts this payload can see. The other half is
+   * today-scoped and comes from `fetchToday`; the screen merges them and runs
+   * `evaluateAttention` (D-11). Facts, not rows — deciding what is worth
+   * showing is the rule table's job, not a fetcher's.
+   */
+  attentionFacts: Omit<AttentionFacts, "sectionsTotal" | "sectionsAwaitingAttendance" | "hour">;
+  ageing: AgeingBucket[];
   attendanceTrend: AttendancePoint[];
   activity: ActivityItem[];
+  /** When this payload was assembled (D-14). */
+  fetchedAt: number;
 };
 
 const DAY_MS = 86_400_000;
@@ -81,7 +92,17 @@ export async function fetchDashboard(
 ): Promise<DashboardData> {
   const since = isoDay(30, now);
 
-  const [kpiRes, noticeRes, overdueRes, attendanceRes, riskRes, activityRes, subjectRes] = await Promise.all([
+  const [
+    kpiRes,
+    noticeRes,
+    overdueRes,
+    attendanceRes,
+    riskRes,
+    activityRes,
+    subjectRes,
+    noTeacherRes,
+    guardianGapRes,
+  ] = await Promise.all([
     supabase.from("v_dashboard_kpi").select("*").maybeSingle(),
     supabase
       .from("notice")
@@ -95,7 +116,9 @@ export async function fetchDashboard(
     (() => {
       const q = supabase
         .from("fee_invoice")
-        .select("student_id, total_amount, paid_amount, waiver_amount")
+        // `due_date` is selected as well as filtered on — the ageing buckets
+        // are computed from how far past it each invoice is (D-4).
+        .select("student_id, total_amount, paid_amount, waiver_amount, due_date")
         .is("deleted_at", null)
         .lt("due_date", isoDay(0, now))
         .neq("status", "paid");
@@ -120,6 +143,32 @@ export async function fetchDashboard(
       .limit(ACTIVITY_FETCH),
     // Head-only count — the checklist needs "any?", not the rows.
     supabase.from("subject").select("id", { count: "exact", head: true }),
+    // Sections nobody owns the register for (D-11 `no_class_teacher`).
+    (() => {
+      const q = supabase
+        .from("class_section")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .is("class_teacher_id", null);
+      return yearId ? q.eq("academic_year_id", yearId) : q;
+    })(),
+    /**
+     * Active students reachable by SMS (D-11 `no_guardian_contact`).
+     *
+     * Read as "students WITH a contactable guardian" and subtracted from the
+     * active roll, because PostgREST cannot express "no related row matching a
+     * predicate" as a count. The embed is an inner join (`!inner`) so a student
+     * with a guardian row but a blank mobile is correctly counted as
+     * unreachable rather than as covered.
+     */
+    supabase
+      .from("student")
+      .select("id, student_guardian!inner(guardian!inner(mobile))")
+      .is("deleted_at", null)
+      .eq("status", "active")
+      .not("student_guardian.guardian.mobile", "is", null)
+      .neq("student_guardian.guardian.mobile", "")
+      .limit(MAX_OPTIONS),
   ]);
 
   if (kpiRes.error) throw kpiRes.error;
@@ -127,24 +176,32 @@ export async function fetchDashboard(
 
   const k = kpiRes.data as KpiRow | null;
 
-  // --- Needs attention (all live) ---
-  const attention: AttentionItem[] = [];
-
+  // --- Overdue fees, and how old the money is (D-4) ---
   const overdue = overdueRes.data ?? [];
-  if (overdue.length > 0) {
-    const students = new Set(overdue.map((r) => r.student_id));
-    const amount = overdue.reduce(
-      (sum, r) => sum + Math.max(0, Number(r.total_amount) - Number(r.paid_amount) - Number(r.waiver_amount)),
-      0,
-    );
-    attention.push({
-      key: "overdue_fees",
-      tone: "danger",
-      count: students.size,
-      amount,
-      href: "/admin/fee/unpaid-institute",
-    });
+  const owed = (r: { total_amount: number; paid_amount: number; waiver_amount: number }) =>
+    Math.max(0, Number(r.total_amount) - Number(r.paid_amount) - Number(r.waiver_amount));
+
+  const overdueStudents = new Set(overdue.map((r) => r.student_id));
+  const overdueAmount = overdue.reduce((sum, r) => sum + owed(r), 0);
+
+  const buckets: Record<AgeingBucket["key"], { amount: number; students: Set<string> }> = {
+    d0_30: { amount: 0, students: new Set() },
+    d31_60: { amount: 0, students: new Set() },
+    d61_90: { amount: 0, students: new Set() },
+    d90_plus: { amount: 0, students: new Set() },
+  };
+  for (const row of overdue) {
+    if (!row.due_date) continue;
+    const days = Math.floor((now - new Date(`${row.due_date}T12:00:00Z`).getTime()) / DAY_MS);
+    const key: AgeingBucket["key"] = days > 90 ? "d90_plus" : days > 60 ? "d61_90" : days > 30 ? "d31_60" : "d0_30";
+    buckets[key].amount += owed(row);
+    buckets[key].students.add(row.student_id);
   }
+  const ageing: AgeingBucket[] = (Object.keys(buckets) as AgeingBucket["key"][]).map((key) => ({
+    key,
+    amount: buckets[key].amount,
+    students: buckets[key].students.size,
+  }));
 
   // --- Attendance trend + at-risk students ---
   const byDate = new Map<string, { present: number; total: number }>();
@@ -158,30 +215,148 @@ export async function fetchDashboard(
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, b]) => ({ date, rate: b.total > 0 ? Math.round((b.present / b.total) * 100) : 0 }));
 
-  const overallRate =
+  /**
+   * `null`, not 0, when the window holds no attendance at all. A school that
+   * has never taken a register is not a school at 0% attendance, and the rule
+   * table depends on being able to tell those apart.
+   */
+  const avgAttendance30 =
     attendanceTrend.length > 0
       ? Math.round(attendanceTrend.reduce((s, p) => s + p.rate, 0) / attendanceTrend.length)
-      : 0;
-  if (attendanceTrend.length > 0 && overallRate < 75) {
-    attention.push({ key: "attendance_low", tone: "warning", count: overallRate, href: "/admin/attendance/analytics" });
-  }
+      : null;
 
-  const pendingExams = riskRes.count ?? 0;
-  if (pendingExams > 0) {
-    attention.push({ key: "results_pending", tone: "info", count: pendingExams, href: "/admin/exam/result-process" });
-  }
+  const activeStudents = Number(k?.active_students ?? 0);
+  // The embed returns one row per student WITH a contactable guardian; the gap
+  // is the rest of the active roll. Clamped at zero because the two figures
+  // come from different reads and a race must not render a negative count.
+  const reachable = (guardianGapRes.data ?? []).length;
+  const studentsWithoutGuardianContact = Math.max(0, activeStudents - reachable);
 
   return {
-    activeStudents: Number(k?.active_students ?? 0),
+    activeStudents,
     activeTeachers: Number(k?.active_teachers ?? 0),
     classSections: Number(k?.class_sections ?? 0),
     totalDue: Number(k?.total_due ?? 0),
     collectedThisMonth: Number(k?.collected_this_month ?? 0),
     subjects: subjectRes.count ?? 0,
     notices: noticeRes.data ?? [],
-    attention,
+    attentionFacts: {
+      overdueStudents: overdueStudents.size,
+      overdueAmount,
+      avgAttendance30,
+      lockedExams: riskRes.count ?? 0,
+      sectionsWithoutClassTeacher: noTeacherRes.count ?? 0,
+      studentsWithoutGuardianContact,
+    },
+    ageing,
     attendanceTrend,
     activity: collapseActivity(activityRes.data ?? [], 6, ACTIVITY_FETCH),
+    fetchedAt: now,
+  };
+}
+
+/* ------------------------------------------------------------------- today */
+
+export type PendingSection = { id: string; label_bn: string; label_en: string };
+
+/**
+ * Today (analysis II · D-1, D-2, D-10).
+ *
+ * The dashboard could report a 30-day attendance trend and a period rate and
+ * could not answer "who is absent today" — the first question asked in the
+ * building every morning. Nor "which sections have not submitted a register
+ * yet", which is the same question in the form an operator can act on: with
+ * nine class-sections that is a nine-item checklist, clearable before
+ * mid-morning.
+ *
+ * Deliberately its own query, like `fetchPeriodStats`. It is the only part of
+ * the screen that must not be served stale, and keeping it separate leaves the
+ * server prefetch of the main payload (audit H-5) intact.
+ */
+export type TodayStats = {
+  date: string;
+  present: number;
+  absent: number;
+  late: number;
+  onLeave: number;
+  sectionsTotal: number;
+  sectionsTaken: number;
+  /** Named, so the checklist is actionable rather than a bare count. */
+  pendingSections: PendingSection[];
+  collected: number;
+  smsSent: number;
+  fetchedAt: number;
+};
+
+export async function fetchToday(
+  supabase: BrowserClient,
+  { yearId, day, now = Date.now() }: { yearId?: string | null; day: string; now?: number },
+): Promise<TodayStats> {
+  const [sectionsRes, summaryRes, paymentsRes, smsRes] = await Promise.all([
+    // Both halves of "N of M" come from THIS list, so the two numbers cannot
+    // disagree — `v_dashboard_kpi.class_sections` counts on its own terms.
+    (() => {
+      const q = supabase
+        .from("class_section")
+        .select("id, class:class_id(name_bn, name_en, numeric_level), section:section_id(name)")
+        .is("deleted_at", null);
+      return (yearId ? q.eq("academic_year_id", yearId) : q).limit(MAX_OPTIONS);
+    })(),
+    (() => {
+      const q = supabase
+        .from("v_attendance_daily_summary")
+        .select("class_section_id, present, absent, late, on_leave")
+        .eq("att_date", day);
+      return (yearId ? q.eq("academic_year_id", yearId) : q).limit(MAX_OPTIONS);
+    })(),
+    // `paid_at` is a timestamptz and `day` is an institution-local day, so the
+    // bounds are the day's start and the next day's start.
+    supabase
+      .from("fee_payment")
+      .select("amount")
+      .gte("paid_at", day)
+      .lt("paid_at", nextDay(day))
+      .limit(MAX_OPTIONS),
+    supabase
+      .from("sms_campaign")
+      .select("recipient_count")
+      .gte("sent_at", day)
+      .lt("sent_at", nextDay(day))
+      .limit(MAX_OPTIONS),
+  ]);
+
+  if (sectionsRes.error) throw sectionsRes.error;
+  if (summaryRes.error) throw summaryRes.error;
+
+  const summaries = summaryRes.data ?? [];
+  const taken = new Set(summaries.map((r) => r.class_section_id).filter(Boolean) as string[]);
+
+  const sections = (sectionsRes.data ?? [])
+    .map((r) => ({
+      id: r.id,
+      label_bn: `${r.class?.name_bn ?? ""} — ${r.section?.name ?? ""}`,
+      label_en: `${r.class?.name_en ?? ""} — ${r.section?.name ?? ""}`,
+      level: r.class?.numeric_level ?? 0,
+    }))
+    .sort((a, b) => a.level - b.level);
+
+  const sum = (pick: (r: (typeof summaries)[number]) => number | null) =>
+    summaries.reduce((s, r) => s + Number(pick(r) ?? 0), 0);
+
+  return {
+    date: day,
+    present: sum((r) => r.present),
+    absent: sum((r) => r.absent),
+    late: sum((r) => r.late),
+    onLeave: sum((r) => r.on_leave),
+    sectionsTotal: sections.length,
+    sectionsTaken: sections.filter((s) => taken.has(s.id)).length,
+    pendingSections: sections
+      .filter((s) => !taken.has(s.id))
+      .map(({ id, label_bn, label_en }) => ({ id, label_bn, label_en })),
+    collected: (paymentsRes.data ?? []).reduce((s, r) => s + Number(r.amount ?? 0), 0),
+    smsSent: (smsRes.data ?? []).reduce((s, r) => s + Number(r.recipient_count ?? 0), 0),
+    fetchedAt: now,
   };
 }
 

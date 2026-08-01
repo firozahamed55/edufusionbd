@@ -34,6 +34,8 @@ export const queryKeys = {
     kpis: (institutionId: string) => ["dashboard", "kpis", institutionId] as const,
     overview: ["dashboard", "overview"] as const,
     period: (params: Filters) => ["dashboard", "period", params] as const,
+    /** Keyed by the institution-local day, so it rolls over at local midnight. */
+    today: (day: string, yearId: string) => ["dashboard", "today", day, yearId] as const,
   },
 
   /** The current academic year — every year-scoped query keys off its id. */

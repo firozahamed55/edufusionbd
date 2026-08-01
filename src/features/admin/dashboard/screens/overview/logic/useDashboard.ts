@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/shared/services/supabase/client";
 import { queryKeys } from "@/shared/services/queryKeys";
 import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
-import { fetchDashboard, fetchPeriodStats } from "./api";
+import { localDay } from "@/shared/lib/format";
+import { fetchDashboard, fetchPeriodStats, fetchToday } from "./api";
 
 /**
  * Live admin dashboard KPIs, "needs attention" queries, attendance trend and
@@ -34,5 +35,24 @@ export function usePeriodStats(from: string, to: string) {
     queryFn: () => fetchPeriodStats(createClient(), { from, to, yearId }),
     enabled: Boolean(from && to),
     placeholderData: (prev) => prev,
+  });
+}
+
+/**
+ * Today's operating picture (D-10). Its own query and its own, shorter
+ * staleness: this is the one band on the screen an operator acts on within the
+ * hour, and a register submitted two minutes ago should show as submitted.
+ *
+ * The day comes from `localDay()` — institution time — not from
+ * `toISOString()`, which after 18:00 in Dhaka names yesterday and would report
+ * an empty register for a school that has taken every one of them.
+ */
+export function useToday() {
+  const yearId = useCurrentYearId();
+  const day = localDay();
+  return useQuery({
+    queryKey: queryKeys.dashboard.today(day, yearId ?? ""),
+    queryFn: () => fetchToday(createClient(), { yearId, day }),
+    staleTime: 30_000,
   });
 }
