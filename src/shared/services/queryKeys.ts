@@ -250,5 +250,7 @@ export const queryKeys = {
   auditLog: {
     all: ["auditLog"] as const,
     list: (filters?: Filters) => ["auditLog", "list", filters ?? {}] as const,
+    /** Distinct actors present in the log, for the "changed by" filter (M-14). */
+    actors: ["auditLog", "actors"] as const,
   },
 } as const;

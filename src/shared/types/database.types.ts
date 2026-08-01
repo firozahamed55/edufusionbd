@@ -5625,6 +5625,7 @@ export type Database = {
         Returns: number
       }
       fn_attach_student_file: { Args: { payload: Json }; Returns: undefined }
+      fn_audit_actors: { Args: never; Returns: Json }
       fn_attendance_summary: {
         Args: { p_class_section_id?: string; p_from?: string; p_to?: string }
         Returns: Json
@@ -5686,6 +5687,7 @@ export type Database = {
       fn_log_export: { Args: { payload: Json }; Returns: undefined }
       fn_mark_attendance: { Args: { payload: Json }; Returns: number }
       fn_complete_user_invite: { Args: { payload: Json }; Returns: string }
+      fn_log_audit_reveal: { Args: { p_audit_id: string }; Returns: undefined }
       fn_my_permissions: { Args: never; Returns: string[] }
       fn_prepare_user_invite: { Args: { payload: Json }; Returns: Json }
       fn_my_profile: { Args: never; Returns: Json }

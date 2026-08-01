@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, ShieldCheck, UserCheck, UserX, KeyRound, UserPlus, Mail, LogOut, Send } from "lucide-react";
+import { Users, ShieldCheck, UserCheck, UserX, KeyRound, UserPlus, Mail, LogOut, Send, History } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
   Skeleton, EmptyState, ErrorState, NoAccessState, PageHeader, Pagination, LiveRegion, DataToolbar,
@@ -285,6 +285,11 @@ export function UserListScreen() {
                           ...(r.status === "invited"
                             ? [{ label: t("আমন্ত্রণ আবার পাঠান", "Resend invite"), icon: Send, onClick: () => resendInvite(r) }]
                             : []),
+                          // S-9.9 — "what has this user done" was unanswerable
+                          // from the screen that manages them, because the
+                          // audit log had no actor filter. It has one now, and
+                          // this is the link into it.
+                          { label: t("কার্যকলাপ দেখুন", "View activity"), icon: History, href: `/admin/core/audit-log?changedBy=${r.id}` },
                           { label: t("পাসওয়ার্ড রিসেট পাঠান", "Send password reset"), icon: Mail, onClick: () => onPasswordReset(r) },
                           { label: t("সব সেশন বাতিল", "Revoke sessions"), icon: LogOut, tone: "danger" as const, onClick: () => setRevoking(r) },
                           r.status === "suspended"
