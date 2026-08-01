@@ -5,7 +5,7 @@ import { Upload } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Input, useToast, PageHeader } from "@/shared/ui";
 import { createClient } from "@/shared/services/supabase/client";
-import { uploadInstitutionAsset, getAssetSignedUrl } from "@/shared/lib/institutionAssets";
+import { uploadInstitutionAsset, getAssetSignedUrl, AssetRejected } from "@/shared/lib/institutionAssets";
 import { useSignatures, useUpsertSignature, useInstitution } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -15,6 +15,9 @@ const ROLES = [
   { key: "exam_controller", bn: "পরীক্ষা নিয়ন্ত্রক", en: "Exam Controller" },
   { key: "accountant", bn: "হিসাবরক্ষক", en: "Accountant" },
 ] as const;
+
+/** A signature is line art at 128x64 on a printed page. */
+const SIGNATURE_MAX_BYTES = 512 * 1024;
 
 export function SignatureScreen() {
   const { t } = useT();
@@ -64,11 +67,26 @@ export function SignatureScreen() {
     setUploading(roleKey);
     try {
       const existing = byRole(roleKey);
-      const fileId = await uploadInstitutionAsset(createClient(), { institutionId: inst.data.id, entity: "signature", entityId: roleKey, file });
+      const fileId = await uploadInstitutionAsset(createClient(), {
+        institutionId: inst.data.id,
+        entity: "signature",
+        entityId: roleKey,
+        file,
+        maxBytes: SIGNATURE_MAX_BYTES,
+      });
       await upsert.mutateAsync({ id: existing?.id, role_label: roleKey, holder_name: names[roleKey] ?? existing?.holder_name ?? "", image_file_id: fileId });
       toast({ title: t("স্বাক্ষরের ছবি আপলোড হয়েছে", "Signature image uploaded"), variant: "success" });
     } catch (e) {
-      toast({ title: msg(e, { bn: "আপলোড ব্যর্থ", en: "Upload failed" }), variant: "error" });
+      if (e instanceof AssetRejected) {
+        toast({
+          title: e.reason === "type"
+            ? t("PNG বা JPG ফাইল দিন", "Choose a PNG or JPG file")
+            : t("ছবিটি ৫০০ KB এর বেশি — ছোট ছবি দিন", "That image is over 500 KB — pick a smaller one"),
+          variant: "error",
+        });
+      } else {
+        toast({ title: msg(e, { bn: "আপলোড ব্যর্থ", en: "Upload failed" }), variant: "error" });
+      }
     } finally {
       setUploading(null);
     }
@@ -122,7 +140,7 @@ export function SignatureScreen() {
                 <input
                   ref={(el) => { fileInputs.current[r.key] = el; }}
                   type="file"
-                  accept="image/png"
+                  accept="image/png,image/jpeg"
                   className="hidden"
                   onChange={(e) => { const file = e.target.files?.[0]; if (file) onImagePick(r.key, file); e.target.value = ""; }}
                 />

@@ -5,7 +5,7 @@ import { Info, Upload } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import { FormCard, Field, Input, Textarea, Select, Skeleton, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
 import { createClient } from "@/shared/services/supabase/client";
-import { uploadInstitutionAsset, getAssetSignedUrl } from "@/shared/lib/institutionAssets";
+import { uploadInstitutionAsset, getAssetSignedUrl, AssetRejected } from "@/shared/lib/institutionAssets";
 import { useInstitution, useUpdateInstitution, useEducationBoards, useTeacherOptions } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -13,6 +13,9 @@ const INSTITUTION_TYPES = [
   ["school", "স্কুল", "School"], ["college", "কলেজ", "College"], ["madrasha", "মাদ্রাসা", "Madrasha"], ["coaching", "কোচিং সেন্টার", "Coaching Center"],
 ] as const;
 const MPO_STATUSES = [["mpo", "MPO ভুক্ত", "MPO enlisted"], ["non_mpo", "Non-MPO", "Non-MPO"]] as const;
+
+/** What the caption has always claimed. It is now also what happens. */
+const LOGO_MAX_BYTES = 1024 * 1024;
 
 export function StartupScreen() {
   const { t, isBn } = useT();
@@ -81,11 +84,28 @@ export function StartupScreen() {
     if (!inst.data) return;
     setLogoUploading(true);
     try {
-      const fileId = await uploadInstitutionAsset(createClient(), { institutionId: inst.data.id, entity: "institution_logo", entityId: inst.data.id, file });
+      const fileId = await uploadInstitutionAsset(createClient(), {
+        institutionId: inst.data.id,
+        entity: "institution_logo",
+        entityId: inst.data.id,
+        file,
+        maxBytes: LOGO_MAX_BYTES,
+      });
       await update.mutateAsync({ logo_file_id: fileId });
       toast({ title: t("লোগো আপলোড হয়েছে", "Logo uploaded"), variant: "success" });
     } catch (e) {
-      toast({ title: msg(e, { bn: "আপলোড ব্যর্থ", en: "Upload failed" }), variant: "error" });
+      // The caption promised a limit and nothing enforced it (audit M-5). Now
+      // it does, so say which rule was broken rather than "Upload failed".
+      if (e instanceof AssetRejected) {
+        toast({
+          title: e.reason === "type"
+            ? t("PNG, JPG বা SVG ফাইল দিন", "Choose a PNG, JPG or SVG file")
+            : t("ছবিটি ১ MB এর বেশি — ছোট ছবি দিন", "That image is over 1 MB — pick a smaller one"),
+          variant: "error",
+        });
+      } else {
+        toast({ title: msg(e, { bn: "আপলোড ব্যর্থ", en: "Upload failed" }), variant: "error" });
+      }
     } finally {
       setLogoUploading(false);
     }
@@ -172,8 +192,8 @@ export function StartupScreen() {
                 >
                   <Upload size={14} /> {logoUploading ? t("আপলোড হচ্ছে…", "Uploading…") : t("লোগো আপলোড করুন", "Upload logo")}
                 </button>
-                <p className="text-micro text-text-muted">{t("PNG/SVG • সর্বোচ্চ ১ MB", "PNG/SVG • up to 1 MB")}</p>
-                <input ref={fileInputRef} type="file" accept="image/png,image/svg+xml" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) onLogoPick(file); e.target.value = ""; }} />
+                <p className="text-micro text-text-muted">{t("PNG, JPG বা SVG • সর্বোচ্চ ১ MB", "PNG, JPG or SVG • up to 1 MB")}</p>
+                <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) onLogoPick(file); e.target.value = ""; }} />
               </div>
             </FormCard>
 
