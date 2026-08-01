@@ -74,7 +74,14 @@ export function CalendarScreen() {
   const toast = useToast();
   const yearId = useCurrentYearId();
 
-  const today = new Date();
+  /**
+   * Stable for the life of the screen. It was a bare `new Date()` — a fresh
+   * object every render — which was harmless while nothing depended on it and
+   * stopped being harmless the moment the roving-tabindex effect did: a
+   * dependency that changes on every render is an effect that runs on every
+   * render, and this one moves focus.
+   */
+  const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
   const cells = useMemo(() => monthGrid(cursor.y, cursor.m), [cursor]);
