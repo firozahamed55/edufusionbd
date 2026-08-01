@@ -196,6 +196,20 @@ export const queryKeys = {
     report: (yearId?: string | null) => ["students", "report", yearId ?? "current"] as const,
   },
 
+  /**
+   * The Reports module (analysis II · Part C). Keyed by the FILTERS, not just
+   * by the year: two filter sets are two different reports and must not share
+   * a cache entry — R-5's whole point is that the report is now addressable.
+   */
+  reports: {
+    all: ["reports"] as const,
+    enrolment: (yearId: Id, filters: Filters) => ["reports", "enrolment", yearId, filters ?? {}] as const,
+    exams: (yearId: Id) => ["reports", "exams", yearId] as const,
+    academic: (examId: Id) => ["reports", "academic", examId] as const,
+    atRisk: (yearId: Id) => ["reports", "at-risk", yearId] as const,
+    shifts: ["reports", "shifts"] as const,
+  },
+
   teachers: {
     all: ["teachers"] as const,
     list: (filters?: Filters) => ["teachers", "list", filters ?? {}] as const,

@@ -100,7 +100,11 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
           { href: "/admin/student/migration-merit", bn: "মেধাক্রমসহ", en: "With Merit", group: { bn: "মাইগ্রেশন", en: "Migration" } },
           { href: "/admin/student/migration-nomerit", bn: "মেধাক্রম ছাড়া", en: "Without Merit", group: { bn: "মাইগ্রেশন", en: "Migration" } },
           { href: "/admin/student/migration-pushback", bn: "পুশব্যাক", en: "Push Back", group: { bn: "মাইগ্রেশন", en: "Migration" } },
-          { href: "/admin/student/reports-summary", bn: "রিপোর্ট", en: "Reports" },
+          // The enrolment report left this module for Reports (analysis II ·
+          // R-2). The tab stays, pointing at its new home, because "the student
+          // numbers" is a thing people look for under Students — but there is
+          // now exactly one screen behind it, not two entries onto one route.
+          { href: "/admin/reports/enrolment", bn: "রিপোর্ট", en: "Reports" },
         ],
       },
       {
@@ -228,10 +232,33 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
   {
     label: { bn: "ইনসাইটস", en: "Insights" },
     items: [
-      // Canonical single home for Reports (closes N-2: this used to also exist
-      // as a top-level "Reports" entry AND a Students sub-item, both active on
-      // the same route at once). Same physical route as the Students tab.
-      { key: "report", href: "/admin/student/reports-summary", match: "/admin/student/reports-summary", icon: BarChart3, bn: "রিপোর্ট", en: "Reports", permission: "student.view" },
+      /**
+       * Reports is a MODULE now, not a zone pointing at another module's tab
+       * (analysis II · R-2). It owned one item whose route belonged to
+       * Students, which the requirements doc put plainly: either it is a module
+       * with a hub, or it should not be a zone.
+       *
+       * `href` is the hub rather than the first tab, unlike every other module
+       * here. That is deliberate — the hub's job is to say what each report
+       * ANSWERS, which is precisely the knowledge someone arriving at
+       * "Reports" does not yet have. Landing them on the enrolment tables
+       * instead would answer a question they had not asked.
+       */
+      {
+        key: "report",
+        href: "/admin/reports",
+        match: "/admin/reports",
+        icon: BarChart3,
+        bn: "রিপোর্ট",
+        en: "Reports",
+        permission: "student.view",
+        tabs: [
+          { href: "/admin/reports", bn: "সব রিপোর্ট", en: "All reports" },
+          { href: "/admin/reports/at-risk", bn: "ঝুঁকিতে থাকা", en: "At-risk" },
+          { href: "/admin/reports/academic", bn: "একাডেমিক", en: "Academic" },
+          { href: "/admin/reports/enrolment", bn: "ভর্তি ও জনমিতি", en: "Enrolment" },
+        ],
+      },
     ],
   },
 ];

@@ -1,26 +1,33 @@
 "use client";
 
-import { AlertTriangle, Download, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, Download, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
-import { RELIGION, STUDENT_STATUS } from "@/shared/constants/enums";
+import { RELIGION, GENDER, STUDENT_STATUS } from "@/shared/constants/enums";
 import {
-  Skeleton, ErrorState, EmptyState, Button, PageHeader,
+  Skeleton, ErrorState, EmptyState, Button,
   Table, THead, TBody, TR, TH, TD,
 } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { localDay } from "@/shared/lib/format";
-import { useStudentReport } from "../../logic/hooks";
-import type { StudentReport } from "../../logic/api";
+import { useQueryState } from "@/shared/lib/useQueryState";
 import { useErrorMessage } from "@/shared/services/errors";
+import { useClasses, useClassSectionsLookup } from "@/shared/services/lookups/hooks";
+import { ReportShell } from "../../components/ReportShell";
+import { ReportFilters } from "../../components/ReportFilters";
+import { useEnrolmentReport, useShifts } from "../../logic/hooks";
+import { enrolmentFindings } from "../../logic/insights";
+import type { EnrolmentFilters, EnrolmentReport } from "../../logic/api";
 
 /**
- * Student · Reports Summary — live enrollment / gender / class / religion / age
- * statistics from fn_student_report_summary (RLS-scoped, current academic year).
- * "Stats dashboard" archetype: gradient KPIs + bar charts + breakdown tables.
+ * Enrolment & demographics (analysis II · R-5, R-3, R-8, R-9).
+ *
+ * This is the Student-module reports screen, moved into Reports and given the
+ * four things the cross-cutting contract said it owed and did not deliver:
+ * filters, an interpretation layer, print, and provenance. The tables
+ * themselves are unchanged — they were the two things it already did well.
  */
 
-/** The religion columns of a `by_class_religion` row — keyed by the DB enum. */
 type ReligionKey = "islam" | "hindu" | "christian" | "buddhist" | "other";
 
 const AGE_ORDER = ["5-8", "9-11", "12-14", "15-17", "other"] as const;
@@ -32,44 +39,113 @@ const AGE_LABELS: Record<string, [string, string]> = {
   other: ["অন্যান্য", "Other"],
 };
 
-export function ReportsSummaryScreen() {
+/** The URL's filter shape. Empty string = absent, per `useQueryState`. */
+const FILTER_DEFAULTS = {
+  class_id: "",
+  class_section_id: "",
+  shift_id: "",
+  gender: "",
+  religion: "",
+  admitted_from: "",
+  admitted_to: "",
+};
+
+export function EnrolmentReportScreen() {
   const { t, n, isBn } = useT();
   const msg = useErrorMessage();
-  const report = useStudentReport();
+
+  // R-5. The filters are the report's ADDRESS — "girls in Class Five" has to
+  // be a link, or it cannot be sent to anyone or cited in a printed return.
+  const [filters, setFilters] = useQueryState(FILTER_DEFAULTS);
+  const report = useEnrolmentReport(filters as EnrolmentFilters);
+
+  // Lookups, for turning the ids in the URL back into names on the
+  // provenance line. A printed report that says `class_id: 3f2a…` is not
+  // stating its filters in any sense a reader can use.
+  const classes = useClasses();
+  const sections = useClassSectionsLookup();
+  const shifts = useShifts();
+  const nameOf = (rows: { value: string; label_bn: string; label_en: string }[] | undefined, id: string) => {
+    const hit = rows?.find((r) => r.value === id);
+    return hit ? (isBn ? hit.label_bn : hit.label_en) : id;
+  };
+  const enumName = (rows: { value: string; bn: string; en: string }[], v: string) => {
+    const hit = rows.find((r) => r.value === v);
+    return hit ? (isBn ? hit.bn : hit.en) : v;
+  };
+
+  const appliedFilters = [
+    filters.class_id && { label: t("শ্রেণি", "Class"), value: nameOf(classes.data, filters.class_id) },
+    filters.class_section_id && { label: t("শাখা", "Section"), value: nameOf(sections.data, filters.class_section_id) },
+    filters.shift_id && { label: t("শিফট", "Shift"), value: nameOf(shifts.data, filters.shift_id) },
+    filters.gender && { label: t("লিঙ্গ", "Gender"), value: enumName(GENDER, filters.gender) },
+    filters.religion && { label: t("ধর্ম", "Religion"), value: enumName(RELIGION, filters.religion) },
+    filters.admitted_from && { label: t("ভর্তি (থেকে)", "Admitted from"), value: n(filters.admitted_from) },
+    filters.admitted_to && { label: t("ভর্তি (পর্যন্ত)", "Admitted to"), value: n(filters.admitted_to) },
+  ].filter(Boolean) as { label: string; value: string }[];
+
+  const d = report.data;
+  const findings = d
+    ? enrolmentFindings({
+        classes: d.by_class,
+        total: d.total,
+        boys: d.boys,
+        girls: d.girls,
+        dobMissing: d.dob_missing ?? 0,
+        religionMissing: d.religion_missing ?? 0,
+      })
+    : [];
 
   const pct = (part: number, whole: number) => (whole > 0 ? ((part / whole) * 100).toFixed(1) : "0.0");
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start gap-3">
-        <PageHeader
-          className="flex-1"
-          crumbs={[{ label: t("শিক্ষার্থী", "Students"), href: "/admin/student/update-class" }, { label: t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary") }]}
-          title={t("শিক্ষার্থী সারসংক্ষেপ", "Student Summary")}
-          subtitle={t("ভর্তিভুক্তি, লিঙ্গ ও শ্রেণিভিত্তিক পরিসংখ্যান", "Enrollment, gender & class-wise statistics")}
-        />
+    <ReportShell
+      title={t("ভর্তি ও জনমিতি", "Enrolment & Demographics")}
+      subtitle={t(
+        "শ্রেণি, লিঙ্গ, ধর্ম ও বয়স অনুযায়ী ভর্তির বিন্যাস",
+        "The shape of enrolment by class, gender, religion and age",
+      )}
+      findings={findings}
+      provenance={{
+        filters: appliedFilters,
+        definitions: [
+          {
+            term: t("ভর্তিভুক্ত", "Enrolled"),
+            meaning: t(
+              "চলতি শিক্ষাবর্ষে সক্রিয় ভর্তি — স্থানান্তরিত বা ঝরে পড়া শিক্ষার্থী নয়",
+              "An active enrolment in the current academic year — not transferred or dropped students",
+            ),
+          },
+          {
+            term: t("বয়স-ভিত্তিক শতকরা", "Age percentages"),
+            meaning: t(
+              "যাদের জন্মতারিখ রেকর্ড আছে কেবল তাদের ভিত্তিতে",
+              "Computed over the students who have a recorded date of birth, not the whole roll",
+            ),
+          },
+        ],
+        fetchedAt: report.dataUpdatedAt || undefined,
+      }}
+      actions={
         <Button
-          onClick={() => report.data && exportCsv(
-            // Institution time. `toISOString().slice(0,10)` names the file
-            // "yesterday" for anyone exporting after 18:00 in Dhaka (A-0.8).
-            `student-summary-${localDay()}.csv`,
-            /**
-             * C-3. This exported ONLY `by_class` while the screen displayed four
-             * KPIs, a gender ratio, a status distribution and two breakdowns —
-             * so "export the report" silently returned a fraction of it, with no
-             * way for the operator to know what was dropped. One long-format
-             * sheet (Section · Item · Count · Percent) carries every figure on
-             * screen, and unlike a wide layout it does not need reshaping each
-             * time a breakdown is added.
-             */
-            reportRows(report.data),
-            { kind: "student.reports_summary" },
+          onClick={() => d && exportCsv(
+            `enrolment-report-${localDay()}.csv`,
+            reportRows(d),
+            // The filters ride along, so the export log records how much of the
+            // roll was taken and not merely that a report was exported (R-7).
+            { kind: "reports.enrolment", params: { ...filters } },
           )}
-          disabled={!report.data}
+          disabled={!d}
         >
           <Download size={16} /> {t("এক্সপোর্ট", "Export")}
         </Button>
-      </div>
+      }
+    >
+      <ReportFilters
+        value={filters as EnrolmentFilters}
+        onChange={(patch) => setFilters(patch as Partial<typeof FILTER_DEFAULTS>)}
+        onReset={() => setFilters(FILTER_DEFAULTS)}
+      />
 
       {report.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -77,47 +153,54 @@ export function ReportsSummaryScreen() {
         </div>
       ) : report.isError ? (
         <ErrorState title={t("রিপোর্ট লোড করা যায়নি", "Could not load report")} description={msg(report.error)} />
-      ) : !report.data || report.data.total === 0 ? (
-        <EmptyState icon={<Users size={22} />} title={t("কোনো শিক্ষার্থী নেই", "No students yet")} description={t("শিক্ষার্থী ভর্তি করলে এখানে পরিসংখ্যান দেখা যাবে।", "Statistics appear here once students are enrolled.")} />
+      ) : !d || d.total === 0 ? (
+        /*
+          Two different empty states. "No students yet" is a statement about the
+          school; "no students match this filter" is a statement about the
+          query, and offering to clear the filter is only sensible in the second
+          case (audit B-8).
+        */
+        appliedFilters.length > 0 ? (
+          <EmptyState
+            icon={<Users size={22} />}
+            title={t("এই ফিল্টারে কোনো শিক্ষার্থী নেই", "No students match these filters")}
+            description={t("ফিল্টার পরিবর্তন করুন বা রিসেট করুন।", "Change or reset the filters above.")}
+          />
+        ) : (
+          <EmptyState
+            icon={<Users size={22} />}
+            title={t("কোনো শিক্ষার্থী নেই", "No students yet")}
+            description={t("শিক্ষার্থী ভর্তি করলে এখানে পরিসংখ্যান দেখা যাবে।", "Statistics appear here once students are enrolled.")}
+          />
+        )
       ) : (
         (() => {
-          const d = report.data;
           const maxClass = Math.max(1, ...d.by_class.map((c) => c.total));
           const religionEntries = RELIGION.map((r) => ({ label: isBn ? r.bn : r.en, value: d.by_religion[r.value] ?? 0 })).filter((r) => r.value > 0);
           const maxReligion = Math.max(1, ...religionEntries.map((r) => r.value));
           const ageEntries = AGE_ORDER.filter((k) => (d.by_age[k] ?? 0) > 0).map((k) => ({ label: t(AGE_LABELS[k][0], AGE_LABELS[k][1]), value: d.by_age[k] }));
           const maxAge = Math.max(1, ...ageEntries.map((a) => a.value));
-          /**
-           * C-6. Percentages in the age card are against the students whose date
-           * of birth is actually recorded, not the whole roll — otherwise every
-           * bucket is silently understated by the size of the gap. `age_known`
-           * falls back to `total` for a payload minted before the migration.
-           */
           const ageKnown = d.age_known ?? d.total;
           const dobMissing = d.dob_missing ?? 0;
           const religionMissing = d.religion_missing ?? 0;
           const classReligion = d.by_class_religion ?? [];
-          // Only the traditions actually present get a column.
-          const religionCols = RELIGION.filter((r) =>
-            classReligion.some((c) => c[r.value as ReligionKey] > 0),
-          );
+          const religionCols = RELIGION.filter((r) => classReligion.some((c) => c[r.value as ReligionKey] > 0));
           const anyNotRecorded = classReligion.some((c) => c.not_recorded > 0);
           const KPIS = [
-            { label: t("মোট শিক্ষার্থী", "Total Students"), value: d.total, grad: "grad-indigo", shadow: "shadow-e2", up: true },
-            { label: t("ছেলে", "Boys"), value: d.boys, sub: `${pct(d.boys, d.total)}%`, grad: "grad-emerald", shadow: "shadow-e2" },
-            { label: t("মেয়ে", "Girls"), value: d.girls, sub: `${pct(d.girls, d.total)}%`, grad: "grad-sky", shadow: "shadow-e2" },
-            { label: t("সক্রিয়", "Active"), value: d.status["active"] ?? 0, grad: "grad-amber", shadow: "shadow-e2" },
+            { label: t("মোট শিক্ষার্থী", "Total Students"), value: d.total, grad: "grad-indigo" },
+            { label: t("ছেলে", "Boys"), value: d.boys, sub: `${pct(d.boys, d.total)}%`, grad: "grad-emerald" },
+            { label: t("মেয়ে", "Girls"), value: d.girls, sub: `${pct(d.girls, d.total)}%`, grad: "grad-sky" },
+            { label: t("সক্রিয়", "Active"), value: d.status["active"] ?? 0, grad: "grad-amber" },
           ];
 
           return (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {KPIS.map((k) => (
-                  <div key={k.label} className={cn("flex flex-col gap-3 rounded-2xl px-5 py-4.5 text-white", k.grad, k.shadow)}>
+                  <div key={k.label} className={cn("flex flex-col gap-3 rounded-2xl px-5 py-4.5 text-white shadow-e2", k.grad)}>
                     <p className="text-meta font-medium opacity-90">{k.label}</p>
                     <p className="text-3xl font-bold tnum">{n(k.value)}</p>
                     <div className="flex items-center gap-1.5 text-meta opacity-90">
-                      {k.up ? <TrendingUp size={13} /> : null}
                       {k.sub ? <span className="font-semibold">{k.sub}</span> : <span className="opacity-70">{t("শিক্ষাবর্ষ চলমান", "Current year")}</span>}
                     </div>
                   </div>
@@ -166,9 +249,6 @@ export function ReportsSummaryScreen() {
 
               <div className="flex flex-col gap-3">
                 <CardHead title={t("শ্রেণিভিত্তিক বিন্যাস (লিঙ্গসহ)", "Class Distribution (by gender)")} subtitle={t("প্রতি শ্রেণিতে শাখা, ছেলে, মেয়ে ও মোট শিক্ষার্থী", "Sections, boys, girls & total per class")} />
-                {/* Six numeric columns per class, with a grand total. It was
-                    nested flex <div>s, so nothing associated a number with its
-                    column or marked the total row as a total (SRA A-0.7). */}
                 <Table minWidth={720}>
                   <THead>
                     <TR>
@@ -205,13 +285,6 @@ export function ReportsSummaryScreen() {
                 </Table>
               </div>
 
-              {/*
-                Class × religion. The two breakdown cards below answer "how many
-                of each" for the school as a whole; this answers "where", which
-                is the question a head teacher actually acts on. Columns are
-                filtered to the traditions PRESENT — a fixed five-column table
-                would be three empty columns wide for most Bangladeshi schools.
-              */}
               {classReligion.length > 0 && religionCols.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   <CardHead
@@ -225,26 +298,18 @@ export function ReportsSummaryScreen() {
                         {religionCols.map((r) => (
                           <TH key={r.value} className="w-22.5 text-right">{isBn ? r.bn : r.en}</TH>
                         ))}
-                        {anyNotRecorded ? (
-                          <TH className="w-28 text-right">{t("রেকর্ড নেই", "Not recorded")}</TH>
-                        ) : null}
+                        {anyNotRecorded ? <TH className="w-28 text-right">{t("রেকর্ড নেই", "Not recorded")}</TH> : null}
                         <TH className="w-22.5 text-right">{t("মোট", "Total")}</TH>
                       </TR>
                     </THead>
                     <TBody>
                       {classReligion.map((c) => (
                         <TR key={c.numeric_level}>
-                          <TH scope="row" className="text-left text-sm font-semibold text-text-primary">
-                            {isBn ? c.name_bn : c.name_en}
-                          </TH>
+                          <TH scope="row" className="text-left text-sm font-semibold text-text-primary">{isBn ? c.name_bn : c.name_en}</TH>
                           {religionCols.map((r) => (
-                            <TD key={r.value} className="text-right text-meta text-text-secondary tnum">
-                              {n(c[r.value as ReligionKey])}
-                            </TD>
+                            <TD key={r.value} className="text-right text-meta text-text-secondary tnum">{n(c[r.value as ReligionKey])}</TD>
                           ))}
-                          {anyNotRecorded ? (
-                            <TD className="text-right text-meta text-text-muted tnum">{n(c.not_recorded)}</TD>
-                          ) : null}
+                          {anyNotRecorded ? <TD className="text-right text-meta text-text-muted tnum">{n(c.not_recorded)}</TD> : null}
                           <TD className="text-right text-meta font-semibold text-text-primary tnum">{n(c.total)}</TD>
                         </TR>
                       ))}
@@ -258,13 +323,9 @@ export function ReportsSummaryScreen() {
                           </td>
                         ))}
                         {anyNotRecorded ? (
-                          <td className="px-5 py-3 text-right tnum">
-                            {n(classReligion.reduce((s, c) => s + c.not_recorded, 0))}
-                          </td>
+                          <td className="px-5 py-3 text-right tnum">{n(classReligion.reduce((s, c) => s + c.not_recorded, 0))}</td>
                         ) : null}
-                        <td className="px-5 py-3 text-right tnum">
-                          {n(classReligion.reduce((s, c) => s + c.total, 0))}
-                        </td>
+                        <td className="px-5 py-3 text-right tnum">{n(classReligion.reduce((s, c) => s + c.total, 0))}</td>
                       </tr>
                     </tfoot>
                   </Table>
@@ -272,12 +333,6 @@ export function ReportsSummaryScreen() {
               ) : null}
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {/*
-                  Both cards render a NotRecorded note instead of vanishing when
-                  the underlying field is blank. A card that simply disappears
-                  tells the operator nothing; the point is that the school has
-                  data to collect, and silence reads as "nothing to see".
-                */}
                 <BreakdownCard
                   title={t("ধর্মভিত্তিক বিন্যাস", "Religion Distribution")}
                   subtitle={t("শিক্ষার্থীদের ধর্ম অনুযায়ী সংখ্যা", "Students by religion")}
@@ -309,7 +364,7 @@ export function ReportsSummaryScreen() {
           );
         })()
       )}
-    </div>
+    </ReportShell>
   );
 }
 
@@ -320,11 +375,9 @@ export function ReportsSummaryScreen() {
  *
  * English keys and raw enum values deliberately: a CSV is opened in Excel and
  * pivoted, not read as prose, and a Bengali-labelled column that changes with
- * the UI locale cannot be joined against anything. The data-quality rows are
- * included so a spreadsheet copy carries its own caveat — an export that
- * dropped them would put the misleading 100% back, just somewhere else.
+ * the UI locale cannot be joined against anything.
  */
-function reportRows(d: StudentReport) {
+function reportRows(d: EnrolmentReport) {
   const pctOf = (part: number, whole: number) => (whole > 0 ? ((part / whole) * 100).toFixed(1) : "");
   const rows: { Section: string; Item: string; Count: number; Percent: string }[] = [];
 
@@ -350,8 +403,6 @@ function reportRows(d: StudentReport) {
   for (const [k, v] of Object.entries(d.by_age)) {
     rows.push({ Section: "Age group", Item: k, Count: v, Percent: pctOf(v, ageKnown) });
   }
-  // Class × religion, one row per cell — the same long format, so adding the
-  // cross-tab to the screen does not re-open the C-3 gap it was fixed for.
   for (const c of d.by_class_religion ?? []) {
     for (const k of ["islam", "hindu", "christian", "buddhist", "other", "not_recorded"] as const) {
       if (c[k] > 0) {
@@ -391,7 +442,6 @@ function BreakdownCard({ title, subtitle, rows, maxValue, missing = 0, missingLa
   subtitle: string;
   rows: { label: string; value: number; right: string }[];
   maxValue: number;
-  /** Students whose underlying field is blank — reported, never bucketed (C-6). */
   missing?: number;
   missingLabel?: string;
 }) {
@@ -409,11 +459,6 @@ function BreakdownCard({ title, subtitle, rows, maxValue, missing = 0, missingLa
           </div>
         ))}
       </div>
-      {/*
-        Styled as a warning, NOT as a data row: it is a statement about the
-        completeness of the record, and giving it a bar would put it back in the
-        chart it was deliberately taken out of.
-      */}
       {missing > 0 && missingLabel ? (
         <p className="flex items-start gap-2 rounded-lg bg-warning-bg px-3 py-2 text-meta text-warning-fg" role="status">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
