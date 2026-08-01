@@ -7,6 +7,7 @@ import { useT } from "@/shared/i18n/useT";
 import {
   Field, Input, Select, Button, Badge, ConfirmDialog, Modal, useToast, PageHeader, Skeleton,
   Table, THead, TBody, TR, TH, TD, TableEmpty,
+  Switch,
 } from "@/shared/ui";
 import { useSubjects, useUpsertSubject, useDeleteSubject, useClasses } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
@@ -156,12 +157,16 @@ export function SubjectScreen() {
               <Select value={f.max_class_level} placeholder={t("সব", "All")} options={levels.map((l) => ({ value: String(l), label: levelLabel(l) }))} onChange={(e) => up("max_class_level", e.target.value)} />
             </Field>
           </div>
-          <label className="flex items-center justify-between rounded-lg border border-border-default px-3 py-2.5">
-            <span className="text-meta font-medium text-text-secondary">{t("সক্রিয়", "Active")}</span>
-            <button type="button" onClick={() => up("status", f.status === "active" ? "inactive" : "active")} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", f.status === "active" ? "bg-primary" : "bg-border-strong")}>
-              <span className={cn("absolute size-4 rounded-full bg-white transition-all", f.status === "active" ? "right-0.5" : "left-0.5")} />
-            </button>
-          </label>
+          {/* A-2 — this one had no accessible name AT ALL. The <label> around
+              it labels nothing: a <label> does not name a <button>, so a screen
+              reader announced "button" and stopped. */}
+          <Switch
+            className="rounded-lg border border-border-default px-3 py-1"
+            checked={f.status === "active"}
+            onChange={(next) => up("status", next ? "active" : "inactive")}
+            label={t("সক্রিয়", "Active")}
+            description={t("নিষ্ক্রিয় বিষয় নতুন ম্যাপিংয়ে দেখা যাবে না।", "An inactive subject is not offered in new mappings.")}
+          />
         </div>
       </Modal>
 

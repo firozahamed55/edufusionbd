@@ -47,6 +47,20 @@ const MODULE_LABEL: Record<string, { bn: string; en: string }> = {
 };
 const moduleLabel = (m: string) => MODULE_LABEL[m] ?? { bn: m, en: m };
 
+/**
+ * A-7 / WCAG 1.4.10 Reflow — the table is `280 + roles × 150` px wide and
+ * scrolls horizontally, and the capability column scrolled away with it. At
+ * 375px the operator was reading a row of ticks with no idea which capability
+ * they belonged to.
+ *
+ * `bg-*` on a sticky cell is not decoration: without an opaque background the
+ * scrolled columns show through it. The header cell takes the header's own
+ * `sunken`, the row cells take `surface`, so each matches what it sits in.
+ * `z-[2]` clears the `z-[1]` on THead so the corner cell wins both ways.
+ */
+const STICKY_HEAD = "sticky left-0 z-[2] min-w-64 bg-sunken";
+const STICKY_CELL = "sticky left-0 z-[1] min-w-64 bg-surface";
+
 export function PermissionMatrixScreen() {
   const { t, n } = useT();
   const msg = useErrorMessage();
@@ -117,7 +131,7 @@ export function PermissionMatrixScreen() {
           <Table minWidth={280 + roles.length * 150}>
             <THead>
               <TR>
-                <TH className="min-w-64">{t("সক্ষমতা", "Capability")}</TH>
+                <TH className={STICKY_HEAD}>{t("সক্ষমতা", "Capability")}</TH>
                 {roles.map((r) => (
                   <TH key={r.id} className="w-37.5 text-center">
                     <span className="block text-text-primary">{r.name}</span>
@@ -140,7 +154,7 @@ export function PermissionMatrixScreen() {
                   </TR>
                   {g.items.map((p) => (
                     <TR key={p.id}>
-                      <TH scope="row" className="text-left font-normal">
+                      <TH scope="row" className={cn(STICKY_CELL, "text-left font-normal")}>
                         <span className="block text-sm text-text-primary">{p.label}</span>
                         <span className="block font-latin text-xs text-text-muted">{p.code}</span>
                       </TH>

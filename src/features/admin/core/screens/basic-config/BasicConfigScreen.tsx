@@ -5,7 +5,7 @@ import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import { useFieldErrors, fieldId } from "@/shared/lib/useFieldErrors";
 import { weekendConflict } from "../../logic/schemas";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast, ConfirmDialog } from "@/shared/ui";
+import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast, ConfirmDialog, Switch } from "@/shared/ui";
 import { useSetting, useSaveSetting, useGradeSchemes } from "../../logic/hooks";
 import { useErrorMessage, classifyError } from "@/shared/services/errors";
 import type { RpcPayload } from "@/shared/services/supabase/types";
@@ -262,21 +262,18 @@ export function BasicConfigScreen() {
               </div>
 
               <div className="flex flex-col gap-1">
+                {/* A-1 — four <button>s styled as switches with no role and no
+                    aria-checked, so a screen reader announced the same thing in
+                    both positions. */}
                 {TOGGLES.map((tg, i) => (
-                  <div key={tg.key} className={i > 0 ? "flex items-center gap-3 border-t border-border-default py-3.5" : "flex items-center gap-3 py-1.5"}>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-text-primary">{t(tg.bn, tg.en)}</p>
-                      <p className="mt-0.5 text-xs text-text-muted">{t(tg.sub_bn, tg.sub_en)}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => set(tg.key, !form[tg.key])}
-                      aria-label={t(tg.bn, tg.en)}
-                      className={`relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors ${form[tg.key] ? "bg-primary" : "bg-border-strong"}`}
-                    >
-                      <span className={`absolute size-5 rounded-full bg-white transition-all ${form[tg.key] ? "right-0.5" : "left-0.5"}`} />
-                    </button>
-                  </div>
+                  <Switch
+                    key={tg.key}
+                    className={i > 0 ? "border-t border-border-default py-1.5" : "py-1.5"}
+                    checked={Boolean(form[tg.key])}
+                    onChange={(next) => set(tg.key, next)}
+                    label={t(tg.bn, tg.en)}
+                    description={t(tg.sub_bn, tg.sub_en)}
+                  />
                 ))}
               </div>
             </div>

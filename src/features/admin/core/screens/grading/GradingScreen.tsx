@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, Award, X } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
-  Field, Input, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader,
+  Field, Input, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader, Checkbox,
   Table, THead, TBody, TR, TH, TD,
 } from "@/shared/ui";
 import { useGradeSchemes, useUpsertScheme, useDeleteScheme } from "../../logic/hooks";
@@ -165,7 +165,7 @@ export function GradingScreen() {
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("স্কিমের নাম", "Scheme name")} required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="GPA 5.0" /></Field>
-            <label className="flex items-center gap-2 self-end pb-2.5 text-meta text-text-secondary"><input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="size-4 accent-primary" /> {t("ডিফল্ট স্কিম", "Default scheme")}</label>
+            <label className="flex items-center gap-2 self-end pb-2.5 text-meta text-text-secondary"><Checkbox checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} /> {t("ডিফল্ট স্কিম", "Default scheme")}</label>
           </div>
           {/* The editable band grid. A <table> here is what makes the column
               header the accessible name of every input under it — the inputs

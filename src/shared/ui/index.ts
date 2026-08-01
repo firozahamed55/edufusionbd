@@ -32,3 +32,4 @@ export { ToastProvider, useToast } from "./Toast";
 export { BarChart, Donut, type BarDatum } from "./Chart";
 export { FileDrop } from "./FileDrop";
 export { JsonDiff } from "./JsonDiff";
+export { Switch } from "./Switch";

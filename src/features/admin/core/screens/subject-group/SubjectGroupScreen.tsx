@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2, Pencil, Layers } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Field, Input, Button, EmptyState, ConfirmDialog, Modal, useToast, PageHeader } from "@/shared/ui";
+import { Field, Input, Button, EmptyState, ConfirmDialog, Modal, useToast, PageHeader, Checkbox } from "@/shared/ui";
 import { useSubjectGroups, useSubjects, useUpsertGroup, useDeleteGroup } from "../../logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -91,7 +91,7 @@ export function SubjectGroupScreen() {
             <div className="flex max-h-56 flex-col gap-1 overflow-y-auto rounded-lg border border-border-default p-2">
               {subs.length === 0 ? <p className="p-2 text-meta text-text-muted">{t("প্রথমে বিষয় যোগ করুন", "Add subjects first")}</p> : subs.map((s) => (
                 <label key={s.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-meta text-text-secondary hover:bg-sunken">
-                  <input type="checkbox" checked={picked.has(s.id)} onChange={() => toggle(s.id)} className="size-4 accent-primary" />
+                  <Checkbox checked={picked.has(s.id)} onChange={() => toggle(s.id)} />
                   {isBn ? s.name_bn : s.name_en}
                 </label>
               ))}
