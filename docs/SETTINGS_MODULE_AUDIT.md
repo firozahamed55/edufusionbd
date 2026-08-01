@@ -42,6 +42,48 @@ Total: **~2,523 lines of screen code + 282 lines of data access + 129 lines of h
 | Observability & testability | 30 / 100 | 2 pure-logic unit tests; zero screen tests; zero settings RLS assertions |
 | Production readiness | **52 / 100** | **Not shippable as-is** — three Critical items below |
 
+### 0.2a Implementation status
+
+| Phase | Status | Commits |
+|---|---|---|
+| **0.1 Restore the Academic Calendar** | ✅ **Done** — and it was worse than reported: nine RPCs were missing, not six | `466cec2` |
+| **0.2 Guard `fn_permission_matrix`** | ✅ **Done** — the sweep added to catch it found a second, worse hole | `dc1b5fa` |
+| **0.3 Fix lost-update on settings** | ✅ **Done** | `2e25960` |
+| **0.4 Constrain uploads** | ✅ **Done** | `0010b1b` |
+| 1 — Access control | ⏸ Blocked on a working-tree collision (see below) | — |
+| 2–9 | Not started | — |
+
+**What Phase 0 turned up that the audit did not.**
+
+1. **Nine dead RPCs, not six.** The same sweep that found the calendar found
+   `fn_import_students`, `fn_import_teachers`, `fn_import_marks` — the entire
+   bulk-import feature, described in its own migration as "the highest ROI single
+   feature in the product", dead in production for the same reason.
+2. **The root cause is `supabase db push`, and it is systemic.** It compares
+   version timestamps against the remote history and applies only what sorts
+   after the newest recorded one. Once anything writes to that history out of
+   band — a Studio run, an MCP `apply_migration`, a hotfix — every repo migration
+   with an older filename timestamp is skipped **in silence, exit code 0**. CI was
+   green the whole time. Four migrations had never been applied; five applied
+   migrations are not in the repo.
+3. **A second unguarded RPC, worse than the reported one.**
+   `fn_resolve_sms_recipients` returns a recipient count plus ten guardian names
+   and mobile numbers. Unguarded and `authenticated`-executable, walking
+   `p_class_section_id` across the school's sections turns that into the whole
+   guardian directory. Nobody was looking for it; the sweep was.
+4. **`fn_attendance_summary` had no default on `p_class_section_id`**, though its
+   body documents null as "the whole institution" — so the Analytics screen's own
+   default view was unrequestable.
+5. **`report_summary_data_quality` had never deployed either**, so the
+   `dob_missing` / `dob_synthetic` split was absent and placeholder `1900-01-01`
+   birth dates were being reported as real ages.
+
+**Gates added so none of this can recur:** `tests/rpcContract.test.ts` (every
+`.rpc()` in `src/` must be created by a migration and declared in the types);
+a CI step asserting `supabase migration list` has no local-only rows;
+`rls_roles.test.sql` §3.6–3.8 (every `SECURITY DEFINER` function is guarded or
+allow-listed in `private.unguarded_function_allowlist` with a written reason).
+
 ### 0.3 The five things that matter most
 
 | ID | Finding | Priority |
