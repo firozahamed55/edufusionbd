@@ -138,6 +138,12 @@ begin
   perform private.require_permission('certificate.generate');
   perform private.fn_cancel_document_batch(p_kind, p_id, p_reason);
 end $$;
+-- REVOKE FROM PUBLIC FIRST. `create function` grants EXECUTE to PUBLIC by
+-- default and every role inherits it — granting to `authenticated` does not
+-- take that away. Omitting this line left the function with `=X/postgres` in
+-- its ACL on the live project, i.e. anon-executable, and it was caught by
+-- reading the ACL rather than by reading the migration. Check the ACL.
+revoke all on function public.fn_cancel_document_batch(text, uuid, text) from public, anon;
 grant execute on function public.fn_cancel_document_batch(text, uuid, text) to authenticated;
 
 /* ------------------------------------------- certificate serial + verification */
@@ -204,5 +210,75 @@ end; $fn$;
 -- Revoke from PUBLIC first. The default grant on a new function is to PUBLIC,
 -- and every role inherits it — the ACL, not the statement, is what decides
 -- (the lesson from the Phase 1 `fn_*` sweep).
+revoke all on function public.fn_verify_document(text, uuid) from public;
+grant execute on function public.fn_verify_document(text, uuid) to anon, authenticated;
+
+/* ------------------------------ ID / admit cards also carry a QR ------------ */
+
+/**
+ * The ID-card and admit-card templates print a QR at /verify/id/{student} and
+ * /verify/admit/{student}. The version above knew only 'testimonial' and
+ * 'transfer', so every card in the first batch would have scanned to "no such
+ * document on record" — a QR that reliably says the card is fake is worse than
+ * no QR at all. Caught by scanning the rendered preview, not by reading this
+ * file.
+ *
+ * DISCLOSURE. The scanner is physically holding the card, which already prints
+ * the name, the ID and the class. This returns the same facts from the
+ * database, which is what verification means: does the card match the record.
+ *
+ * A student who has left does NOT verify — an ID card surrendered on transfer
+ * must stop working, and that is the most useful thing this endpoint does.
+ */
+create or replace function public.fn_verify_document(p_kind text, p_id uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $fn$
+declare v jsonb;
+begin
+  if p_kind = 'testimonial' then
+    select jsonb_build_object(
+             'kind','testimonial', 'found', true, 'serial', t.cert_no,
+             'issued_at', t.issued_at, 'session', t.session,
+             'student_bn', s.name_bn, 'student_en', s.name_en,
+             'institution_bn', i.name_bn, 'institution_en', i.name_en)
+      into v
+      from public.testimonial t
+      join public.student s on s.id = t.student_id
+      join public.institution i on i.id = t.institution_id
+     where t.id = p_id;
+
+  elsif p_kind = 'transfer' then
+    select jsonb_build_object(
+             'kind','transfer', 'found', true, 'serial', c.cert_no,
+             'issued_at', c.issue_date, 'session', c.session,
+             'student_bn', s.name_bn, 'student_en', s.name_en,
+             'institution_bn', i.name_bn, 'institution_en', i.name_en)
+      into v
+      from public.transfer_certificate c
+      join public.student s on s.id = c.student_id
+      join public.institution i on i.id = c.institution_id
+     where c.id = p_id;
+
+  elsif p_kind in ('id','admit') then
+    select jsonb_build_object(
+             'kind', p_kind, 'found', true,
+             'serial', s.student_code, 'issued_at', null, 'session', ay.year_label,
+             'student_bn', s.name_bn, 'student_en', s.name_en,
+             'class_bn', cls.name_bn, 'class_en', cls.name_en, 'roll', enr.roll_no,
+             'institution_bn', i.name_bn, 'institution_en', i.name_en)
+      into v
+      from public.student s
+      join public.institution i on i.id = s.institution_id
+      left join public.student_enrollment enr on enr.id = s.current_enrollment_id
+      left join public.academic_year ay on ay.id = enr.academic_year_id
+      left join public.class_section cs on cs.id = enr.class_section_id
+      left join public.class cls on cls.id = cs.class_id
+     where s.id = p_id and s.deleted_at is null and s.status = 'active';
+
+  else
+    return jsonb_build_object('found', false);
+  end if;
+
+  return coalesce(v, jsonb_build_object('found', false));
+end; $fn$;
 revoke all on function public.fn_verify_document(text, uuid) from public;
 grant execute on function public.fn_verify_document(text, uuid) to anon, authenticated;

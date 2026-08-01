@@ -23,8 +23,20 @@ type Payload = {
   session?: string | null;
   student_bn?: string;
   student_en?: string;
+  class_bn?: string | null;
+  class_en?: string | null;
+  roll?: number | null;
   institution_bn?: string;
   institution_en?: string;
+};
+
+const KINDS = ["testimonial", "transfer", "id", "admit"] as const;
+
+const KIND_LABEL: Record<string, string> = {
+  testimonial: "প্রশংসাপত্র / Testimonial",
+  transfer: "স্থানান্তর সনদ / Transfer Certificate",
+  id: "পরিচয়পত্র / Student ID Card",
+  admit: "প্রবেশপত্র / Admit Card",
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,11 +50,12 @@ export default async function VerifyPage({
 
   // A malformed id is a not-found, not a 500 from a failed uuid cast.
   let payload: Payload = { found: false };
-  if (UUID.test(id) && (kind === "testimonial" || kind === "transfer")) {
+  if (UUID.test(id) && (KINDS as readonly string[]).includes(kind)) {
     const supabase = await createClient();
     const { data } = await supabase.rpc("fn_verify_document", { p_kind: kind, p_id: id });
     payload = (data ?? { found: false }) as Payload;
   }
+  const isCard = kind === "id" || kind === "admit";
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
@@ -54,19 +67,31 @@ export default async function VerifyPage({
       {payload.found ? (
         <section className="flex flex-col gap-3 rounded-2xl border border-success-fg/30 bg-surface p-6 shadow-e1">
           <p className="rounded-lg bg-success-bg px-3 py-2 text-center text-meta font-semibold text-success-fg">
-            ✓ এই নথিটি বৈধ / This document is on record
+            {isCard
+              ? "✓ এই কার্ডটি বৈধ / This card matches an enrolled student"
+              : "✓ এই নথিটি বৈধ / This document is on record"}
           </p>
-          <Row label="ধরন / Type" value={payload.kind === "transfer" ? "স্থানান্তর সনদ / Transfer Certificate" : "প্রশংসাপত্র / Testimonial"} />
-          <Row label="সনদ নং / Serial" value={payload.serial ?? "—"} />
+          <Row label="ধরন / Type" value={KIND_LABEL[payload.kind ?? kind] ?? kind} />
+          <Row label={isCard ? "আইডি / Student ID" : "সনদ নং / Serial"} value={payload.serial ?? "—"} />
           <Row label="শিক্ষার্থী / Student" value={`${payload.student_bn ?? ""} / ${payload.student_en ?? ""}`} />
+          {isCard ? (
+            <Row
+              label="শ্রেণি / Class"
+              value={`${payload.class_bn ?? payload.class_en ?? "—"}${payload.roll != null ? ` · Roll ${payload.roll}` : ""}`}
+            />
+          ) : null}
           <Row label="প্রতিষ্ঠান / Institution" value={`${payload.institution_bn ?? ""} / ${payload.institution_en ?? ""}`} />
           <Row label="সেশন / Session" value={payload.session ?? "—"} />
-          <Row label="ইস্যু / Issued" value={payload.issued_at ? String(payload.issued_at).slice(0, 10) : "—"} />
+          {payload.issued_at ? (
+            <Row label="ইস্যু / Issued" value={String(payload.issued_at).slice(0, 10)} />
+          ) : null}
         </section>
       ) : (
         <section className="flex flex-col gap-2 rounded-2xl border border-danger-fg/30 bg-surface p-6 text-center shadow-e1">
           <p className="rounded-lg bg-danger-bg px-3 py-2 text-meta font-semibold text-danger-fg">
-            এই নথিটি পাওয়া যায়নি / No such document on record
+            {isCard
+              ? "এই কার্ডটি যাচাই করা যায়নি / This card does not match a current student"
+              : "এই নথিটি পাওয়া যায়নি / No such document on record"}
           </p>
           <p className="text-meta text-text-muted">
             কোডটি আবার স্ক্যান করুন, অথবা প্রতিষ্ঠানের সাথে যোগাযোগ করুন।

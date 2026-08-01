@@ -176,10 +176,14 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
         tabs: [
           { href: "/admin/fee/quick-collection-list", bn: "কুইক কালেকশন", en: "Quick Collection", group: { bn: "কালেকশন", en: "Collection" } },
           { href: "/admin/fee/quick-collection-form", bn: "কালেকশন ফর্ম", en: "Collection Form", group: { bn: "কালেকশন", en: "Collection" } },
+          // Grouped tabs must be CONTIGUOUS: ModuleTabs starts a new heading
+          // whenever the group changes from the previous tab, so a Collection
+          // item placed after the Unpaid pair renders a second "Collection"
+          // heading rather than joining the first.
+          { href: "/admin/fee/day-book", bn: "দৈনিক হিসাব", en: "Day Book", group: { bn: "কালেকশন", en: "Collection" } },
           { href: "/admin/fee/digital-collection", bn: "ডিজিটাল ফি কালেকশন", en: "Digital Collection" },
           { href: "/admin/fee/unpaid-section", bn: "বকেয়া (সেকশন)", en: "Unpaid (Section)", group: { bn: "বকেয়া", en: "Unpaid" } },
           { href: "/admin/fee/unpaid-institute", bn: "বকেয়া (প্রতিষ্ঠান)", en: "Unpaid (Institute)", group: { bn: "বকেয়া", en: "Unpaid" } },
-          { href: "/admin/fee/day-book", bn: "দৈনিক হিসাব", en: "Day Book", group: { bn: "কালেকশন", en: "Collection" } },
           { href: "/admin/fee/income-statement", bn: "আয় বিবরণী", en: "Income Statement" },
           { href: "/admin/fee/fee-mapping", bn: "ফি ম্যাপিং", en: "Fee Mapping" },
           { href: "/admin/fee/delete-fees", bn: "ফি মুছুন", en: "Delete Fees" },
