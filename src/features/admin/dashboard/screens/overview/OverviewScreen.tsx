@@ -331,8 +331,18 @@ export function OverviewScreen() {
         {can("student.view") ? (
           <Kpi grad="grad-indigo" icon={Users} label={t("মোট শিক্ষার্থী", "Total Students")} value={n(data?.activeStudents ?? 0)} delta={n(data?.classSections ?? 0)} period={t("শ্রেণি-শাখা", "class-sections")} href="/admin/student/update-class" />
         ) : null}
+        {/*
+          The secondary line is a RATIO, not a count, and it is routinely an
+          order of magnitude larger than the headline it sits under (3 teachers,
+          89 students per teacher). Rendered as a bold number plus the terse unit
+          "students/teacher" it read as a second headline figure — reported from
+          the field as "there are 3 teachers but it shows 94". Spelled out as a
+          full phrase there is nothing left to misattribute. The other two tiles
+          keep the terse form because "9 class-sections" and "৳3,000 due" are
+          counts of the thing named, so the number and its unit agree.
+        */}
         {can("teacher.view") ? (
-          <Kpi grad="grad-emerald" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(studentsPerTeacher)} period={t("শিক্ষার্থী/শিক্ষক", "students/teacher")} href="/admin/teacher/list" />
+          <Kpi grad="grad-emerald" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta="" period={t(`প্রতি শিক্ষকে ${n(studentsPerTeacher)} জন শিক্ষার্থী`, `${studentsPerTeacher} students per teacher`)} href="/admin/teacher/list" />
         ) : null}
         {/* The statement for exactly this window — the drill-down of a money
             number is the ledger the number came from, not a generic list. */}
@@ -531,7 +541,9 @@ function Kpi({
         ) : null}
       </div>
       <div className="flex items-center gap-1.5 text-meta">
-        <span className="font-semibold">{delta}</span>
+        {/* Empty `delta` = the tile carries its whole secondary metric in
+            `period` as one phrase; an empty bold span would still cost a gap. */}
+        {delta ? <span className="font-semibold">{delta}</span> : null}
         <span className="opacity-90">{period}</span>
         <ChevronRight size={14} className="ml-auto opacity-0 transition-opacity group-hover:opacity-90" />
       </div>
