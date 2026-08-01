@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Button, PasswordInput, PasswordRequirements } from "@/shared/ui";
+import { Button, Field, PasswordInput, PasswordRequirements } from "@/shared/ui";
 import { isAcceptable } from "@/shared/lib/passwordPolicy";
 import { AuthShell, AuthCard, AuthBackLink } from "@/features/auth/components";
 import { createClient } from "@/shared/services/supabase/client";
@@ -20,7 +20,13 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  /**
+   * A-4: per-field, not one box at the foot. Two password controls, and "that
+   * password does not meet the requirements" named neither of them.
+   */
+  const [errors, setErrors] = useState<{ pw?: string; confirm?: string }>({});
+  /** Belongs to the request rather than to a field (an expired reset link). */
+  const [formError, setFormError] = useState<string | null>(null);
   // Recovery-link state: exchange the emailed code for a session before we can
   // update the password. `null` = still checking, `true`/`false` = usable link.
   const [linkOk, setLinkOk] = useState<boolean | null>(null);
@@ -41,22 +47,20 @@ export default function ResetPasswordPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    const next: typeof errors = {};
     // The same predicate the checklist renders — a screen cannot accept a
     // password its own requirement list says is not good enough (SRA B-5).
-    if (!isAcceptable(pw)) {
-      setError(t("পাসওয়ার্ডটি প্রয়োজনীয় শর্ত পূরণ করে না", "That password does not meet the requirements"));
-      return;
-    }
-    if (pw !== confirm) {
-      setError(t("পাসওয়ার্ড দুটি মিলছে না", "Passwords do not match"));
-      return;
-    }
-    setError(null);
+    if (!isAcceptable(pw)) next.pw = t("পাসওয়ার্ডটি প্রয়োজনীয় শর্ত পূরণ করে না", "That password does not meet the requirements");
+    if (pw !== confirm) next.confirm = t("পাসওয়ার্ড দুটি মিলছে না", "Passwords do not match");
+    setErrors(next);
+    setFormError(null);
+    if (Object.keys(next).length > 0) return;
+
     setLoading(true);
     const { error: upErr } = await createClient().auth.updateUser({ password: pw });
     setLoading(false);
     if (upErr) {
-      setError(
+      setFormError(
         t(
           "পাসওয়ার্ড আপডেট করা যায়নি। রিসেট লিংকটির মেয়াদ শেষ হয়ে থাকতে পারে।",
           "Could not update the password. The reset link may have expired.",
@@ -122,42 +126,40 @@ export default function ResetPasswordPage() {
         subtitle={t("একটি শক্তিশালী নতুন পাসওয়ার্ড দিন।", "Choose a strong new password.")}
         footer={<AuthBackLink label={t("লগইনে ফিরে যান", "Back to sign in")} />}
       >
-        <form onSubmit={onSubmit} noValidate>
-          <label className="mb-1.5 block text-meta font-medium text-text-secondary" htmlFor="pw">
-            {t("নতুন পাসওয়ার্ড", "New password")}
-          </label>
-          <PasswordInput
-            id="pw"
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            placeholder="••••••••"
-            showLabel={t("পাসওয়ার্ড দেখান", "Show password")}
-            hideLabel={t("পাসওয়ার্ড লুকান", "Hide password")}
-          />
-          <PasswordRequirements value={pw} className="mt-2" />
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+          <Field label={t("নতুন পাসওয়ার্ড", "New password")} error={errors.pw}>
+            <PasswordInput
+              id="pw"
+              value={pw}
+              onChange={(e) => { setPw(e.target.value); setErrors((s) => ({ ...s, pw: undefined })); }}
+              placeholder="••••••••"
+              showLabel={t("পাসওয়ার্ড দেখান", "Show password")}
+              hideLabel={t("পাসওয়ার্ড লুকান", "Hide password")}
+            />
+            <PasswordRequirements value={pw} className="mt-2" />
+          </Field>
 
-          <label className="mb-1.5 mt-4 block text-meta font-medium text-text-secondary" htmlFor="confirm">
-            {t("পাসওয়ার্ড নিশ্চিত করুন", "Confirm password")}
-          </label>
-          <PasswordInput
-            id="confirm"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="••••••••"
-            showLabel={t("পাসওয়ার্ড দেখান", "Show password")}
-            hideLabel={t("পাসওয়ার্ড লুকান", "Hide password")}
-          />
+          <Field label={t("পাসওয়ার্ড নিশ্চিত করুন", "Confirm password")} error={errors.confirm}>
+            <PasswordInput
+              id="confirm"
+              value={confirm}
+              onChange={(e) => { setConfirm(e.target.value); setErrors((s) => ({ ...s, confirm: undefined })); }}
+              placeholder="••••••••"
+              showLabel={t("পাসওয়ার্ড দেখান", "Show password")}
+              hideLabel={t("পাসওয়ার্ড লুকান", "Hide password")}
+            />
+          </Field>
 
-          {error ? (
-            <p className="mt-3 rounded-lg bg-danger-bg px-3 py-2 text-sm text-danger-fg" role="alert">
-              {error}
+          {formError ? (
+            <p className="rounded-lg bg-danger-bg px-3 py-2 text-sm text-danger-fg" role="alert">
+              {formError}
             </p>
           ) : null}
 
           <Button
             type="submit"
             size="lg"
-            className="mt-5 w-full justify-center"
+            className="mt-1 w-full justify-center"
             disabled={loading || linkOk === null}
           >
             {loading

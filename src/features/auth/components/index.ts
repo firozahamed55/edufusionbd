@@ -1,3 +1,3 @@
 export { AuthShell, AuthCard, AuthBackLink } from "./AuthShell";
-export { RoleSelect } from "./RoleSelect";
+export { LoginScreen } from "./LoginScreen";
 export { roleHome, isRole, safeInternalPath, ROLE_LABELS, type Role } from "./roles";

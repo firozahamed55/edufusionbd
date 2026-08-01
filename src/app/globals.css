@@ -221,7 +221,8 @@
   --text-h3: 1.625rem;       /* 26px — page-level greeting/section headings */
   --text-stat: 1.8125rem;    /* 29px — hero numbers (e.g. Donut chart center value) — kept
                                 distinct from text-h3: same-ish size, different role, not drift */
-  --text-h1: 2.5rem;         /* 40px — auth screen hero (AuthShell) */
+  --text-h2: 2rem;           /* 32px — auth screen hero (AuthShell) */
+  --text-h1: 2.5rem;         /* 40px — 404, style guide */
 }
 
 * {
@@ -288,64 +289,56 @@ body {
 /*
   AUTH BRAND RAIL — the one surface in the product with its own palette.
 
-  The flat `bg-primary-hover` fill it replaces was a single solid indigo: the
-  2019 flat-fill look, and the specific thing the brief calls dated. This is a
-  layered mesh — an ink base with three offset radial glows — which is what
-  reads as current without touching `--color-interactive-primary`. That
-  restraint is the point: the app-wide primary is bound by `tests/contrast.test.ts`
-  and by 44 admin screens, and a sign-in page is not a reason to move it.
+  This replaces a three-glow radial mesh that drifted on a 28-second loop. The
+  gradient-mesh hero was the defining SaaS trope of 2021-22, and it — not the
+  indigo — is what dated the sign-in screen (analysis II §A.0). What is here now
+  is a flat ink field with ONE soft accent wash and no animation: fewer
+  decisions, none of them fashionable, and nothing repainting forever on the
+  low-end Android hardware this product is actually used on.
 
-  Contrast obligation: every glow sits BELOW the base's luminance ceiling, so
-  white body copy on the rail clears 4.5:1 at every point of the mesh — checked
-  against the lightest stop (`--auth-glow-b` at its 55% alpha), not the base.
+  `--color-interactive-primary` still does not move. It is bound by
+  `tests/contrast.test.ts` and by ~110 admin screens, and a sign-in page is not
+  a reason to move it. The repaint stays inside this scope, as it did before.
+
+  Contrast obligation: the wash tops out at 30% alpha over the ink and is
+  centred BELOW the panel, so white body copy clears 4.5:1 everywhere text can
+  land — checked at the wash's brightest visible point, not at the base.
 */
 :root {
-  --auth-ink: #1b1740;
-  --auth-glow-a: #4f46e5;  /* indigo — top-left, the brand anchor */
-  --auth-glow-b: #7c3aed;  /* violet — bottom-right, the lift */
-  --auth-glow-c: #0e7490;  /* deep cyan — mid-left, stops it reading purple-only */
+  --auth-ink: #16143a;
+  --auth-accent: #4f46e5;
 }
 
 [data-theme="dark"] {
-  /* Dark does not invert the rail — it deepens it. An auth rail that goes pale
-     in dark mode loses the brand anchor the whole screen is built around. */
-  --auth-ink: #0d0b24;
-  --auth-glow-a: #3730a3;
-  --auth-glow-b: #5b21b6;
-  --auth-glow-c: #0b4f60;
+  /* Dark deepens the rail rather than inverting it. A rail that goes pale in
+     dark mode loses the brand anchor the whole screen is built around. */
+  --auth-ink: #0c0a20;
+  --auth-accent: #3730a3;
 }
 
 .auth-rail {
   background-color: var(--auth-ink);
-  background-image:
-    radial-gradient(58% 62% at 12% 8%, color-mix(in oklab, var(--auth-glow-a) 78%, transparent) 0%, transparent 62%),
-    radial-gradient(52% 58% at 92% 96%, color-mix(in oklab, var(--auth-glow-b) 55%, transparent) 0%, transparent 60%),
-    radial-gradient(46% 46% at 4% 76%, color-mix(in oklab, var(--auth-glow-c) 42%, transparent) 0%, transparent 66%);
-  background-size: 160% 160%, 150% 150%, 170% 170%;
-  background-position: 0% 0%, 100% 100%, 0% 100%;
+  /* One wash, centred off the bottom-left corner so it lifts the panel from
+     under the text rather than sitting behind it. Static, by design. */
+  background-image: radial-gradient(
+    72% 55% at 6% 108%,
+    color-mix(in oklab, var(--auth-accent) 30%, transparent) 0%,
+    transparent 70%
+  );
 }
 
-/* The mesh drifts; it does not animate anything the eye tracks. Motion is
-   opt-in via the media query, so `prefers-reduced-motion: reduce` — the
-   default on a lot of institutional hardware — gets the static mesh above. */
+/*
+  The card entrance is opacity-only now. It used to translate 10px upward,
+  which on a form the browser has already autofilled reads as the fields
+  jumping under the cursor.
+*/
 @media (prefers-reduced-motion: no-preference) {
-  .auth-rail { animation: auth-rail-drift 28s var(--ease-standard) infinite alternate; }
-  .auth-card { animation: auth-card-in var(--duration-slow) var(--ease-emphasized) both; }
-}
-
-@keyframes auth-rail-drift {
-  from { background-position: 0% 0%, 100% 100%, 0% 100%; }
-  to   { background-position: 18% 12%, 82% 88%, 12% 84%; }
+  .auth-card { animation: auth-card-in var(--duration-slow) var(--ease-standard) both; }
 }
 
 @keyframes auth-card-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* The logo tile, on both the rail and the mobile lockup. */
-.auth-mark {
-  background-image: linear-gradient(135deg, var(--auth-glow-a) 0%, var(--auth-glow-b) 100%);
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Themed gradient surfaces — apply via className, adapts light/dark from the tokens. */
