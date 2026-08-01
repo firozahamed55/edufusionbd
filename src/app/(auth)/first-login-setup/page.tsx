@@ -7,6 +7,8 @@ import { Button, Input, PasswordInput, PasswordRequirements, Stepper } from "@/s
 import { isAcceptable } from "@/shared/lib/passwordPolicy";
 import { AuthShell, AuthCard } from "@/features/auth/components";
 import { roleHome } from "@/features/auth/components/roles";
+import { createClient } from "@/shared/services/supabase/client";
+import { updateMyProfile } from "@/shared/services/security/api";
 import { useRouter } from "next/navigation";
 
 /**
@@ -45,10 +47,55 @@ export default function FirstLoginSetupPage() {
     setStep((s) => Math.min(s + 1, steps.length - 1));
   }
 
+  /**
+   * SRA A-1. This used to be `await new Promise(r => setTimeout(r, 700))`
+   * followed by `router.replace(roleHome(null))` — three steps of input, a
+   * validated password confirmed twice, and NOTHING was persisted. The user was
+   * told their account was set up, still had their provisioned temporary
+   * password, and would then fail to sign in with the one they had just chosen.
+   * For a phone-only account that is a permanent lockout, because
+   * /forgot-password cannot reach a synthetic `@phone.edufusionbd.app` address.
+   *
+   * The identical `setTimeout(700)` stub was removed from /otp once already;
+   * the fix never reached this screen.
+   *
+   * Order matters: the password is the credential the user will next sign in
+   * with, so it is written FIRST and a failure aborts. The display name is
+   * cosmetic — if it fails the account is still usable, so it is reported but
+   * does not strand the user on a screen they can no longer leave.
+   */
   async function finish() {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 700));
-    router.replace(roleHome(null));
+    setError(null);
+    const supabase = createClient();
+
+    const { error: pwErr } = await supabase.auth.updateUser({ password: pw });
+    if (pwErr) {
+      setSaving(false);
+      setError(
+        t(
+          "পাসওয়ার্ড সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।",
+          "Could not save your password. Please try again.",
+        ),
+      );
+      setStep(1);
+      return;
+    }
+
+    try {
+      await updateMyProfile(supabase, { full_name: name.trim() });
+    } catch {
+      // Non-fatal: the credential is set, so the account works. Say so rather
+      // than blocking on a display name.
+      void 0;
+    }
+
+    // The user's REAL role, not `roleHome(null)` — that hardcoded the admin
+    // dashboard, so a parent finished setup and was bounced by middleware.
+    const { data } = await supabase.auth.getUser();
+    const role = data.user?.app_metadata?.role as string | undefined;
+    setSaving(false);
+    router.replace(roleHome(role));
     router.refresh();
   }
 

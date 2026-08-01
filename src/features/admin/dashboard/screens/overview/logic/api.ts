@@ -32,6 +32,13 @@ export type ActivityItem = {
   action: string;
   entity: string;
   at: string;
+  /**
+   * Consecutive rows with the same action+entity, collapsed (SRA B-2). A roster
+   * import writes 268 `insert · student` rows in one go; without this the panel
+   * is six copies of the same line and every other event on the dashboard is
+   * pushed off by a single bulk operation.
+   */
+  count: number;
 };
 
 export type DashboardData = {
@@ -99,11 +106,13 @@ export async function fetchDashboard(
       const q = supabase.from("exam").select("id", { count: "exact", head: true }).eq("status", "locked");
       return yearId ? q.eq("academic_year_id", yearId) : q;
     })(),
+    // Read deep enough that collapsing a bulk run still leaves distinct events
+    // to show — 6 rows of a 268-row import would collapse to a single line.
     supabase
       .from("audit_log")
       .select("id, action, entity, at")
       .order("at", { ascending: false })
-      .limit(6),
+      .limit(200),
     // Head-only count — the checklist needs "any?", not the rows.
     supabase.from("subject").select("id", { count: "exact", head: true }),
   ]);
@@ -167,8 +176,33 @@ export async function fetchDashboard(
     notices: noticeRes.data ?? [],
     attention,
     attendanceTrend,
-    activity: activityRes.data ?? [],
+    activity: collapseActivity(activityRes.data ?? []),
   };
+}
+
+/**
+ * Collapse consecutive same-action, same-entity audit rows into one item
+ * carrying a count, newest first, capped at six (SRA B-2).
+ *
+ * Consecutive only, deliberately: this is a chronological feed, so merging
+ * non-adjacent runs would claim events happened together when they did not.
+ * Two separate imports a week apart stay two rows.
+ */
+export function collapseActivity(
+  rows: { id: string; action: string; entity: string; at: string }[],
+  limit = 6,
+): ActivityItem[] {
+  const out: ActivityItem[] = [];
+  for (const r of rows) {
+    const last = out[out.length - 1];
+    if (last && last.action === r.action && last.entity === r.entity) {
+      last.count += 1;
+      continue;
+    }
+    if (out.length === limit) break;
+    out.push({ ...r, count: 1 });
+  }
+  return out;
 }
 
 /* ------------------------------------------------------ period-scoped stats */

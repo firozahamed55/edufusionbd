@@ -27,9 +27,10 @@ import { BarChart, Donut, Skeleton, ErrorState, EmptyState, PageHeader } from "@
 import { useAdminUser } from "@/features/admin/components/useAdminUser";
 import { useMyPermissions } from "@/features/admin/core/logic/hooks";
 import { SetupChecklist } from "../../components/SetupChecklist";
-import { localDay, dayOffset, weekdayShort } from "@/shared/lib/format";
+import { localDay, dayOffset, weekdayShort, formatDateTime } from "@/shared/lib/format";
 import { useQueryState } from "@/shared/lib/useQueryState";
 import { useDashboard, usePeriodStats } from "./logic/useDashboard";
+import { activitySentence, activityHref } from "../../logic/activityLabel";
 import type { AttentionItem } from "./logic/api";
 
 /**
@@ -432,16 +433,27 @@ export function OverviewScreen() {
           {(data?.activity.length ?? 0) === 0 ? (
             <p className="py-3 text-sm text-text-muted">{t("কোনো কার্যক্রম নেই", "No activity yet")}</p>
           ) : (
-            data?.activity.map((a) => (
-              <div key={a.id} className="flex items-center gap-3 rounded-xl bg-sunken px-3 py-2.5">
-                <span className="min-w-0 flex-1 truncate text-meta text-text-primary">
-                  <b className="font-semibold">{a.action}</b> · {a.entity}
-                </span>
-                <span className="shrink-0 text-xs text-text-muted tnum">
-                  {n(localDay(a.at))}
-                </span>
-              </div>
-            ))
+            data?.activity.map((a) => {
+              // SRA B-2: a sentence, not `insert · student_enrollment`.
+              const s = activitySentence(a.action, a.entity, a.count);
+              const href = activityHref(a.entity);
+              const label = t(s.bn, s.en);
+              const row = (
+                <>
+                  <span className="min-w-0 flex-1 truncate text-meta text-text-primary">{label}</span>
+                  {/* Date AND time — six entries on the same day were previously
+                      indistinguishable, all rendering the same bare date. */}
+                  <span className="shrink-0 text-xs text-text-muted tnum">{n(formatDateTime(a.at))}</span>
+                </>
+              );
+              return href ? (
+                <Link key={a.id} href={href} className="flex items-center gap-3 rounded-xl bg-sunken px-3 py-2.5 transition-colors hover:bg-primary-subtle">
+                  {row}
+                </Link>
+              ) : (
+                <div key={a.id} className="flex items-center gap-3 rounded-xl bg-sunken px-3 py-2.5">{row}</div>
+              );
+            })
           )}
         </Card>
 

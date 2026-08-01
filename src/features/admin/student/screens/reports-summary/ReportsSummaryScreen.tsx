@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, Download, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { RELIGION, STUDENT_STATUS } from "@/shared/constants/enums";
@@ -11,6 +11,7 @@ import {
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { localDay } from "@/shared/lib/format";
 import { useStudentReport } from "../../logic/hooks";
+import type { StudentReport } from "../../logic/api";
 import { useErrorMessage } from "@/shared/services/errors";
 
 /**
@@ -49,13 +50,16 @@ export function ReportsSummaryScreen() {
             // Institution time. `toISOString().slice(0,10)` names the file
             // "yesterday" for anyone exporting after 18:00 in Dhaka (A-0.8).
             `student-summary-${localDay()}.csv`,
-            report.data.by_class.map((c) => ({
-              Class: c.name_en,
-              Sections: c.sections,
-              Boys: c.boys,
-              Girls: c.girls,
-              Total: c.total,
-            })),
+            /**
+             * C-3. This exported ONLY `by_class` while the screen displayed four
+             * KPIs, a gender ratio, a status distribution and two breakdowns —
+             * so "export the report" silently returned a fraction of it, with no
+             * way for the operator to know what was dropped. One long-format
+             * sheet (Section · Item · Count · Percent) carries every figure on
+             * screen, and unlike a wide layout it does not need reshaping each
+             * time a breakdown is added.
+             */
+            reportRows(report.data),
           )}
           disabled={!report.data}
         >
@@ -79,6 +83,16 @@ export function ReportsSummaryScreen() {
           const maxReligion = Math.max(1, ...religionEntries.map((r) => r.value));
           const ageEntries = AGE_ORDER.filter((k) => (d.by_age[k] ?? 0) > 0).map((k) => ({ label: t(AGE_LABELS[k][0], AGE_LABELS[k][1]), value: d.by_age[k] }));
           const maxAge = Math.max(1, ...ageEntries.map((a) => a.value));
+          /**
+           * C-6. Percentages in the age card are against the students whose date
+           * of birth is actually recorded, not the whole roll — otherwise every
+           * bucket is silently understated by the size of the gap. `age_known`
+           * falls back to `total` for a payload minted before the migration.
+           */
+          const ageKnown = d.age_known ?? d.total;
+          const dobMissing = d.dob_missing ?? 0;
+          const religionMissing = d.religion_missing ?? 0;
+          const dobSynthetic = d.dob_synthetic ?? 0;
           const KPIS = [
             { label: t("মোট শিক্ষার্থী", "Total Students"), value: d.total, grad: "grad-indigo", shadow: "shadow-e2", up: true },
             { label: t("ছেলে", "Boys"), value: d.boys, sub: `${pct(d.boys, d.total)}%`, grad: "grad-emerald", shadow: "shadow-e2" },
@@ -88,6 +102,22 @@ export function ReportsSummaryScreen() {
 
           return (
             <>
+              {/*
+                Generated dates of birth are still generated. The age chart below
+                is drawable and internally consistent, which is exactly why this
+                banner exists — without it a test fixture reads as a demographic
+                finding about 268 real children, and it would be printed.
+              */}
+              {dobSynthetic > 0 ? (
+                <p className="flex items-start gap-2 rounded-xl bg-warning-bg px-4 py-3 text-meta text-warning-fg" role="status">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  {t(
+                    `${n(dobSynthetic)} জন শিক্ষার্থীর জন্মতারিখ শ্রেণি অনুযায়ী তৈরি করা হয়েছে (পরীক্ষামূলক) — বয়সভিত্তিক পরিসংখ্যান প্রকৃত তথ্য নয়।`,
+                    `${dobSynthetic} students have dates of birth generated from their class (test data) — the age statistics below do not describe real students.`,
+                  )}
+                </p>
+              ) : null}
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {KPIS.map((k) => (
                   <div key={k.label} className={cn("flex flex-col gap-3 rounded-2xl px-5 py-4.5 text-white", k.grad, k.shadow)}>
@@ -183,14 +213,38 @@ export function ReportsSummaryScreen() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {religionEntries.length > 0 && (
-                  <BreakdownCard title={t("ধর্মভিত্তিক বিন্যাস", "Religion Distribution")} subtitle={t("শিক্ষার্থীদের ধর্ম অনুযায়ী সংখ্যা", "Students by religion")}
-                    rows={religionEntries.map((r) => ({ label: r.label, value: r.value, right: `${n(r.value)} (${pct(r.value, d.total)}%)` }))} maxValue={maxReligion} />
-                )}
-                {ageEntries.length > 0 && (
-                  <BreakdownCard title={t("বয়সভিত্তিক বিন্যাস", "Age Distribution")} subtitle={t("বয়স গোষ্ঠী অনুযায়ী শিক্ষার্থী সংখ্যা", "Students by age group")}
-                    rows={ageEntries.map((a) => ({ label: a.label, value: a.value, right: n(a.value) }))} maxValue={maxAge} />
-                )}
+                {/*
+                  Both cards render a NotRecorded note instead of vanishing when
+                  the underlying field is blank. A card that simply disappears
+                  tells the operator nothing; the point is that the school has
+                  data to collect, and silence reads as "nothing to see".
+                */}
+                <BreakdownCard
+                  title={t("ধর্মভিত্তিক বিন্যাস", "Religion Distribution")}
+                  subtitle={t("শিক্ষার্থীদের ধর্ম অনুযায়ী সংখ্যা", "Students by religion")}
+                  rows={religionEntries.map((r) => ({ label: r.label, value: r.value, right: `${n(r.value)} (${pct(r.value, d.total - religionMissing)}%)` }))}
+                  maxValue={maxReligion}
+                  missing={religionMissing}
+                  missingLabel={t(
+                    `${n(religionMissing)} জন শিক্ষার্থীর ধর্ম রেকর্ড করা হয়নি`,
+                    `Religion not recorded for ${religionMissing} students`,
+                  )}
+                />
+                <BreakdownCard
+                  title={t("বয়সভিত্তিক বিন্যাস", "Age Distribution")}
+                  subtitle={
+                    dobMissing > 0
+                      ? t(`${n(ageKnown)} জনের জন্মতারিখ অনুযায়ী`, `Based on the ${ageKnown} students with a recorded date of birth`)
+                      : t("বয়স গোষ্ঠী অনুযায়ী শিক্ষার্থী সংখ্যা", "Students by age group")
+                  }
+                  rows={ageEntries.map((a) => ({ label: a.label, value: a.value, right: `${n(a.value)} (${pct(a.value, ageKnown)}%)` }))}
+                  maxValue={maxAge}
+                  missing={dobMissing}
+                  missingLabel={t(
+                    `${n(dobMissing)} জন শিক্ষার্থীর জন্মতারিখ রেকর্ড করা হয়নি`,
+                    `Date of birth not recorded for ${dobMissing} students`,
+                  )}
+                />
               </div>
             </>
           );
@@ -198,6 +252,50 @@ export function ReportsSummaryScreen() {
       )}
     </div>
   );
+}
+
+/* ---------- export ---------- */
+
+/**
+ * Every figure the screen renders, as one long-format sheet (C-3).
+ *
+ * English keys and raw enum values deliberately: a CSV is opened in Excel and
+ * pivoted, not read as prose, and a Bengali-labelled column that changes with
+ * the UI locale cannot be joined against anything. The data-quality rows are
+ * included so a spreadsheet copy carries its own caveat — an export that
+ * dropped them would put the misleading 100% back, just somewhere else.
+ */
+function reportRows(d: StudentReport) {
+  const pctOf = (part: number, whole: number) => (whole > 0 ? ((part / whole) * 100).toFixed(1) : "");
+  const rows: { Section: string; Item: string; Count: number; Percent: string }[] = [];
+
+  rows.push({ Section: "Summary", Item: "Total students", Count: d.total, Percent: "" });
+  rows.push({ Section: "Summary", Item: "Boys", Count: d.boys, Percent: pctOf(d.boys, d.total) });
+  rows.push({ Section: "Summary", Item: "Girls", Count: d.girls, Percent: pctOf(d.girls, d.total) });
+
+  for (const c of d.by_class) {
+    rows.push({ Section: "Class", Item: c.name_en, Count: c.total, Percent: pctOf(c.total, d.total) });
+    rows.push({ Section: "Class · boys", Item: c.name_en, Count: c.boys, Percent: pctOf(c.boys, c.total) });
+    rows.push({ Section: "Class · girls", Item: c.name_en, Count: c.girls, Percent: pctOf(c.girls, c.total) });
+    rows.push({ Section: "Class · sections", Item: c.name_en, Count: c.sections, Percent: "" });
+  }
+  for (const [k, v] of Object.entries(d.status)) {
+    rows.push({ Section: "Status", Item: k, Count: v, Percent: pctOf(v, d.total) });
+  }
+
+  const religionKnown = d.total - (d.religion_missing ?? 0);
+  for (const [k, v] of Object.entries(d.by_religion)) {
+    rows.push({ Section: "Religion", Item: k, Count: v, Percent: pctOf(v, religionKnown) });
+  }
+  const ageKnown = d.age_known ?? d.total;
+  for (const [k, v] of Object.entries(d.by_age)) {
+    rows.push({ Section: "Age group", Item: k, Count: v, Percent: pctOf(v, ageKnown) });
+  }
+
+  rows.push({ Section: "Data quality", Item: "Date of birth not recorded", Count: d.dob_missing ?? 0, Percent: pctOf(d.dob_missing ?? 0, d.total) });
+  rows.push({ Section: "Data quality", Item: "Date of birth generated (test data)", Count: d.dob_synthetic ?? 0, Percent: pctOf(d.dob_synthetic ?? 0, d.total) });
+  rows.push({ Section: "Data quality", Item: "Religion not recorded", Count: d.religion_missing ?? 0, Percent: pctOf(d.religion_missing ?? 0, d.total) });
+  return rows;
 }
 
 /* ---------- local parts ---------- */
@@ -215,7 +313,15 @@ function CardHead({ title, subtitle }: { title: string; subtitle?: string }) {
   );
 }
 
-function BreakdownCard({ title, subtitle, rows, maxValue }: { title: string; subtitle: string; rows: { label: string; value: number; right: string }[]; maxValue: number }) {
+function BreakdownCard({ title, subtitle, rows, maxValue, missing = 0, missingLabel }: {
+  title: string;
+  subtitle: string;
+  rows: { label: string; value: number; right: string }[];
+  maxValue: number;
+  /** Students whose underlying field is blank — reported, never bucketed (C-6). */
+  missing?: number;
+  missingLabel?: string;
+}) {
   return (
     <Card>
       <CardHead title={title} subtitle={subtitle} />
@@ -230,6 +336,17 @@ function BreakdownCard({ title, subtitle, rows, maxValue }: { title: string; sub
           </div>
         ))}
       </div>
+      {/*
+        Styled as a warning, NOT as a data row: it is a statement about the
+        completeness of the record, and giving it a bar would put it back in the
+        chart it was deliberately taken out of.
+      */}
+      {missing > 0 && missingLabel ? (
+        <p className="flex items-start gap-2 rounded-lg bg-warning-bg px-3 py-2 text-meta text-warning-fg" role="status">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          {missingLabel}
+        </p>
+      ) : null}
     </Card>
   );
 }

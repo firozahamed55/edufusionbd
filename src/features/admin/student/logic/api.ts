@@ -122,6 +122,26 @@ export type StudentReport = {
   }[];
   by_religion: Record<string, number>;
   by_age: Record<string, number>;
+  /**
+   * Coverage counters for the two fields that are routinely blank on an
+   * imported roll (C-6). `by_age` is now aggregated over `age_known` rows only,
+   * so the screen MUST use these to state the gap rather than letting a bucket
+   * absorb it — a roster with no dates of birth previously rendered as
+   * "Other — 100%", which reads as a finding about the students.
+   *
+   * Optional because a client can be served a cached payload minted before the
+   * migration that added them; `?? 0` at the call site degrades to the old
+   * behaviour instead of rendering NaN.
+   */
+  age_known?: number;
+  dob_missing?: number;
+  religion_missing?: number;
+  /**
+   * Dates of birth that are PRESENT but GENERATED — distinct from missing. The
+   * age chart can be drawn from them, and must still say they do not describe
+   * real students, or a test fixture quietly becomes a demographic claim.
+   */
+  dob_synthetic?: number;
 };
 
 export async function fetchStudentReport(

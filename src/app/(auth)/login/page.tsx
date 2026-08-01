@@ -7,7 +7,7 @@ import { Smartphone, WifiOff } from "lucide-react";
 import { createClient } from "@/shared/services/supabase/client";
 import { resolveLoginEmail } from "@/features/auth/lib/identity";
 import { useT } from "@/shared/i18n/useT";
-import { Button, Input, PasswordInput, Checkbox } from "@/shared/ui";
+import { Button, Input, PasswordInput } from "@/shared/ui";
 import { AuthShell, AuthCard } from "@/features/auth/components";
 import { roleHome, isRole, safeInternalPath, ROLE_LABELS } from "@/features/auth/components/roles";
 import { useErrorMessage } from "@/shared/services/errors";
@@ -26,7 +26,7 @@ const OTP_ENABLED = process.env.NEXT_PUBLIC_OTP_ENABLED === "true";
 /**
  * Login — Figma split-panel. Primary identifier is a mobile number (how
  * Bangladeshi parents log in); an email is also accepted so the existing
- * Supabase email/password flow keeps working (audit 7.2). Includes remember-me,
+ * Supabase email/password flow keeps working (audit 7.2). Includes
  * show/hide password, forgot-password link, field-level validation, offline and
  * account-locked states, and the MFA hand-off.
  */
@@ -41,7 +41,6 @@ export default function LoginPage() {
   const selectedRole = isRole(roleParam) ? roleParam : null;
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,9 +51,6 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    // ponytail: @supabase/ssr persists the session in cookies regardless of
-    // `remember`, so the toggle is a UX affordance today. Wire a session-scoped
-    // cookie override here if true "forget on close" is required.
     const { data, error } = await supabase.auth.signInWithPassword({
       email: resolveLoginEmail(identifier),
       password,
@@ -181,11 +177,16 @@ export default function LoginPage() {
             hideLabel={t("পাসওয়ার্ড লুকান", "Hide password")}
           />
 
-          <div className="mb-5 mt-3 flex items-center justify-between">
-            <label className="flex items-center gap-2 text-meta text-text-secondary">
-              <Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-              {t("আমাকে মনে রাখুন", "Remember me")}
-            </label>
+          {/*
+            SRA A-6. "Remember me" was here, checked by default, and did nothing:
+            @supabase/ssr persists the session in cookies regardless of the flag,
+            as the comment in `onSubmit` conceded. A checked control that does not
+            do what it says is the dead-control defect (F-3) on the most-viewed
+            screen in the product. Removed rather than faked — sessions already
+            persist, which is the behaviour the checkbox claimed. It comes back
+            the day there is a session-scoped cookie for it to actually toggle.
+          */}
+          <div className="mb-5 mt-3 flex items-center justify-end">
             <Link
               href="/forgot-password"
               className="text-meta font-medium text-primary hover:opacity-80"
