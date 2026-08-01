@@ -225,8 +225,28 @@
   --text-h1: 2.5rem;         /* 40px — 404, style guide */
 }
 
-* {
-  border-color: var(--color-border-default);
+/*
+  The default border colour, restoring what Tailwind v3's preflight used to do.
+
+  IT MUST BE IN `@layer base`. Unlayered it was, and CSS cascade layers rank
+  unlayered declarations ABOVE every layered one — so this single rule was
+  silently beating `@layer utilities` and flattening the border colour of every
+  element in the product to `--color-border-default`. Nothing else was wrong
+  with the design system; `.aria-invalid\:border-danger-solid[aria-invalid=…]`,
+  `.focus\:border-primary:focus` and `.border-border-control` were all being
+  generated correctly and all being overridden.
+
+  What that cost, before it was found by an invalid field that would not turn
+  red: no control ever changed border on focus, no invalid field ever showed
+  one, and the `border-border-control` / `border-border-strong` distinction the
+  form primitives are careful about — the 3:1 an interactive boundary owes
+  under SC 1.4.11 — had never once applied. Every border in ~110 admin screens
+  rendered at #ececf0, which does not come close to 3:1 on white.
+*/
+@layer base {
+  * {
+    border-color: var(--color-border-default);
+  }
 }
 
 html {
@@ -311,13 +331,21 @@ body {
 
 [data-theme="dark"] {
   /* Dark deepens the rail rather than inverting it. A rail that goes pale in
-     dark mode loses the brand anchor the whole screen is built around. */
-  --auth-ink: #0c0a20;
+     dark mode loses the brand anchor the whole screen is built around.
+     It cannot deepen all the way to the canvas, though: at #0c0a20 the rail and
+     the dark form column read as one flat field and the split panel stops being
+     a split panel. This sits far enough above the canvas to hold its edge, and
+     the hairline on `.auth-rail` finishes the job. */
+  --auth-ink: #14113a;
   --auth-accent: #3730a3;
 }
 
 .auth-rail {
   background-color: var(--auth-ink);
+  /* The edge between the two panels. In light the luminance gap does this on
+     its own; in dark it does not, and a hairline is the restrained fix — the
+     alternative is lifting the ink until the rail stops reading as ink. */
+  border-inline-end: 1px solid rgb(255 255 255 / 0.08);
   /* One wash, centred off the bottom-left corner so it lifts the panel from
      under the text rather than sitting behind it. Static, by design. */
   background-image: radial-gradient(

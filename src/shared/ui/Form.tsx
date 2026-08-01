@@ -113,12 +113,19 @@ export function Field({
  */
 const FieldErrorContext = createContext<string | undefined>(undefined);
 
-function useFieldError() {
+/**
+ * Exported for `PasswordInput`, which lives in its own file because of the
+ * show/hide toggle but is otherwise the same control and owes the same
+ * `aria-invalid` / `aria-describedby` contract. It had neither until the auth
+ * redesign, so a `Field` wrapping a password rendered the message and left the
+ * input unassociated — the half-fix is worse than none, because it looks done.
+ */
+export function useFieldError() {
   const id = useContext(FieldErrorContext);
   return id ? { "aria-invalid": true as const, "aria-describedby": id } : {};
 }
 
-const controlBase =
+export const controlBase =
   "h-10.5 w-full rounded-lg border border-border-control bg-surface px-3 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-sunken disabled:text-text-muted aria-invalid:border-danger-solid";
 
 export function Input({
