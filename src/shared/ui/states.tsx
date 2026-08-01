@@ -1,4 +1,4 @@
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Lock } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import type { ReactNode } from "react";
 
@@ -95,6 +95,58 @@ export function ErrorState({
         ) : null}
       </div>
       {action}
+    </div>
+  );
+}
+
+/**
+ * "You do not have access", as distinct from "there is nothing here".
+ *
+ * Settings audit M-4. The database gates `profile` and `user_role` on
+ * `core.user_manage` and `audit_log` on `audit.read`, while the navigation rail
+ * gates all eleven Settings screens on `core.settings` alone. So an operator
+ * holding only `core.settings` could open Users & Roles and see an empty
+ * table — RLS working exactly as designed, and indistinguishable from a school
+ * that has not added anyone yet.
+ *
+ * An empty state in that position is worse than a refusal: it reads as a bug,
+ * it gets reported as one, and the person answering the ticket has to work out
+ * that the product was correct. Say so instead.
+ *
+ * The `permission` code is shown deliberately. Whoever the operator asks for
+ * access needs to know what to grant, and it is not a secret — it is printed in
+ * the permission matrix.
+ */
+export function NoAccessState({
+  title,
+  description,
+  permission,
+  className,
+}: {
+  title: string;
+  description?: string;
+  permission?: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-3 rounded-2xl border border-border-strong bg-sunken px-6 py-14 text-center",
+        className,
+      )}
+    >
+      <span className="grid size-12 place-items-center rounded-2xl bg-surface text-text-muted">
+        <Lock size={22} aria-hidden />
+      </span>
+      <div className="flex flex-col gap-1">
+        <p className="text-body font-semibold text-text-primary">{title}</p>
+        {description ? (
+          <p className="mx-auto max-w-sm text-sm text-text-muted">{description}</p>
+        ) : null}
+        {permission ? (
+          <p className="mx-auto mt-1 font-latin text-micro text-text-muted">{permission}</p>
+        ) : null}
+      </div>
     </div>
   );
 }

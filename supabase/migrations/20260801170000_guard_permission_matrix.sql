@@ -58,7 +58,11 @@ grant execute on function public.fn_permission_matrix() to authenticated;
 -- This is the finding that justifies the sweep: nobody was looking for it, and
 -- it is worse than the one that was actually reported.
 -- ---------------------------------------------------------------------------
-create or replace function public.fn_resolve_sms_recipients(p_audience text, p_class_section_id uuid)
+-- The default on `p_class_section_id` is load-bearing: PostgREST calls this
+-- with the argument omitted for institution-wide audiences, and dropping it
+-- from the signature is an error Postgres refuses outright rather than a
+-- silent break.
+create or replace function public.fn_resolve_sms_recipients(p_audience text, p_class_section_id uuid default null::uuid)
 returns jsonb language plpgsql stable security definer set search_path to '' as $fn$
 begin
   perform private.require_permission('sms.view');

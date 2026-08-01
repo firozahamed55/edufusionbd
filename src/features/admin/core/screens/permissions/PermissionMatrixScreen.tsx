@@ -6,12 +6,12 @@ import { Check, Minus, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import {
-  Skeleton, ErrorState, EmptyState, PageHeader, LiveRegion, Badge, buttonClass,
+  Skeleton, ErrorState, EmptyState, NoAccessState, PageHeader, LiveRegion, Badge, buttonClass,
   Table, THead, TBody, TR, TH, TD,
 } from "@/shared/ui";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { localDay } from "@/shared/lib/format";
-import { useErrorMessage } from "@/shared/services/errors";
+import { useErrorMessage, classifyError } from "@/shared/services/errors";
 import { usePermissionMatrix } from "../../logic/hooks";
 
 /**
@@ -93,7 +93,20 @@ export function PermissionMatrixScreen() {
         </Link>
       </div>
 
-      {q.isError ? (
+      {/* `fn_permission_matrix` is gated on `core.user_manage` (audit M-2). A
+          caller without it gets 42501, which is an access decision, not a
+          failure — an ErrorState here would tell an operator to retry
+          something that will never work. */}
+      {q.isError && classifyError(q.error) === "forbidden" ? (
+        <NoAccessState
+          title={t("এই পাতা দেখার অনুমতি নেই", "You do not have access to this page")}
+          description={t(
+            "ভূমিকা ও অনুমতি দেখতে ব্যবহারকারী ব্যবস্থাপনার অনুমতি প্রয়োজন। প্রতিষ্ঠানের অ্যাডমিনকে জানান।",
+            "Viewing roles and permissions needs user-management access. Ask your institution's administrator.",
+          )}
+          permission="core.user_manage"
+        />
+      ) : q.isError ? (
         <ErrorState title={t("ম্যাট্রিক্স লোড করা যায়নি", "Could not load the matrix")} description={msg(q.error)} />
       ) : q.isLoading ? (
         <Skeleton className="h-96 rounded-2xl" />

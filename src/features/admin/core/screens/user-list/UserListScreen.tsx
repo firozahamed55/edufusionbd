@@ -5,14 +5,14 @@ import Link from "next/link";
 import { Users, ShieldCheck, UserCheck, UserX, KeyRound, Info } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
-  Skeleton, EmptyState, ErrorState, PageHeader, Pagination, LiveRegion, DataToolbar,
+  Skeleton, EmptyState, ErrorState, NoAccessState, PageHeader, Pagination, LiveRegion, DataToolbar,
   Badge, Button, buttonClass, Modal, Checkbox, ConfirmDialog, DangerConfirm, useToast, RowActions,
   Table, THead, TBody, TR, TH, TD, TableEmpty, SortableTH,
 } from "@/shared/ui";
 import { useDataScreen, applyClientList } from "@/shared/lib/useDataScreen";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { formatDateTime, localDay } from "@/shared/lib/format";
-import { useErrorMessage } from "@/shared/services/errors";
+import { useErrorMessage, classifyError } from "@/shared/services/errors";
 import {
   useUsers, usePermissionMatrix, useSetUserRoles, useSetUserStatus,
 } from "../../logic/hooks";
@@ -60,6 +60,9 @@ export function UserListScreen() {
 
   const all = q.data?.rows ?? [];
   const total = q.data?.total ?? 0;
+  // The matrix RPC is the reliable signal: it raises 42501 without
+  // `core.user_manage`, where the `profile` read just returns nothing.
+  const noAccess = matrix.isError && classifyError(matrix.error) === "forbidden";
   // Sorting is client-side over the fetched page. The columns worth sorting —
   // roles and last sign-in — are a joined aggregate and a nullable timestamp;
   // ordering the query by either would page differently than it displays.
@@ -147,7 +150,21 @@ export function UserListScreen() {
         exportPageCount={rows.length}
       />
 
-      {q.isError ? (
+      {/* Audit M-4. Without `core.user_manage`, RLS returns zero rows and the
+          screen used to render "No users yet" — a correct system that looks
+          broken, and gets reported as a bug rather than as an access decision.
+          `noAccess` is derived from the matrix query rather than from the row
+          count, because zero rows is genuinely ambiguous and 42501 is not. */}
+      {noAccess ? (
+        <NoAccessState
+          title={t("এই পাতা দেখার অনুমতি নেই", "You do not have access to this page")}
+          description={t(
+            "ব্যবহারকারী ও ভূমিকা দেখতে ও পরিবর্তন করতে ব্যবহারকারী ব্যবস্থাপনার অনুমতি প্রয়োজন।",
+            "Viewing and changing users and roles needs user-management access.",
+          )}
+          permission="core.user_manage"
+        />
+      ) : q.isError ? (
         <ErrorState title={t("ব্যবহারকারী লোড করা যায়নি", "Could not load users")} description={msg(q.error)} />
       ) : !q.isLoading && total === 0 && !ds.isFiltered ? (
         <EmptyState icon={<Users size={22} />} title={t("কোনো ব্যবহারকারী নেই", "No users yet")} />
