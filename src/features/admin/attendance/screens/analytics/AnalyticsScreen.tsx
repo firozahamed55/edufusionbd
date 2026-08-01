@@ -150,6 +150,7 @@ export function AnalyticsScreen() {
                   AbsentDays: r.absent,
                   Rate: r.rate,
                 })),
+                { kind: "attendance.at_risk", params: { from, to } },
               )
             }
             exportAllCount={all.length}

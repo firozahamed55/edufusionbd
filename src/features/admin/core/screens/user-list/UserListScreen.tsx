@@ -141,6 +141,7 @@ export function UserListScreen() {
               Status: r.status,
               LastSignIn: r.lastLoginAt ?? "",
             })),
+            { kind: "core.user_list" },
           )
         }
         exportPageCount={rows.length}

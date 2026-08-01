@@ -151,6 +151,7 @@ export function AuditLogScreen() {
               Action: r.action,
               ChangedBy: r.changedByName ?? "System",
             })),
+            { kind: "core.audit_log" },
           )
         }
         exportPageCount={rows.length}

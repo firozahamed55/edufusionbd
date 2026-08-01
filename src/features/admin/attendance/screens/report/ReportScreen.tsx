@@ -123,6 +123,7 @@ export function ReportScreen() {
                   WorkingDays: r.total,
                   Rate: r.rate,
                 })),
+                { kind: "attendance.report", params: { from, to } },
               )
             }
             exportAllCount={all.length}

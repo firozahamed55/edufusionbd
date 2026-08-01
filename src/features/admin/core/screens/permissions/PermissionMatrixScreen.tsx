@@ -183,6 +183,7 @@ export function PermissionMatrixScreen() {
                     Code: p.code,
                     ...Object.fromEntries(roles.map((r) => [r.code, has(r.id, p.id) ? "yes" : "no"])),
                   })),
+                  { kind: "core.permission_matrix" },
                 )
               }
               className={buttonClass("secondary")}

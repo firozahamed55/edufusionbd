@@ -5576,6 +5576,7 @@ export type Database = {
       fn_import_marks: { Args: { payload: Json }; Returns: Json }
       fn_import_students: { Args: { payload: Json }; Returns: Json }
       fn_import_teachers: { Args: { payload: Json }; Returns: Json }
+      fn_log_export: { Args: { payload: Json }; Returns: undefined }
       fn_mark_attendance: { Args: { payload: Json }; Returns: number }
       fn_my_permissions: { Args: never; Returns: string[] }
       fn_permission_matrix: { Args: never; Returns: Json }
