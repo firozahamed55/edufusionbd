@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserRound, FileText, Upload, Info } from "lucide-react";
+import { UserRound, Info } from "lucide-react";
 import { GENDER, RELIGION, BLOOD_GROUP } from "@/shared/constants/enums";
 import { useT } from "@/shared/i18n/useT";
-import { Button, FormCard, Field, Input, Select, Checkbox, SaveBar, UnsavedDot, useToast } from "@/shared/ui";
+import { Button, FormCard, Field, Input, Select, Checkbox, SaveBar, UnsavedDot, useToast, FileDrop } from "@/shared/ui";
+import { createClient } from "@/shared/services/supabase/client";
+import { useInstitutionId } from "@/shared/services/institution/hooks";
+import { attachStudentFiles, type StudentDocType } from "../../logic/attachments";
 import { useZodForm } from "@/shared/lib/useZodForm";
 import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import {
@@ -35,11 +38,23 @@ const EMPTY: RegisterFormValues = {
   permanent_division_id: "", permanent_district_id: "", permanent_upazila_id: "", permanent_village: "", permanent_house_road: "",
 };
 
+/** The three document slots the form has always shown, now with a stored
+ *  `student_document.type` behind each label instead of a dead button. */
+const DOC_SLOTS: { type: StudentDocType; bn: string; en: string }[] = [
+  { type: "birth_certificate", bn: "জন্ম নিবন্ধন সনদ", en: "Birth Certificate" },
+  { type: "previous_tc", bn: "পূর্ববর্তী স্কুলের ছাড়পত্র", en: "Previous School TC" },
+  { type: "guardian_nid", bn: "অভিভাবকের NID কপি", en: "Guardian NID copy" },
+];
+
 export function RegistrationScreen() {
   const { t, isBn } = useT();
   const msg = useErrorMessage();
   const toast = useToast();
   const [sameAsPresent, setSameAsPresent] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [docs, setDocs] = useState<Partial<Record<StudentDocType, File | null>>>({});
+  const [attaching, setAttaching] = useState(false);
+  const institutionId = useInstitutionId();
 
   /**
    * Inline, per-field validation (SRA F-1). This screen used to gate on a
@@ -98,11 +113,40 @@ export function RegistrationScreen() {
         : {}),
     };
     mutate(payload, {
-      onSuccess: (id) => {
+      onSuccess: async (id) => {
         toast({ title: t("শিক্ষার্থী সফলভাবে ভর্তি হয়েছে", "Student registered successfully"), variant: "success" });
+
+        // Phase two. The registration itself has already succeeded, so a
+        // failure here is reported as its own thing — telling the operator
+        // "save failed" would send them back through 31 fields for a record
+        // that exists.
+        const hasFiles = !!photo || Object.values(docs).some(Boolean);
+        if (hasFiles && id && institutionId.data) {
+          setAttaching(true);
+          try {
+            const failed = await attachStudentFiles(createClient(), {
+              institutionId: institutionId.data,
+              studentId: id,
+              files: { photo, documents: docs },
+            });
+            if (failed.length > 0) {
+              toast({
+                title: t(
+                  `শিক্ষার্থী সংরক্ষিত, তবে ${failed.length}টি ফাইল আপলোড হয়নি`,
+                  `Student saved, but ${failed.length} file(s) did not upload`,
+                ),
+                variant: "error",
+              });
+            }
+          } finally {
+            setAttaching(false);
+          }
+        }
+
         form.reset(EMPTY);
         setSameAsPresent(false);
-        void id;
+        setPhoto(null);
+        setDocs({});
       },
       onError: (e: unknown) =>
         toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
@@ -276,24 +320,31 @@ export function RegistrationScreen() {
           </FormCard>
         </div>
 
-        {/* Right rail: photo / documents (upload wired in a later pass) */}
+        {/* Right rail: photo / documents — live (SRA A-2.1 item 1). Bytes are
+            held here and uploaded on save, because the storage path needs the
+            student id `fn_register_student` has not minted yet. */}
         <div className="flex flex-col gap-5">
           <FormCard>
             <h2 className="text-center text-base font-semibold text-text-primary">{t("শিক্ষার্থীর ছবি", "Student Photo")}</h2>
-            <div className="flex flex-col items-center gap-2.5 rounded-xl border border-dashed border-border-strong bg-sunken px-5 py-6 text-center">
+            <FileDrop
+              label={t("শিক্ষার্থীর ছবি", "Student photo")}
+              onChange={(file) => setPhoto(file)}
+              uploading={attaching}
+            >
               <span className="grid size-14 place-items-center rounded-xl bg-primary-subtle text-primary"><UserRound size={26} /></span>
-              <p className="text-sm font-medium text-text-secondary">{t("ছবি টেনে আনুন বা নির্বাচন করুন", "Drag or select a photo")}</p>
-              <p className="text-xs text-text-muted">JPG/PNG • {t("সর্বোচ্চ ২ MB", "max 2 MB")}</p>
-            </div>
+            </FileDrop>
           </FormCard>
           <FormCard title={t("ডকুমেন্ট", "Documents")}>
             <div className="flex flex-col gap-2">
-              {[t("জন্ম নিবন্ধন সনদ", "Birth Certificate"), t("পূর্ববর্তী স্কুলের ছাড়পত্র", "Previous School TC"), t("অভিভাবকের NID কপি", "Guardian NID copy")].map((doc) => (
-                <div key={doc} className="flex items-center gap-3 rounded-lg border border-border-default bg-surface px-3 py-2.5">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sunken text-text-secondary"><FileText size={16} /></span>
-                  <span className="min-w-0 flex-1 truncate text-meta text-text-secondary">{doc}</span>
-                  <button className="flex shrink-0 items-center gap-1 text-meta font-semibold text-primary hover:underline"><Upload size={14} /> {t("আপলোড", "Upload")}</button>
-                </div>
+              {DOC_SLOTS.map((slot) => (
+                <FileDrop
+                  key={slot.type}
+                  compact
+                  accept="image/*,application/pdf"
+                  label={t(slot.bn, slot.en)}
+                  uploading={attaching}
+                  onChange={(file) => setDocs((p) => ({ ...p, [slot.type]: file }))}
+                />
               ))}
             </div>
           </FormCard>

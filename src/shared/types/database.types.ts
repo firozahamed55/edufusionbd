@@ -252,6 +252,13 @@ export type Database = {
       }
       admit_card_batch: {
         Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          card_count: number | null
+          created_by: string | null
+          status: string
+          student_ids: string[] | null
+          theme: string | null
           center: string | null
           class_id: string | null
           created_at: string
@@ -265,6 +272,13 @@ export type Database = {
           section_id: string | null
         }
         Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          card_count?: number | null
+          created_by?: string | null
+          status?: string
+          student_ids?: string[] | null
+          theme?: string | null
           center?: string | null
           class_id?: string | null
           created_at?: string
@@ -278,6 +292,13 @@ export type Database = {
           section_id?: string | null
         }
         Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          card_count?: number | null
+          created_by?: string | null
+          status?: string
+          student_ids?: string[] | null
+          theme?: string | null
           center?: string | null
           class_id?: string | null
           created_at?: string
@@ -2062,6 +2083,13 @@ export type Database = {
       }
       id_card_batch: {
         Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          card_count: number | null
+          created_by: string | null
+          status: string
+          student_ids: string[] | null
+          theme: string | null
           class_color: string | null
           class_id: string | null
           created_at: string
@@ -2075,6 +2103,13 @@ export type Database = {
           valid_till: string | null
         }
         Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          card_count?: number | null
+          created_by?: string | null
+          status?: string
+          student_ids?: string[] | null
+          theme?: string | null
           class_color?: string | null
           class_id?: string | null
           created_at?: string
@@ -2088,6 +2123,13 @@ export type Database = {
           valid_till?: string | null
         }
         Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          card_count?: number | null
+          created_by?: string | null
+          status?: string
+          student_ids?: string[] | null
+          theme?: string | null
           class_color?: string | null
           class_id?: string | null
           created_at?: string
@@ -4802,6 +4844,7 @@ export type Database = {
       }
       testimonial: {
         Row: {
+          issued_by: string | null
           cert_no: string | null
           conduct: string | null
           created_at: string
@@ -4816,6 +4859,7 @@ export type Database = {
           student_id: string
         }
         Insert: {
+          issued_by?: string | null
           cert_no?: string | null
           conduct?: string | null
           created_at?: string
@@ -4830,6 +4874,7 @@ export type Database = {
           student_id: string
         }
         Update: {
+          issued_by?: string | null
           cert_no?: string | null
           conduct?: string | null
           created_at?: string
@@ -4954,6 +4999,7 @@ export type Database = {
       }
       transfer_certificate: {
         Row: {
+          issued_by: string | null
           cert_no: string | null
           cert_type: string | null
           created_at: string
@@ -4968,6 +5014,7 @@ export type Database = {
           student_id: string
         }
         Insert: {
+          issued_by?: string | null
           cert_no?: string | null
           cert_type?: string | null
           created_at?: string
@@ -4982,6 +5029,7 @@ export type Database = {
           student_id: string
         }
         Update: {
+          issued_by?: string | null
           cert_no?: string | null
           cert_type?: string | null
           created_at?: string
@@ -5431,12 +5479,17 @@ export type Database = {
       }
     }
     Functions: {
+      fn_attach_student_file: { Args: { payload: Json }; Returns: undefined }
       fn_attendance_summary: {
         // `p_class_section_id` is nullable and means institution-wide. The
         // generator emits every uuid argument as non-null; keep this hand
         // widened, or the Analytics screen cannot express its own default.
         Args: { p_class_section_id: string | null; p_from: string; p_to: string }
         Returns: Json
+      }
+      fn_cancel_document_batch: {
+        Args: { p_kind: string; p_id: string; p_reason: string }
+        Returns: undefined
       }
       fn_collect_fee: { Args: { payload: Json }; Returns: string }
       fn_create_admit_batch: { Args: { payload: Json }; Returns: string }
@@ -5502,6 +5555,10 @@ export type Database = {
         Returns: Json
       }
       fn_unpaid_by_institute: { Args: never; Returns: Json }
+      fn_verify_document: {
+        Args: { p_kind: string; p_id: string }
+        Returns: Json
+      }
       fn_update_institution: { Args: { payload: Json }; Returns: undefined }
       fn_update_student_basic: { Args: { payload: Json }; Returns: string }
       fn_update_teacher: { Args: { payload: Json }; Returns: string }

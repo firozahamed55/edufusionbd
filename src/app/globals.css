@@ -387,6 +387,51 @@ textarea:focus-visible,
     content: " (" attr(href) ")";
     font-size: 90%;
   }
+
+  /*
+    DOCUMENT PREVIEW (SRA A-0.5 / A-7). `shared/documents/DocumentPreview`
+    portals itself to <body> and sets `data-doc-open` on <html> while mounted,
+    so an artefact opened on top of a screen prints ALONE. Without this the
+    screen underneath prints too: `data-print="hide"` only covers the chrome
+    someone remembered to opt out, and no screen's content is opted out.
+  */
+  [data-doc-open] body > *:not([data-doc-root]) {
+    display: none !important;
+  }
+
+  /* The overlay is fixed-position on screen — which prints exactly one
+     viewport. It must flow normally so a 40-page card batch is 40 pages. */
+  [data-doc-root] {
+    position: static !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  [data-doc-root] * {
+    overflow: visible !important;
+  }
+  /* Zoom is a preview affordance. Paper is 100%. */
+  [data-doc-pages] {
+    transform: none !important;
+    display: block !important;
+    width: auto !important;
+    gap: 0 !important;
+  }
+  [data-doc-page] {
+    break-after: page;
+    break-inside: avoid;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  [data-doc-page]:last-child {
+    break-after: auto;
+  }
+
+  /* An artefact is a legal-adjacent object: its tints and rules are part of
+     the layout, and a browser that drops backgrounds prints a blank frame. */
+  [data-doc-root] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 
 /*

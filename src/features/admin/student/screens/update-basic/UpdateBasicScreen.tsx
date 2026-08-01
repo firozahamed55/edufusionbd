@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Pencil, Users } from "lucide-react";
+import { Pencil, Users, UserRound } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import { GENDER, RELIGION, BLOOD_GROUP, BLOOD_TOKEN, BLOOD_LABEL } from "@/shared/constants/enums";
 import {
   Button, Field, Select, Input, Skeleton, EmptyState, ErrorState, Modal, useToast,
-  PageHeader, Pagination, LiveRegion, DataToolbar, Badge, RowActions,
+  PageHeader, Pagination, LiveRegion, DataToolbar, Badge, RowActions, FileDrop,
   Table, THead, TBody, TR, TH, TD, TableEmpty, SortableTH,
 } from "@/shared/ui";
+import { createClient } from "@/shared/services/supabase/client";
+import { useInstitutionId } from "@/shared/services/institution/hooks";
+import { attachStudentFiles } from "../../logic/attachments";
 import { useDataScreen, applyClientList } from "@/shared/lib/useDataScreen";
 import { exportCsv } from "@/shared/lib/exportCsv";
 import { localDay } from "@/shared/lib/format";
@@ -194,6 +197,8 @@ function EditModal({ studentId, onClose }: { studentId: string; onClose: () => v
   const categories = useStudentCategories();
   const update = useUpdateStudentBasic();
   const [f, setF] = useState<Record<string, string> | null>(null);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const institutionId = useInstitutionId();
 
   const values = f ?? (detail.data
     ? { ...detail.data, blood_group: detail.data.blood_group ? BLOOD_LABEL[detail.data.blood_group] ?? "" : "" }
@@ -219,7 +224,27 @@ function EditModal({ studentId, onClose }: { studentId: string; onClose: () => v
       student_category_id: values.student_category_id,
     };
     update.mutate(payload, {
-      onSuccess: () => { toast({ title: t("তথ্য হালনাগাদ হয়েছে", "Info updated"), variant: "success" }); onClose(); },
+      onSuccess: async () => {
+        // The photo is what makes an ID card an ID card (SRA A-7 point 4), and
+        // every student already on the roll was admitted before the upload
+        // existed — so it has to be attachable here, not only at admission.
+        if (photo && institutionId.data) {
+          try {
+            const failed = await attachStudentFiles(createClient(), {
+              institutionId: institutionId.data,
+              studentId,
+              files: { photo },
+            });
+            if (failed.length > 0) {
+              toast({ title: t("তথ্য সংরক্ষিত, ছবি আপলোড হয়নি", "Info saved, photo did not upload"), variant: "error" });
+            }
+          } catch {
+            toast({ title: t("তথ্য সংরক্ষিত, ছবি আপলোড হয়নি", "Info saved, photo did not upload"), variant: "error" });
+          }
+        }
+        toast({ title: t("তথ্য হালনাগাদ হয়েছে", "Info updated"), variant: "success" });
+        onClose();
+      },
       onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
@@ -257,6 +282,14 @@ function EditModal({ studentId, onClose }: { studentId: string; onClose: () => v
               <Select value={values.religion} onChange={(e) => up("religion", e.target.value)} placeholder={t("নির্বাচন", "Select")} options={RELIGION.map((r) => ({ value: r.value, label: isBn ? r.bn : r.en }))} />
             </Field>
           </div>
+          <FileDrop
+            label={t("শিক্ষার্থীর ছবি", "Student photo")}
+            existingUrl={detail.data?.photoUrl ?? null}
+            onChange={setPhoto}
+            uploading={update.isPending}
+          >
+            <span className="grid size-14 place-items-center rounded-xl bg-primary-subtle text-primary"><UserRound size={26} /></span>
+          </FileDrop>
           <div className="grid grid-cols-2 gap-4">
             <Field label={t("জন্ম নিবন্ধন", "Birth Reg.")}><Input value={values.birth_reg_no} onChange={(e) => up("birth_reg_no", e.target.value)} className="font-latin" /></Field>
             <Field label={t("ক্যাটাগরি", "Category")}>

@@ -29,3 +29,4 @@ export { DangerConfirm } from "./DangerConfirm";
 export { OfflineBanner } from "./OfflineBanner";
 export { ToastProvider, useToast } from "./Toast";
 export { BarChart, Donut, type BarDatum } from "./Chart";
+export { FileDrop } from "./FileDrop";

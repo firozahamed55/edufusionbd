@@ -48,6 +48,12 @@ export const queryKeys = {
     me: ["admin", "me"] as const,
   },
 
+  /** The caller's own institution id — needed by every storage upload path. */
+  institution: {
+    all: ["institution"] as const,
+    currentId: ["institution", "current-id"] as const,
+  },
+
   attendance: {
     all: ["attendance"] as const,
     exams: (yearId: Id) => ["attendance", "exams", yearId] as const,
@@ -67,7 +73,25 @@ export const queryKeys = {
     admitBatches: ["cert", "admit-batches"] as const,
     testimonials: ["cert", "testimonials"] as const,
     transfers: ["cert", "transfers"] as const,
+    examSubjects: (examId: Id, classId: Id) => ["cert", "exam-subjects", examId, classId] as const,
     setting: (key: string, scope: string) => ["cert", "setting", key, scope] as const,
+  },
+
+  /** Printed-artefact chrome: letterhead, signatures, signed photo URLs. */
+  documents: {
+    all: ["documents"] as const,
+    letterhead: ["documents", "letterhead"] as const,
+    signatures: ["documents", "signatures"] as const,
+    photos: (fileIds: readonly string[]) => ["documents", "photos", fileIds] as const,
+    /** Keyed by the whole SPEC, not the batch id: the ID-card screen previews
+     *  an unsaved draft whose id is the constant "draft", so keying on the id
+     *  would serve the first class the operator picked for every later one. */
+    batchStudents: (spec: Record<string, unknown> | null) => ["documents", "batch-students", spec] as const,
+    seatNumbers: (batchId: Id) => ["documents", "seat-numbers", batchId] as const,
+    certificate: (kind: string, id: Id) => ["documents", "certificate", kind, id] as const,
+    receipt: (paymentId: Id) => ["documents", "receipt", paymentId] as const,
+    marksheet: (examId: Id, studentId: Id) => ["documents", "marksheet", examId, studentId] as const,
+    tabulation: (examId: Id, sectionId: Id) => ["documents", "tabulation", examId, sectionId] as const,
   },
 
   core: {

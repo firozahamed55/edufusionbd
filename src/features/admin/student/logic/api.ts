@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { BrowserClient } from "@/shared/services/supabase/types";
 import { isoDate, shortText, uuid } from "@/shared/lib/validation";
 import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
+import { getAssetSignedUrl } from "@/shared/lib/institutionAssets";
 
 /** Migration batches offered for pushback (see `fetchMigrationBatches`). */
 const RECENT_BATCHES = 100;
@@ -31,6 +32,9 @@ export type StudentBasic = {
   birth_reg_no: string;
   nationality: string;
   student_category_id: string;
+  /** Signed URL of the stored photo, so the edit modal shows what is on file
+   *  rather than an empty dropzone over a student who already has one. */
+  photoUrl: string | null;
 };
 
 export async function fetchStudentBasic(
@@ -40,12 +44,14 @@ export async function fetchStudentBasic(
   const { data, error } = await supabase
     .from("student")
     .select(
-      "id, student_code, name_bn, name_en, dob, gender, blood_group, religion, birth_reg_no, nationality, student_category_id",
+      "id, student_code, name_bn, name_en, dob, gender, blood_group, religion, birth_reg_no, nationality, student_category_id, photo_file_id",
     )
     .eq("id", studentId)
     .single();
   if (error) throw error;
   const t = data;
+  // A broken signed URL must not take the edit modal down with it.
+  const photoUrl = t.photo_file_id ? await getAssetSignedUrl(supabase, t.photo_file_id).catch(() => null) : null;
   return {
     id: s(t.id),
     student_code: (t.student_code as string) ?? null,
@@ -58,6 +64,7 @@ export async function fetchStudentBasic(
     birth_reg_no: s(t.birth_reg_no),
     nationality: s(t.nationality) || "বাংলাদেশি",
     student_category_id: s(t.student_category_id),
+    photoUrl,
   };
 }
 
