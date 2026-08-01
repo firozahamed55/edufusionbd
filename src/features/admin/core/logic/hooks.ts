@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/shared/services/supabase/client";
 import type { RpcPayload } from "@/shared/services/supabase/types";
 import * as api from "./api";
+import * as cal from "./calendar";
 import { queryKeys } from "@/shared/services/queryKeys";
 import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
@@ -88,3 +89,41 @@ export const useSetUserStatus = () =>
     (v: { profileId: string; status: "active" | "suspended" }) => api.setUserStatus(c(), v.profileId, v.status),
     [queryKeys.core.usersAll],
   );
+
+/* ------------------------------------------------------ academic calendar */
+
+export const useCalendarRange = (from: string, to: string) =>
+  useQuery({ queryKey: queryKeys.core.calendar(from, to), queryFn: () => cal.fetchCalendarRange(c(), from, to) });
+
+/**
+ * Is this a teaching day? Asked by the attendance screens before a register is
+ * marked. Long staleTime — the calendar changes when someone edits it, not
+ * while a teacher marks a class — and every attendance screen shares the entry.
+ */
+export const useDayStatus = (date: string | null) =>
+  useQuery({
+    queryKey: queryKeys.core.calendarDay(date ?? ""),
+    queryFn: () => cal.fetchDayStatus(c(), date as string),
+    enabled: !!date,
+    staleTime: 5 * 60_000,
+  });
+
+// Both calendar writes invalidate the whole domain, not one month: a range can
+// span months, and `calendarDay` entries for the affected dates are cached
+// under a different key shape.
+export const useSetCalendarRange = () =>
+  useMut((p: Parameters<typeof cal.setCalendarRange>[1]) => cal.setCalendarRange(c(), p), [queryKeys.core.calendarAll]);
+export const useClearCalendarRange = () =>
+  useMut((v: { from: string; to: string }) => cal.clearCalendarRange(c(), v.from, v.to), [queryKeys.core.calendarAll]);
+
+export const useTerms = (yearId: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.core.terms(yearId),
+    queryFn: () => cal.fetchTerms(c(), yearId as string),
+    enabled: !!yearId,
+  });
+
+export const useUpsertTerm = () =>
+  useMut((p: Parameters<typeof cal.upsertTerm>[1]) => cal.upsertTerm(c(), p), [queryKeys.core.termsAll]);
+export const useDeleteTerm = () =>
+  useMut((id: string) => cal.deleteTerm(c(), id), [queryKeys.core.termsAll]);

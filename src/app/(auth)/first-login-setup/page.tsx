@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Button, PasswordInput, PasswordRequirements, Stepper } from "@/shared/ui";
+import { Button, Input, PasswordInput, PasswordRequirements, Stepper } from "@/shared/ui";
 import { isAcceptable } from "@/shared/lib/passwordPolicy";
 import { AuthShell, AuthCard } from "@/features/auth/components";
 import { roleHome } from "@/features/auth/components/roles";
@@ -65,11 +65,10 @@ export default function FirstLoginSetupPage() {
             <label className="mb-1.5 block text-meta font-medium text-text-secondary" htmlFor="name">
               {t("পূর্ণ নাম", "Full name")}
             </label>
-            <input
+            <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-10.5 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-primary"
               placeholder={t("আব্দুল করিম", "Abdul Karim")}
             />
           </div>

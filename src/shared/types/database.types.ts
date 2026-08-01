@@ -5524,10 +5524,13 @@ export type Database = {
         Args: { p_class_section_id: string | null; p_from: string; p_to: string }
         Returns: Json
       }
+      fn_calendar_day: { Args: { p_date: string }; Returns: Json }
+      fn_calendar_range: { Args: { p_from: string; p_to: string }; Returns: Json }
       fn_cancel_document_batch: {
         Args: { p_kind: string; p_id: string; p_reason: string }
         Returns: undefined
       }
+      fn_clear_calendar_range: { Args: { p_from: string; p_to: string }; Returns: number }
       fn_collect_fee: { Args: { payload: Json }; Returns: string }
       fn_create_admit_batch: { Args: { payload: Json }; Returns: string }
       fn_create_id_card_batch: { Args: { payload: Json }; Returns: string }
@@ -5537,6 +5540,7 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      fn_delete_academic_term: { Args: { p_id: string }; Returns: undefined }
       fn_delete_class: { Args: { p_id: string }; Returns: undefined }
       fn_delete_class_section: { Args: { p_id: string }; Returns: undefined }
       fn_delete_fee_invoice: { Args: { payload: Json }; Returns: number }
@@ -5553,6 +5557,7 @@ export type Database = {
         Returns: Json
       }
       fn_result_status: { Args: { p_exam_id: string }; Returns: Json }
+      fn_set_calendar_range: { Args: { payload: Json }; Returns: number }
       fn_set_result_publication: {
         Args: { p_exam_id: string; p_publish: boolean; p_reason?: string | null }
         Returns: undefined
@@ -5568,6 +5573,9 @@ export type Database = {
       }
       fn_generate_code: { Args: { p_entity: string }; Returns: string }
       fn_generate_monthly_invoices: { Args: never; Returns: number }
+      fn_import_marks: { Args: { payload: Json }; Returns: Json }
+      fn_import_students: { Args: { payload: Json }; Returns: Json }
+      fn_import_teachers: { Args: { payload: Json }; Returns: Json }
       fn_mark_attendance: { Args: { payload: Json }; Returns: number }
       fn_my_permissions: { Args: never; Returns: string[] }
       fn_permission_matrix: { Args: never; Returns: Json }
@@ -5617,6 +5625,7 @@ export type Database = {
       fn_update_institution: { Args: { payload: Json }; Returns: undefined }
       fn_update_student_basic: { Args: { payload: Json }; Returns: string }
       fn_update_teacher: { Args: { payload: Json }; Returns: string }
+      fn_upsert_academic_term: { Args: { payload: Json }; Returns: string }
       fn_upsert_certificate_template: {
         Args: { payload: Json }
         Returns: string

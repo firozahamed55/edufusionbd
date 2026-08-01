@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Save, ClipboardList, Info, History } from "lucide-react";
+import { Save, ClipboardList, Info, History, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Field, Select, Input, Checkbox, Button, SaveBar, UnsavedDot, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
+import { ImportWizard } from "@/shared/import/ImportWizard";
+import { markImportSpec } from "../logic/importSpec";
 import { useClassSectionsLookup, useSubjects } from "@/shared/services/lookups/hooks";
 import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
@@ -24,6 +26,9 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
   const [sectionId, setSectionId] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [marks, setMarks] = useState<Record<string, { marks: string; absent: boolean }>>({});
+  // SRA A-5.1 item 5 — teachers keep marks in Excel and there was no CSV path
+  // in or out, so every mark was retyped from a sheet that already had it.
+  const [importing, setImporting] = useState(false);
 
   const exams = useExams();
   const sections = useClassSectionsLookup();
@@ -231,8 +236,18 @@ export function MarksEntry({ mode }: { mode: "input" | "update" }) {
       )}
 
       <SaveBar status={<><UnsavedDot /><span>{ready && rows.length ? t(`${rows.length} জন শিক্ষার্থী`, `${rows.length} students`) : t("নির্বাচন করুন", "Make a selection")}</span></>}>
+        <Button variant="secondary" onClick={() => setImporting(true)} disabled={!ready}><FileSpreadsheet size={16} /> {t("CSV থেকে আনুন", "Import CSV")}</Button>
         <Button variant="primary" onClick={submit} disabled={!ready || !rows.length || save.isPending || invalid.length > 0}><Save size={16} /> {save.isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("জমা দিন", "Submit")}</Button>
       </SaveBar>
+
+      {importing && ready ? (
+        <ImportWizard
+          open
+          spec={markImportSpec({ exam_id: examId, class_section_id: sectionId, subject_id: subjectId })}
+          onClose={() => setImporting(false)}
+          onDone={() => existing.refetch()}
+        />
+      ) : null}
     </div>
   );
 }

@@ -248,6 +248,7 @@ export const ADMIN_SETTINGS_MODULE: AdminModule = {
     { href: "/admin/core/basic-config", bn: "বেসিক কনফিগ", en: "Basic Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/startup", bn: "স্টার্টআপ", en: "StartUp", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/class", bn: "ক্লাস কনফিগ", en: "Class Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
+    { href: "/admin/core/calendar", bn: "শিক্ষাপঞ্জি", en: "Academic Calendar", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/signature", bn: "স্বাক্ষর", en: "Signature", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/subject", bn: "বিষয় তালিকা", en: "Subject List", group: { bn: "বিষয়", en: "Subjects" } },
     { href: "/admin/core/subject-group", bn: "বিষয় গ্রুপ", en: "Subject Group", group: { bn: "বিষয়", en: "Subjects" } },

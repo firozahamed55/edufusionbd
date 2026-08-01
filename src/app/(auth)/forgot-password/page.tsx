@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Button } from "@/shared/ui";
+import { Button, Input } from "@/shared/ui";
 import { AuthShell, AuthCard, AuthBackLink } from "@/features/auth/components";
 import { createClient } from "@/shared/services/supabase/client";
 import { resolveLoginEmail, isPhoneIdentity } from "@/features/auth/lib/identity";
@@ -79,12 +79,12 @@ export default function ForgotPasswordPage() {
             <label className="mb-1.5 block text-meta font-medium text-text-secondary" htmlFor="identifier">
               {t("মোবাইল নম্বর বা ইমেইল", "Mobile number or email")}
             </label>
-            <input
+            <Input
               id="identifier"
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="h-10.5 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-primary tnum"
+              className="tnum"
               placeholder="+880 1712-345678"
             />
             {error ? (

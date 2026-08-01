@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, FileText, Upload, Info } from "lucide-react";
+import { User, FileText, Upload, Info, FileSpreadsheet } from "lucide-react";
 import { GENDER, RELIGION, BLOOD_GROUP, EMPLOYMENT_TYPE, BLOOD_TOKEN } from "@/shared/constants/enums";
 import { useT } from "@/shared/i18n/useT";
 import { useQueryState } from "@/shared/lib/useQueryState";
@@ -26,6 +26,8 @@ import {
 import { teacherFormSchema } from "../logic/api";
 import type { TeacherFormValues, TeacherWritePayload } from "../logic/api";
 import { useErrorMessage } from "@/shared/services/errors";
+import { ImportWizard } from "@/shared/import/ImportWizard";
+import { teacherImportSpec } from "../logic/importSpec";
 
 /**
  * Shared teacher form — used by both Registration and Update Profile, which are
@@ -78,6 +80,9 @@ const DOCS = ["জাতীয় পরিচয়পত্র", "শিক্
 
 export function TeacherForm({ mode }: { mode: "register" | "update" }) {
   const isRegister = mode === "register";
+  // SRA A-0.5 point 1 — onboarding a whole staff list one 31-field form at a
+  // time is the same adoption barrier as the student one.
+  const [importing, setImporting] = useState(false);
   const { t, isBn } = useT();
   const msg = useErrorMessage();
   const toast = useToast();
@@ -193,16 +198,42 @@ export function TeacherForm({ mode }: { mode: "register" | "update" }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
-          {isRegister ? t("নতুন শিক্ষক নিবন্ধন", "New Teacher Registration") : t("শিক্ষক প্রোফাইল হালনাগাদ", "Update Teacher Profile")}
-        </h1>
-        <p className="mt-1 text-meta text-text-muted">
-          {isRegister
-            ? t("শিক্ষকের ব্যক্তিগত তথ্য, পদবি ও যোগাযোগ যুক্ত করুন", "Add the teacher's personal info, designation and contact")
-            : t("বিদ্যমান শিক্ষক নির্বাচন করে তথ্য হালনাগাদ ও সংরক্ষণ করুন", "Select an existing teacher, edit and save")}
-        </p>
+      <header className="flex flex-wrap items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">
+            {isRegister ? t("নতুন শিক্ষক নিবন্ধন", "New Teacher Registration") : t("শিক্ষক প্রোফাইল হালনাগাদ", "Update Teacher Profile")}
+          </h1>
+          <p className="mt-1 text-meta text-text-muted">
+            {isRegister
+              ? t("শিক্ষকের ব্যক্তিগত তথ্য, পদবি ও যোগাযোগ যুক্ত করুন", "Add the teacher's personal info, designation and contact")
+              : t("বিদ্যমান শিক্ষক নির্বাচন করে তথ্য হালনাগাদ ও সংরক্ষণ করুন", "Select an existing teacher, edit and save")}
+          </p>
+        </div>
+        {isRegister ? (
+          <Button
+            variant="secondary"
+            onClick={() => setImporting(true)}
+            disabled={!f.designation_id || !f.department_id || !f.main_subject_id}
+            title={!f.designation_id || !f.department_id || !f.main_subject_id
+              ? t("প্রথমে পদবি, বিভাগ ও প্রধান বিষয় নির্বাচন করুন", "Choose a designation, department and main subject first")
+              : undefined}
+          >
+            <FileSpreadsheet size={16} /> {t("CSV থেকে আনুন", "Import from CSV")}
+          </Button>
+        ) : null}
       </header>
+
+      {importing ? (
+        <ImportWizard
+          open
+          spec={teacherImportSpec({
+            designation_id: f.designation_id,
+            department_id: f.department_id,
+            main_subject_id: f.main_subject_id,
+          })}
+          onClose={() => setImporting(false)}
+        />
+      ) : null}
 
       {!isRegister && (
         <FormCard title={t("শিক্ষক নির্বাচন করুন", "Select Teacher")}>

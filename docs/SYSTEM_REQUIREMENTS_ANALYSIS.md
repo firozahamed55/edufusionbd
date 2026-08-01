@@ -391,16 +391,16 @@ The system is almost entirely **manual-trigger**. Every meaningful workflow requ
 
 **What currently exists.** The best-executed screen in the product, and the one with the clearest audit history: an earlier version was ~60% fabricated data and every element is now bound to a live query. Time-of-day greeting from the real clock; a "Needs attention" list derived from three live queries (overdue invoices aggregated by student with a real ৳ total, 30-day attendance below 75%, exams in `locked` status awaiting publish), each with a working CTA into the screen that resolves it; three KPI tiles (students + class-sections, teachers + student:teacher ratio, month collections + outstanding); a real 30-day attendance trend rendered as a 7-point bar chart; a fee-collection donut; recent `audit_log` activity; recent notices; five quick actions; a layout-mirroring skeleton; a retryable error state; and — notably — a `SetupChecklist` that replaces the wall-of-zeroes with an ordered setup path for a brand-new institution. Server-prefetched and hydrated, so it renders with data on first paint. It even declines to render a trend arrow beside a secondary metric because that would be misleading.
 
-**What is missing.**
-1. **No time-range control.** Every figure is a fixed window (this month / last 30 days). A head teacher cannot ask "how did last term compare".
-2. **No drill-down from KPIs.** The tiles are not links; the attention rows are, but the KPIs — the most-looked-at objects on the screen — are dead ends.
-3. **One dashboard for all admin roles.** An accountant and an exam controller see the same eight sections. Depends on A-0.4.
-4. **No customisation.** No reorder, no hide, no add — standard in enterprise dashboards and specifically expected by multi-site operators.
-5. **Timezone defect.** Activity timestamps use `new Date(a.at).toISOString().slice(0,10)` — UTC, for a UTC+6 audience. Anything logged after 18:00 local displays yesterday's date. *(See A-0.8.)*
-6. **Attention list is a fixed three.** The rules are hardcoded in `api.ts` with hardcoded thresholds (75%, past-due). Not configurable per institution.
-7. **`hasSubjects={false}` is hardcoded** in the `SetupChecklist` call — the checklist can never mark the subjects step complete.
-8. **No comparison or forecast.** No period-over-period delta, no collection forecast, no attendance seasonality — the analytical content a principal actually wants.
-9. **EduSathi AI is absent from the dashboard.** The stated key differentiator has a rail entry and its own screen, and no presence on the surface every operator sees first.
+**What is missing.** *(Status appended 2026-08-01.)*
+1. **No time-range control.** Every figure is a fixed window (this month / last 30 days). A head teacher cannot ask "how did last term compare". — ✅ **Done** (P2 w7). Five presets plus a custom range, URL-backed so a period is a link. It governs the two panels and the one tile that are genuinely functions of a date range, and deliberately not the point-in-time counts.
+2. **No drill-down from KPIs.** The tiles are not links; the attention rows are, but the KPIs — the most-looked-at objects on the screen — are dead ends. — ✅ **Done** (P2 w7). The money tile opens the income statement for exactly its window, not a generic list.
+3. **One dashboard for all admin roles.** An accountant and an exam controller see the same eight sections. Depends on A-0.4. — ✅ **Done** (P3 w11). KPI tiles, both period panels, the quick actions and the attention rows filter on the same permission codes as the navigation rail and RLS, and **fail open** for the same reason (risk R-5): `undefined` and `[]` show everything.
+4. **No customisation.** No reorder, no hide, no add — standard in enterprise dashboards and specifically expected by multi-site operators. — ⬜ **Open**, P2. Not attempted: per-user layout persistence is a schema and a drag surface, and item 3 covers the actual complaint (seeing sections that are not yours) at a fraction of the cost.
+5. **Timezone defect.** Activity timestamps use `new Date(a.at).toISOString().slice(0,10)` — UTC, for a UTC+6 audience. Anything logged after 18:00 local displays yesterday's date. *(See A-0.8.)* — ✅ **Done** (P1 w1).
+6. **Attention list is a fixed three.** The rules are hardcoded in `api.ts` with hardcoded thresholds (75%, past-due). Not configurable per institution. — ⬜ **Open**, P2. The thresholds are still literals in `api.ts`.
+7. **`hasSubjects={false}` is hardcoded** in the `SetupChecklist` call — the checklist can never mark the subjects step complete. — ✅ **Done** (P1 w1, head-only count).
+8. **No comparison or forecast.** No period-over-period delta, no collection forecast, no attendance seasonality — the analytical content a principal actually wants. — 🟡 **Partial** (P3 w11). The delta landed: the same fetcher runs over the preceding window **of equal length**, and the arrow renders only when that window has data — against a zero baseline every change is "+100%", which is the absence of a comparison rendered as a triumph. Forecast and seasonality are not built.
+9. **EduSathi AI is absent from the dashboard.** The stated key differentiator has a rail entry and its own screen, and no presence on the surface every operator sees first. — ⬜ **Open**, and deliberately so. EduSathi v1 is Phase 4 week 15; a prompt bar shipped now would take a typed question to a screen that says "coming soon", which is the dead-control defect Phase 1 exists to have removed — on the daily habit surface, where it would annoy an operator every morning. It ships **with** the backend, in the same release, not before it.
 
 **Why it is important.** The dashboard is the product's first impression, its daily habit surface, and — for the buyer — the demo. Items 2, 5 and 7 are correctness/quality defects on the highest-trust surface. Item 9 is a positioning failure: a differentiator that is not visible is not a differentiator.
 
@@ -833,16 +833,31 @@ Across the seven auth screens there is no **success** state (Forgot Password sho
 
 Keep the split-panel architecture and the token system — both are correct and already shipped. The redesign is **depth, motion and completeness**, not a repaint:
 
-| Aspect | Direction |
-|---|---|
-| **Brand rail** | Keep the indigo field. Add a subtle animated gradient mesh (respecting `prefers-reduced-motion`), rotate the three feature bullets into short outcome statements with real numbers once available, and put a single institution logo slot for white-labelled deployments |
-| **Palette** | Unchanged — `--color-interactive-primary` indigo, status tokens as-is. Both themes already verified |
-| **Card** | Reduce elevation from `shadow-e2` to `e1` on mobile (cards floating on a small screen read as heavy), keep `e2` on desktop |
-| **Layout** | Unchanged split; add a max-width guard so the form column does not stretch past 480px on ultrawide |
-| **Motion** | 150 ms cross-fade between auth screens, 200 ms card entrance, shake-on-invalid (motion-safe only), success checkmark draw |
-| **Typography** | Existing scale; the `text-h1` 40px brand headline stays |
-| **Responsive** | 320 → 1440 verified. Below `lg`: single column, compact lockup, 48px touch targets, `inputMode="numeric"` on OTP, no fixed-position elements that fight the mobile keyboard |
-| **Accessibility** | `role="group"` + per-digit labels on OTP; `aria-live="polite"` on the resend countdown; visible focus on every control; error copy associated by `aria-describedby`; announce success states |
+| Aspect | Direction | Status (P3 w11) |
+|---|---|---|
+| **Brand rail** | Keep the indigo field. Add a subtle animated gradient mesh (respecting `prefers-reduced-motion`), rotate the three feature bullets into short outcome statements with real numbers once available, and put a single institution logo slot for white-labelled deployments | ✅ mesh + drift, motion-safe · ✅ bullets replaced (they were three undeliverable claims — see A-4 in §7) · ⬜ white-label logo slot |
+| **Palette** | ~~Unchanged~~ **Revised** — see the note below | ✅ repainted, auth-scoped |
+| **Card** | Reduce elevation from `shadow-e2` to `e1` on mobile (cards floating on a small screen read as heavy), keep `e2` on desktop | ✅ `shadow-e1 sm:shadow-e2` |
+| **Layout** | Unchanged split; add a max-width guard so the form column does not stretch past 480px on ultrawide | ✅ |
+| **Motion** | 150 ms cross-fade between auth screens, 200 ms card entrance, shake-on-invalid (motion-safe only), success checkmark draw | 🟡 card entrance ✅ (320 ms, motion-safe) · cross-fade, shake and checkmark ⬜ |
+| **Typography** | Existing scale; the `text-h1` 40px brand headline stays | ✅ unchanged |
+| **Responsive** | 320 → 1440 verified. Below `lg`: single column, compact lockup, 48px touch targets, `inputMode="numeric"` on OTP, no fixed-position elements that fight the mobile keyboard | ✅ structurally unchanged by the repaint |
+| **Accessibility** | `role="group"` + per-digit labels on OTP; `aria-live="polite"` on the resend countdown; visible focus on every control; error copy associated by `aria-describedby`; announce success states | 🟡 three hand-rolled inputs on Login / Forgot / First-login were using `border-border-strong` — the **decorative** token, which does not meet the 3:1 an interactive boundary owes (SC 1.4.11). All three now use the shared `Input`, whose `controlBase` uses `border-border-control`. The rest of the row is open |
+
+**On the palette row, which said "unchanged".** §4.1 argued — and still argues —
+that the evidence did not support "the visuals are dated", and that the real
+finding was functional incompleteness. That functional work is now done (B-1
+through B-5, B-7). The repaint was then asked for again, so it was built: the
+flat single-hue `bg-primary-hover` fill, which is the specific thing that reads
+as 2019, became a three-glow mesh in `.auth-rail`.
+
+**What it deliberately does not touch is `--color-interactive-primary`.** That
+token is bound by `tests/contrast.test.ts` and used by 44 admin screens; a
+sign-in page is not a reason to move the whole product's primary. The new hues
+live in `--auth-ink` / `--auth-glow-a|b|c`, scoped to two CSS classes, and every
+glow sits below the base's luminance ceiling so white body copy on the rail
+still clears 4.5:1. A palette change that cannot be reverted by deleting one
+CSS block is not a palette change, it is a migration.
 
 ## 4.5 Complete state inventory (the deliverable the brief asks for)
 
@@ -866,19 +881,19 @@ Every auth screen must implement all applicable states. Current coverage in brac
 
 ## 4.6 Auth work package
 
-| # | Item | Priority | Complexity |
-|---|---|---|---|
-| 1 | Feature-flag the OTP entry point | P0 | S |
-| 2 | TOTP MFA — enrol, challenge, recovery codes, management, admin reset | P0 | M |
-| 3 | Enable leaked-password protection (owner toggle) | P0 | S |
-| 4 | My Account screen + re-point the Profile menu item | P1 | M |
-| 5 | Session management + security event log + idle timeout | P1 | M–L |
-| 6 | Inline validation across all 7 screens | P1 | M |
-| 7 | Missing states: success, expired link, locked, offline | P1 | M |
-| 8 | Password strength meter + live requirement checklist | P1 | S |
-| 9 | Step-up re-auth before sensitive actions | P1 | M |
-| 10 | Motion pass + mobile polish + a11y audit | P2 | M |
-| 11 | SMS provider + real OTP sign-in | P1 | M |
+| # | Item | Priority | Complexity | Status |
+|---|---|---|---|---|
+| 1 | Feature-flag the OTP entry point | P0 | S | ✅ P3 w10 |
+| 2 | TOTP MFA — enrol, challenge, recovery codes, management, admin reset | P0 | M | ✅ P3 w10 |
+| 3 | Enable leaked-password protection (owner toggle) | P0 | S | 🔑 Supabase dashboard |
+| 4 | My Account screen + re-point the Profile menu item | P1 | M | ✅ P3 w10 |
+| 5 | Session management + security event log + idle timeout | P1 | M–L | ✅ P3 w10 |
+| 6 | Inline validation across all 7 screens | P1 | M | ⬜ open |
+| 7 | Missing states: success, expired link, locked, offline | P1 | M | 🟡 offline + account-locked ✅ P3 w10 · success and expired-link ⬜ |
+| 8 | Password strength meter + live requirement checklist | P1 | S | ✅ P3 w10 — one rule set across Reset/Change/First-login, with a penalty for the passwords that satisfy every rule and are still trivial |
+| 9 | Step-up re-auth before sensitive actions | P1 | M | 🟡 MFA unenrol requires the password; role changes and bulk destructive actions do not |
+| 10 | Motion pass + mobile polish + a11y audit | P2 | M | 🟡 palette + rail + card + entrance ✅ P3 w11 · full motion pass and a11y audit ⬜ |
+| 11 | SMS provider + real OTP sign-in | P1 | M | ⬜ Phase 4 w13 (blocked on a contract — risk R-1) |
 
 ---
 
@@ -1186,60 +1201,80 @@ Ten of the twenty-five additions are **entity detail pages or artefacts** — a 
 Priority: **P0** blocks paid institutional operation · **P1** visible quality/completeness gap · **P2** polish.
 Complexity: **S** ≤ 1 day · **M** 1–3 days · **L** 1–2 weeks · **XL** > 2 weeks.
 
-| ID | Finding | Area | Business impact | Pri | Cx |
-|---|---|---|---|---|---|
-| A-0.2 | Validation invisible — 0/197 `Field` call sites use `error` | Cross | Data-entry errors, support load, WCAG 3.3.1/3.3.3 fail | P0 | L |
-| A-8.1 | SMS recipient count hand-typed; segments counted as GSM-7 for Bangla | Comms | **Direct billing error, both directions** | P0 | M |
-| A-0.3 | 5 permanently disabled controls + 2 "(soon)" buttons | Cross | "Product is broken" on first use | P0 | S |
-| A-0.4 | RBAC in DB, absent from UI; User Management read-only | Settings | No delegation; audit log meaningless; procurement blocker | P0 | L |
-| A-2.2 | Migration merit rank = list index; `result` hardcoded `"pass"` | Students | Academically invalid permanent records | P0 | M |
-| 5.6.1 | Vercel functions in `iad1`, Supabase in Mumbai | Infra | ~200 ms on every server render | P0 | S |
-| 5.6.2 | Preview deploys unprotected against production data | Infra | Real student data on public preview URLs | P0 | S |
-| 5.6.3 | CI gate is advisory — Vercel deploys regardless | Infra | Failing code can reach production | P0 | M |
-| A-6.1 | No receipt on fee collection | Fees | Forces a parallel paper ledger; ledgers diverge | P0 | M |
-| A-6.1 | No idempotency / no void on payments | Fees | Double-posting; unrecoverable mistakes | P0 | M |
-| A-7 | Documents module produces no documents | Docs | Likely pilot-to-purchase blocker | P0 | XL |
-| A-0.5 | No data import anywhere | Cross | 40–80 h onboarding cost per institution | P0 | XL |
-| A-5.1 | Full marks free-text, ignores `mark_config` | Exam | Silently wrong GPA for a whole section | P0 | M |
-| A-5.1 | No component marks (written/MCQ/practical/CA) | Exam | Cannot represent the national assessment model | P0 | XL |
-| A-5.1 | Marks: no autosave, no concurrency control, no lock workflow | Exam | Lost and silently overwritten marks | P0 | L |
-| A-5.2 | No result publication gate; unguarded re-processing | Exam | Uncontrolled release; integrity hazard | P0 | L |
-| A-9.1 | Grading scheme accepts overlapping/gapped ranges | Settings | Silently wrong grades cohort-wide | P0 | S |
-| A-4 | No "already taken" indicator on attendance (with SMS side effect) | Attend | Ambiguous destructive action that spends money | P0 | M |
-| A-4 | Offline attendance advertised on the auth screen, not built | Attend | Claim the product cannot demonstrate | P0 | S/XL |
-| A-2.1 | Photo/document upload UI inert; blocks ID cards | Students | Downstream module blocked | P0 | M |
-| A-2.1 | No duplicate-student detection | Students | Classic SIS data-quality failure | P0 | M |
-| A-0.6 | No unsaved-changes guard; no autosave | Cross | Routine data loss on flaky networks | P0 | M |
-| B-1 | OTP entry point advertised, non-functional | Auth | Broken first impression | P0 | S |
-| B-2 | No MFA | Auth | Security-questionnaire blocker; minors' data | P0 | M |
-| B-5 | Leaked-password protection off (owner toggle) | Auth | Only standing security advisory | P0 | S |
-| B-4 | "Profile" menu links to the all-users list | Auth | Mislabelled navigation | P0 | M |
-| A-10 | EduSathi AI is an empty state | Product | The differentiator is undelivered | P0 | XL |
-| A-0.1 | Data-interaction contract on 1/44 screens | Cross | Core administrative work is slow and unshareable | P0 | L |
-| — | No entity detail pages anywhere in `/admin` | IA | Recurring dead-end UX (§6.4) | P0 | L |
-| 5.2 | No form library | FE | Root cause of A-0.2's cost | P0 | S |
-| 5.4 | `pg_cron` uninstalled; invoice migration unscheduled | DB | Automation blocked | P1 | S |
-| 5.6.4 | No automated migration deploy | Infra | Schema/code deploy ordering risk | P1 | M |
-| 5.6.5 | No alerting, no traces, nothing polls `/api/health` | Ops | Users find incidents first | P1 | M |
-| A-0.7 | No grid keyboard navigation on marks/attendance | A11y | 60 Tab presses per section | P1 | M |
-| A-0.7 | 9 screens use `<div>` tables | A11y | Screen readers announce undifferentiated text | P1 | M |
-| A-0.7 | No a11y audit or conformance statement | A11y | Procurement risk | P1 | M |
-| A-0.8 | i18n inline at ~4,000 sites; no catalogues, no ICU | i18n | Third language impossible; plural bugs | P1 | L |
-| A-0.8 | UTC dates shown to a UTC+6 audience | Cross | Off-by-one dates after 18:00 local | P1 | S |
-| A-6.2 | No expense entry — Income Statement half-built | Fees | Accounting module incomplete | P1 | M |
-| A-6.2 | No ageing buckets on outstanding fees | Fees | No basis for a collection strategy | P1 | M |
-| A-6.2 | Income Statement: hardcoded bilingual headers; loss shown as credit | Fees | i18n leak + misread financials | P1 | S |
-| A-3.1 | Teacher row action "Edit profile" carries no id | Teachers | Action does not do what it says | P0 | S |
-| A-3.2 | No HR/employment data model | Teachers | Purchase objection above ~30 staff | P1 | L |
-| A-1 | Dashboard: no period control, no KPI drill-down, `hasSubjects` hardcoded | Dash | Status board, not an instrument | P1 | M |
-| A-9.2 | Audit log: no date/actor filter, no export, raw JSON diff | Settings | Not usable as a compliance artefact | P1 | M |
-| A-0.9 | Eight unexploited automation opportunities | Cross | System of record, not of action | P1 | L |
-| 5.7 | No E2E tests, no a11y gate | Test | Regressions reach production | P1 | L |
-| — | Restore never rehearsed | DR | Backups are a hypothesis | P1 | S |
-| B-3 | No session management | Auth | Shared-computer exposure | P1 | M |
-| 5.2 | Hand-rolled complex widgets (menu, toggle, popover) | FE | Accumulating a11y defects | P2 | M |
-| §6.1 | 10 near-duplicate routes | IA | Ten meaningless decisions per operator | P2 | M |
-| 5.8 | `/admin/styleguide` ships to production | Ops | Internal docs inside the product | P2 | S |
+**Status** (added 2026-08-01, end of Phase 3). ✅ **Done** · 🟡 **Partial** — what
+remains is stated · ⬜ **Open** — not started, with the phase that owns it ·
+🔑 **Owner** — an account, a dashboard toggle or a contract, not an engineering
+task. Verified against `docs/SRA_IMPLEMENTATION.md` and the repository at the
+Phase 3 exit commit; where the log and the code disagreed, the code won.
+
+| ID | Finding | Area | Business impact | Pri | Cx | Status |
+|---|---|---|---|---|---|---|
+| A-0.2 | Validation invisible — 0/197 `Field` call sites use `error` | Cross | Data-entry errors, support load, WCAG 3.3.1/3.3.3 fail | P0 | L | 🟡 the 5 highest-traffic forms only; the other ~39 screens still have none |
+| A-8.1 | SMS recipient count hand-typed; segments counted as GSM-7 for Bangla | Comms | **Direct billing error, both directions** | P0 | M | ✅ P1 w2 |
+| A-0.3 | 5 permanently disabled controls + 2 "(soon)" buttons | Cross | "Product is broken" on first use | P0 | S | ✅ P1 w1 (+2 more found in P2 w4/w5) |
+| A-0.4 | RBAC in DB, absent from UI; User Management read-only | Settings | No delegation; audit log meaningless; procurement blocker | P0 | L | 🟡 assign/suspend/matrix/rail done; **invite still not built** (needs a service-role server route) |
+| A-2.2 | Migration merit rank = list index; `result` hardcoded `"pass"` | Students | Academically invalid permanent records | P0 | M | ✅ P1 w2 |
+| 5.6.1 | Vercel functions in `iad1`, Supabase in Mumbai | Infra | ~200 ms on every server render | P0 | S | ✅ P1 w1 (`bom1`; latency unmeasured) |
+| 5.6.2 | Preview deploys unprotected against production data | Infra | Real student data on public preview URLs | P0 | S | 🔑 Vercel dashboard — **live risk R-8 until set** |
+| 5.6.3 | CI gate is advisory — Vercel deploys regardless | Infra | Failing code can reach production | P0 | M | ✅ P1 w1 · 🔑 needs the Ignored Build Step set |
+| A-6.1 | No receipt on fee collection | Fees | Forces a parallel paper ledger; ledgers diverge | P0 | M | ✅ P3 w9 (A5 + 80mm thermal, reprintable) |
+| A-6.1 | No idempotency / no void on payments | Fees | Double-posting; unrecoverable mistakes | P0 | M | ✅ idempotency P1 w2 · void-as-reversal P3 w9 |
+| A-7 | Documents module produces no documents | Docs | Likely pilot-to-purchase blocker | P0 | XL | ✅ P3 w8–w9 (ID/admit/testimonial/transfer/marksheet/tabulation, QR-verified) |
+| A-0.5 | No data import anywhere | Cross | 40–80 h onboarding cost per institution | P0 | XL | ✅ P3 w11 — one wizard, Students + Teachers + Marks |
+| A-5.1 | Full marks free-text, ignores `mark_config` | Exam | Silently wrong GPA for a whole section | P0 | M | ✅ P1 w2 |
+| A-5.1 | No component marks (written/MCQ/practical/CA) | Exam | Cannot represent the national assessment model | P0 | XL | ⬜ deferred to Phase 5 (schema change on partitioned tables — risk R-2) |
+| A-5.1 | Marks: no autosave, no concurrency control, no lock workflow | Exam | Lost and silently overwritten marks | P0 | L | 🟡 autosave P1 w3 · publication gate P3 w9 · **no optimistic concurrency** — two teachers on one section still last-write-wins |
+| A-5.2 | No result publication gate; unguarded re-processing | Exam | Uncontrolled release; integrity hazard | P0 | L | ✅ P3 w9 — gate is RLS, not UI; re-processing a published exam refused in the RPC |
+| A-9.1 | Grading scheme accepts overlapping/gapped ranges | Settings | Silently wrong grades cohort-wide | P0 | S | ✅ P1 w2 |
+| A-4 | No "already taken" indicator on attendance (with SMS side effect) | Attend | Ambiguous destructive action that spends money | P0 | M | ✅ P1 w3 (names who took it and when) |
+| A-4 | Offline attendance advertised on the auth screen, not built | Attend | Claim the product cannot demonstrate | P0 | S/XL | ✅ claim removed P3 w11 — **and so were the other two**, see the note below. Offline capture itself remains ⬜ |
+| A-4 | Weekends and holidays not modelled; attendance can be taken on Eid | Attend | Corrupts every attendance statistic reported | P1 | M | ✅ P3 w11 — Academic Calendar + terms; `fn_attendance_summary` excludes non-working days |
+| A-2.1 | Photo/document upload UI inert; blocks ID cards | Students | Downstream module blocked | P0 | M | ✅ P3 w8 (EXIF stripped client-side) |
+| A-2.1 | No duplicate-student detection | Students | Classic SIS data-quality failure | P0 | M | ⬜ open — and now higher-stakes, since the importer can admit 500 at once |
+| A-0.6 | No unsaved-changes guard; no autosave | Cross | Routine data loss on flaky networks | P0 | M | 🟡 `beforeunload` + autosave done; **in-app `<Link>` navigation is not covered** (App Router exposes no cancellable route-change event) |
+| B-1 | OTP entry point advertised, non-functional | Auth | Broken first impression | P0 | S | ✅ P3 w10 — behind `NEXT_PUBLIC_OTP_ENABLED`, default off |
+| B-2 | No MFA | Auth | Security-questionnaire blocker; minors' data | P0 | M | ✅ P3 w10 — TOTP, 10 hashed recovery codes, super-admin reset, audited |
+| B-5 | Leaked-password protection off (owner toggle) | Auth | Only standing security advisory | P0 | S | 🔑 Supabase dashboard · client-side policy + meter ✅ P3 w10 |
+| B-4 | "Profile" menu links to the all-users list | Auth | Mislabelled navigation | P0 | M | ✅ P3 w10 — `/admin/account`, menu re-pointed |
+| A-10 | EduSathi AI is an empty state | Product | The differentiator is undelivered | P0 | XL | ⬜ Phase 4 w15 |
+| A-0.1 | Data-interaction contract on 1/44 screens | Cross | Core administrative work is slow and unshareable | P0 | L | ✅ P2 w4–w5 — 14/14 list screens (a hook + `DataToolbar`, not a 40-prop table) |
+| — | No entity detail pages anywhere in `/admin` | IA | Recurring dead-end UX (§6.4) | P0 | L | ✅ P2 w7 — Student + Teacher profiles, each linking to its own audit trail |
+| 5.2 | No form library | FE | Root cause of A-0.2's cost | P0 | S | ✅ met differently — `useZodForm` (~90 ln, no dependency). RHF deliberately not added; see the implementation log |
+| 5.4 | `pg_cron` uninstalled; invoice migration unscheduled | DB | Automation blocked | P1 | S | ⬜ Phase 4 w12 |
+| 5.6.4 | No automated migration deploy | Infra | Schema/code deploy ordering risk | P1 | M | ✅ P1 w1 (`supabase db push` gates the app deploy) |
+| 5.6.5 | No alerting, no traces, nothing polls `/api/health` | Ops | Users find incidents first | P1 | M | ✅ code P1 w1 · 🔑 needs `OBSERVABILITY_ALERT_URL` + an uptime vendor |
+| A-0.7 | No grid keyboard navigation on marks/attendance | A11y | 60 Tab presses per section | P1 | M | ✅ P2 w5 (`useGridNavigation`; `1..4` picks a status) |
+| A-0.7 | 9 screens use `<div>` tables | A11y | Screen readers announce undifferentiated text | P1 | M | ✅ P2 w5 — 10 tables across 8 screens |
+| A-0.7 | No a11y audit or conformance statement | A11y | Procurement risk | P1 | M | ⬜ Phase 4 w14 (`@axe-core` gate + WCAG statement) |
+| A-0.8 | i18n inline at ~4,000 sites; no catalogues, no ICU | i18n | Third language impossible; plural bugs | P1 | L | ⬜ deferred to Phase 5 (codemod, not hand-editing — risk R-6) |
+| A-0.8 | UTC dates shown to a UTC+6 audience | Cross | Off-by-one dates after 18:00 local | P1 | S | ✅ P1 w1 — `shared/lib/format.ts`, institution time |
+| A-6.2 | No expense entry — Income Statement half-built | Fees | Accounting module incomplete | P1 | M | ⬜ open |
+| A-6.2 | No ageing buckets on outstanding fees | Fees | No basis for a collection strategy | P1 | M | ⬜ open |
+| A-6.2 | Income Statement: hardcoded bilingual headers; loss shown as credit | Fees | i18n leak + misread financials | P1 | S | ⬜ open (the ledgers moved onto `shared/ui/Table` in P2 w5; the copy and the sign did not change) |
+| A-3.1 | Teacher row action "Edit profile" carries no id | Teachers | Action does not do what it says | P0 | S | ✅ P1 w1 — `?id=` is URL-backed, so an open profile is linkable |
+| A-3.2 | No HR/employment data model | Teachers | Purchase objection above ~30 staff | P1 | L | ⬜ deferred to Phase 5 |
+| A-1 | Dashboard: no period control, no KPI drill-down, `hasSubjects` hardcoded | Dash | Status board, not an instrument | P1 | M | ✅ period control + drill-down P2 w7 · `hasSubjects` P1 w1 · period-over-period deltas and role-aware sections P3 w11. Residue in §3.1: customisation (item 4), configurable thresholds (6), EduSathi bar (9) |
+| A-9.2 | Audit log: no date/actor filter, no export, raw JSON diff | Settings | Not usable as a compliance artefact | P1 | M | 🟡 filter/sort/export came with the A-0.1 contract in P2 w5; **the before/after is still `JSON.stringify`**, not a field-level diff |
+| A-0.9 | Eight unexploited automation opportunities | Cross | System of record, not of action | P1 | L | ⬜ Phase 4 w12 |
+| 5.7 | No E2E tests, no a11y gate | Test | Regressions reach production | P1 | L | ⬜ Phase 4 w14 — 361 unit tests today, zero E2E |
+| — | Restore never rehearsed | DR | Backups are a hypothesis | P1 | S | ⬜ Phase 4 w14 |
+| B-3 | No session management | Auth | Shared-computer exposure | P1 | M | ✅ P3 w10 — device/IP/last-active, per-session + all-others revoke, security event log, 25/30-min idle timeout |
+| 5.2 | Hand-rolled complex widgets (menu, toggle, popover) | FE | Accumulating a11y defects | P2 | M | ⬜ open |
+| §6.1 | 10 near-duplicate routes | IA | Ten meaningless decisions per operator | P2 | M | ⬜ open (the P2 w1 nav rebuild regrouped the rail; the routes themselves still exist) |
+| 5.8 | `/admin/styleguide` ships to production | Ops | Internal docs inside the product | P2 | S | ⬜ open — still in the production route table |
+
+**Tally at Phase 3 exit: 30 done · 6 partial · 4 owner-blocked · 15 open.** Of the
+29 P0 rows, 21 are closed; the P0s still open are component marks, duplicate
+detection and EduSathi (all XL, all scheduled), plus preview Deployment
+Protection, which is a checkbox and the one live risk in the register.
+
+**The auth-screen claims (A-4).** The register carried one row for this —
+offline attendance. Checked while redesigning the screen, **all three** feature
+bullets on the sign-in rail were undeliverable: the SMS gateway and the payment
+gateway are Phase 4 week 13 and EduSathi is week 15. The first screen every
+evaluator sees made three promises the product could not demonstrate, which is
+finding A-0.3's principle applied to marketing copy instead of buttons. All
+three are now statements of shipped capability.
 
 ---
 
@@ -1270,16 +1305,22 @@ Assumes **2 engineers + 0.5 designer**. Each phase ends with a demonstrable, shi
 
 **Exit criteria:** 14 list screens with the full contract · RBAC usable end to end · every stored entity has a detail page.
 
-## Phase 3 — Artefacts, auth & completeness (4 weeks) → 86 → 91
+## Phase 3 — Artefacts, auth & completeness (4 weeks) → 86 → 91 · **COMPLETE**
 
-| Week | Work |
-|---|---|
-| 8 | Document rendering layer (print-CSS) + ID card and admit card templates · wire student photo upload |
-| 9 | Fee receipt + day book · testimonial/transfer/marksheet templates · tabulation sheet · result publication gate |
-| 10 | MFA · session management · My Account · missing auth states · password strength + requirements |
-| 11 | Import Wizard + Students/Teachers/Marks importers · Academic Calendar |
+| Week | Work | Status |
+|---|---|---|
+| 8 | Document rendering layer (print-CSS) + ID card and admit card templates · wire student photo upload | ✅ `e6c37e3` |
+| 9 | Fee receipt + day book · testimonial/transfer/marksheet templates · tabulation sheet · result publication gate | ✅ `e04b272` |
+| 10 | MFA · session management · My Account · missing auth states · password strength + requirements | ✅ `070e48a` |
+| 11 | Import Wizard + Students/Teachers/Marks importers · Academic Calendar | ✅ |
 
-**Exit criteria:** every document the system configures, it can print · MFA enforced for admin roles · a school can onboard by import.
+**Exit criteria:** every document the system configures, it can print ✅ · MFA enforced for admin roles ✅ · a school can onboard by import ✅.
+
+Week 11 also carried the dashboard and auth-screen work requested alongside it:
+the A-1 residue that A-0.4 had been blocking (role-aware sections,
+period-over-period deltas) and the auth palette redesign (§4.4, revised — see
+the note there on why the repaint is scoped to `.auth-rail` rather than to
+`--color-interactive-primary`).
 
 ## Phase 4 — Automation, scale & assurance (4 weeks) → 91 → 95
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, RotateCcw, CheckCheck, Users, AlertTriangle, History, MessageSquare } from "lucide-react";
+import { Check, RotateCcw, CheckCheck, Users, AlertTriangle, History, MessageSquare, CalendarOff } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { Button, Field, Select, Input, SaveBar, Skeleton, EmptyState, ErrorState, useToast } from "@/shared/ui";
@@ -10,6 +10,7 @@ import { useSectionStudents } from "@/shared/services/roster/hooks";
 import type { Option } from "@/shared/services/lookups/api";
 import { StatusPill, SummaryDot, Toggle, type AttTone } from "./parts";
 import { useExams, useSectionAttendance, useMarkAttendance } from "../logic/hooks";
+import { useDayStatus } from "@/features/admin/core/logic/hooks";
 import { useErrorMessage } from "@/shared/services/errors";
 import { localDay, formatDateTime } from "@/shared/lib/format";
 import { useDraft } from "@/shared/lib/useDraft";
@@ -72,6 +73,20 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
    * from an overwrite — on a Save that texts guardians and spends balance.
    */
   const alreadyTaken = (existing.data?.count ?? 0) > 0;
+
+  /**
+   * Is this a teaching day at all (SRA A-4 item 3)? The register could be
+   * marked on Eid, and every attendance statistic in the product was diluted by
+   * the non-teaching days it silently counted.
+   *
+   * A WARNING, NOT A BLOCK. The calendar has an explicit override — mark the
+   * date a working day and this clears — but a school whose calendar is not yet
+   * filled in must still be able to take attendance at 8am. Locking the
+   * register on a settings gap is risk R-5, the same reasoning that makes the
+   * navigation rail fail open.
+   */
+  const day = useDayStatus(date || null);
+  const nonTeaching = day.data && !day.data.working ? day.data : null;
 
   // Autosave, same reasoning as Marks Entry: this is the highest-frequency
   // operation in the product and it runs on the flakiest connections.
@@ -151,6 +166,21 @@ export function AttendanceMarker({ context }: { context: "daily" | "exam" }) {
         {/* No Search button: the roster loads reactively from the selects above.
             A control that cannot be actioned in this release is not rendered. */}
       </div>
+
+      {nonTeaching ? (
+        <div className="flex items-start gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-meta text-info-fg">
+          <CalendarOff size={16} className="mt-0.5 shrink-0" />
+          <p className="flex-1">
+            {t(
+              `${date} শিক্ষাপঞ্জি অনুযায়ী কর্মদিবস নয়${nonTeaching.label ? ` — ${nonTeaching.label}` : ""}। এই দিনের উপস্থিতি কোনো পরিসংখ্যানে গণনা হবে না।`,
+              `${date} is not a working day in the academic calendar${nonTeaching.label ? ` — ${nonTeaching.label}` : ""}. Attendance recorded for it is excluded from every statistic.`,
+            )}
+          </p>
+          <a href="/admin/core/calendar" className="shrink-0 font-medium underline">
+            {t("পঞ্জি দেখুন", "Open the calendar")}
+          </a>
+        </div>
+      ) : null}
 
       {alreadyTaken ? (
         <div className="flex items-start gap-2.5 rounded-xl border border-warning-fg/30 bg-warning-bg px-4 py-3 text-meta text-warning-fg">

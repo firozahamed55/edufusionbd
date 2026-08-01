@@ -17,12 +17,15 @@ import {
   Megaphone,
   ChevronRight,
   History,
+  TrendingUp,
+  TrendingDown,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { BarChart, Donut, Skeleton, ErrorState, EmptyState, PageHeader } from "@/shared/ui";
 import { useAdminUser } from "@/features/admin/components/useAdminUser";
+import { useMyPermissions } from "@/features/admin/core/logic/hooks";
 import { SetupChecklist } from "../../components/SetupChecklist";
 import { localDay, dayOffset, weekdayShort } from "@/shared/lib/format";
 import { useQueryState } from "@/shared/lib/useQueryState";
@@ -55,6 +58,22 @@ const PRESETS: Record<Exclude<PresetKey, "custom">, { bn: string; en: string; co
   this_year: { bn: "এই বছর", en: "This year", collectedBn: "এ বছরে আদায়", collectedEn: "Collected (year)" },
 };
 
+/**
+ * The window immediately before this one, of the same length (SRA A-1 item 8 —
+ * "no period-over-period delta").
+ *
+ * SAME LENGTH, NOT "the previous calendar month". A custom 9-day range compared
+ * against a 30-day one produces a −70% that means nothing, and a head teacher
+ * reading it would act on it. Inclusive on both ends, matching `presetRange`.
+ */
+export function previousRange(from: string, to: string): { from: string; to: string } {
+  const days = Math.round(
+    (new Date(`${to}T12:00:00Z`).getTime() - new Date(`${from}T12:00:00Z`).getTime()) / 86_400_000,
+  ) + 1;
+  const prevTo = dayOffset(-1, `${from}T12:00:00`);
+  return { from: dayOffset(-(days - 1), `${prevTo}T12:00:00`), to: prevTo };
+}
+
 export function presetRange(
   key: Exclude<PresetKey, "custom">,
   // Injectable so the December→January rollover is testable rather than
@@ -79,11 +98,11 @@ export function presetRange(
 
 const ATTENTION_META: Record<
   string,
-  { icon: LucideIcon; cta: { bn: string; en: string } }
+  { icon: LucideIcon; cta: { bn: string; en: string }; permission: string }
 > = {
-  overdue_fees: { icon: AlertTriangle, cta: { bn: "তাগাদা পাঠান", en: "Send reminders" } },
-  attendance_low: { icon: ShieldAlert, cta: { bn: "তালিকা দেখুন", en: "View list" } },
-  results_pending: { icon: ClipboardCheck, cta: { bn: "পর্যালোচনা", en: "Review" } },
+  overdue_fees: { icon: AlertTriangle, cta: { bn: "তাগাদা পাঠান", en: "Send reminders" }, permission: "fee.view" },
+  attendance_low: { icon: ShieldAlert, cta: { bn: "তালিকা দেখুন", en: "View list" }, permission: "attendance.view" },
+  results_pending: { icon: ClipboardCheck, cta: { bn: "পর্যালোচনা", en: "Review" }, permission: "exam.view" },
 };
 
 export function OverviewScreen() {
@@ -97,6 +116,23 @@ export function OverviewScreen() {
     ...presetRange("this_month"),
   });
   const period = usePeriodStats(from, to);
+
+  /**
+   * Role-aware sections (SRA A-1 item 3 — "an accountant and an exam controller
+   * see the same eight sections"). Unblocked now that A-0.4 landed.
+   *
+   * Same permission codes and the same fail-open rule as the navigation rail:
+   * `undefined` (loading) and `[]` (an account never seeded with roles) show
+   * everything. A dashboard that hides its own panels on a settings gap reads as
+   * a broken product, and RLS — not this — is the control (risk R-5).
+   */
+  const { data: permissions } = useMyPermissions();
+  const can = (code: string) => !permissions || permissions.length === 0 || permissions.includes(code);
+
+  // Period-over-period (SRA A-1 item 8). A second query on the same fetcher —
+  // the comparison is the same two numbers over the preceding window.
+  const prev = previousRange(from, to);
+  const previous = usePeriodStats(prev.from, prev.to);
 
   const bdt = (v: number) => `৳${n(new Intl.NumberFormat("en-IN").format(Math.round(v)))}`;
   const collected = period.data?.collected ?? 0;
@@ -115,6 +151,19 @@ export function OverviewScreen() {
 
   const trend = period.data?.attendanceTrend ?? [];
   const avgRate = period.data?.avgRate ?? 0;
+
+  /**
+   * A delta is only shown when the previous window HAS data. Against a zero
+   * baseline every change is "+100%", which is not a comparison — it is the
+   * absence of one, rendered as a triumph. `undefined` means "say nothing".
+   */
+  const pctChange = (now: number, before: number) =>
+    previous.data && before > 0 ? Math.round(((now - before) / before) * 100) : undefined;
+  const collectedDelta = pctChange(collected, previous.data?.collected ?? 0);
+  const rateDelta =
+    previous.data && previous.data.avgRate > 0 && trend.length > 0
+      ? avgRate - previous.data.avgRate
+      : undefined;
   // Last 7 points, labelled by weekday — a real series over the chosen period,
   // not five invented numbers.
   const chartData = trend.slice(-7).map((p) => ({
@@ -123,13 +172,15 @@ export function OverviewScreen() {
     display: n(p.rate),
   }));
 
+  // A quick action to a screen the operator's role cannot open is a dead
+  // control with a redirect at the end of it (A-1 item 3).
   const quickActions = [
-    { icon: UserPlus, title: t("নতুন শিক্ষার্থী", "New Student"), desc: t("নতুন রেজিস্ট্রেশন", "New registration"), href: "/admin/student/registration" },
-    { icon: CalendarCheck, title: t("উপস্থিতি নিন", "Take Attendance"), desc: t("দৈনিক উপস্থিতি", "Daily attendance"), href: "/admin/attendance/section" },
-    { icon: CreditCard, title: t("ফি সংগ্রহ", "Collect Fees"), desc: t("পেমেন্ট কালেকশন", "Payment collection"), href: "/admin/fee/quick-collection-list" },
-    { icon: PenSquare, title: t("মার্কস এন্ট্রি", "Marks Entry"), desc: t("পরীক্ষার ফলাফল", "Exam results"), href: "/admin/exam/mark-input" },
-    { icon: Send, title: t("SMS পাঠান", "Send SMS"), desc: t("বাল্ক মেসেজিং", "Bulk messaging"), href: "/admin/sms-notice/send" },
-  ];
+    { icon: UserPlus, title: t("নতুন শিক্ষার্থী", "New Student"), desc: t("নতুন রেজিস্ট্রেশন", "New registration"), href: "/admin/student/registration", permission: "student.view" },
+    { icon: CalendarCheck, title: t("উপস্থিতি নিন", "Take Attendance"), desc: t("দৈনিক উপস্থিতি", "Daily attendance"), href: "/admin/attendance/section", permission: "attendance.view" },
+    { icon: CreditCard, title: t("ফি সংগ্রহ", "Collect Fees"), desc: t("পেমেন্ট কালেকশন", "Payment collection"), href: "/admin/fee/quick-collection-list", permission: "fee.view" },
+    { icon: PenSquare, title: t("মার্কস এন্ট্রি", "Marks Entry"), desc: t("পরীক্ষার ফলাফল", "Exam results"), href: "/admin/exam/mark-input", permission: "exam.view" },
+    { icon: Send, title: t("SMS পাঠান", "Send SMS"), desc: t("বাল্ক মেসেজিং", "Bulk messaging"), href: "/admin/sms-notice/send", permission: "sms.view" },
+  ].filter((a) => can(a.permission));
 
   const studentsPerTeacher = data?.activeTeachers
     ? Math.round((data.activeStudents ?? 0) / data.activeTeachers)
@@ -138,6 +189,13 @@ export function OverviewScreen() {
   // Zero students AND zero sections = nothing has been set up, which is a
   // different state from "zero results for your filter" (B-8).
   const isEmptyInstitution = (data?.activeStudents ?? 0) === 0 && (data?.classSections ?? 0) === 0;
+
+  // An unrecognised key stays visible — a new attention rule must not vanish
+  // because nobody added it to the meta table.
+  const attention = (data?.attention ?? []).filter((a) => {
+    const meta = ATTENTION_META[a.key];
+    return !meta || can(meta.permission);
+  });
 
   const attentionLabel = (a: AttentionItem) => {
     if (a.key === "overdue_fees")
@@ -205,14 +263,16 @@ export function OverviewScreen() {
           title={me?.name ? `${greeting}, ${me.name}` : greeting}
           subtitle={t("এক নজরে আপনার স্কুলের চিত্র", "Your school at a glance")}
         />
-        <div className="flex items-center gap-2.5">
-          <Link href="/admin/student/reports-summary" className="rounded-lg border border-border-control bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-sunken">
-            {t("প্রতিবেদন", "Report")}
-          </Link>
-          <Link href="/admin/student/registration" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover">
-            <Plus size={16} /> {t("নতুন শিক্ষার্থী", "New Student")}
-          </Link>
-        </div>
+        {can("student.view") ? (
+          <div className="flex items-center gap-2.5">
+            <Link href="/admin/student/reports-summary" className="rounded-lg border border-border-control bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-sunken">
+              {t("প্রতিবেদন", "Report")}
+            </Link>
+            <Link href="/admin/student/registration" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-on-primary hover:bg-primary-hover">
+              <Plus size={16} /> {t("নতুন শিক্ষার্থী", "New Student")}
+            </Link>
+          </div>
+        ) : null}
       </div>
 
       {/*
@@ -227,24 +287,25 @@ export function OverviewScreen() {
         />
       ) : null}
 
-      {/* Needs attention — every row from a live query with a real CTA */}
+      {/* Needs attention — every row from a live query with a real CTA, and
+          only the rows this operator can act on (A-1 item 3). */}
       <Card className="gap-3">
         <div className="flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold text-text-primary">
             {t("এখন নজর দিন", "Needs attention")}
-            {(data?.attention.length ?? 0) > 0 ? (
+            {attention.length > 0 ? (
               <span className="ml-2 rounded-full bg-danger-bg px-2 py-0.5 text-micro font-semibold text-danger-fg tnum">
-                {n(data?.attention.length ?? 0)}
+                {n(attention.length)}
               </span>
             ) : null}
           </h2>
         </div>
-        {(data?.attention.length ?? 0) === 0 ? (
+        {attention.length === 0 ? (
           <p className="py-3 text-sm text-text-muted">
             {t("এই মুহূর্তে কিছু করণীয় নেই।", "Nothing needs your attention right now.")}
           </p>
         ) : (
-          data?.attention.map((a) => {
+          attention.map((a) => {
             const meta = ATTENTION_META[a.key];
             const label = attentionLabel(a);
             return (
@@ -267,30 +328,55 @@ export function OverviewScreen() {
           the tiles are the most-looked-at objects on the screen and were dead
           ends — the attention rows below them were already links). */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Kpi grad="grad-indigo" icon={Users} label={t("মোট শিক্ষার্থী", "Total Students")} value={n(data?.activeStudents ?? 0)} delta={n(data?.classSections ?? 0)} period={t("শ্রেণি-শাখা", "class-sections")} href="/admin/student/update-class" />
-        <Kpi grad="grad-emerald" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(studentsPerTeacher)} period={t("শিক্ষার্থী/শিক্ষক", "students/teacher")} href="/admin/teacher/list" />
+        {can("student.view") ? (
+          <Kpi grad="grad-indigo" icon={Users} label={t("মোট শিক্ষার্থী", "Total Students")} value={n(data?.activeStudents ?? 0)} delta={n(data?.classSections ?? 0)} period={t("শ্রেণি-শাখা", "class-sections")} href="/admin/student/update-class" />
+        ) : null}
+        {can("teacher.view") ? (
+          <Kpi grad="grad-emerald" icon={UserCheck} label={t("মোট শিক্ষক", "Total Teachers")} value={n(data?.activeTeachers ?? 0)} delta={n(studentsPerTeacher)} period={t("শিক্ষার্থী/শিক্ষক", "students/teacher")} href="/admin/teacher/list" />
+        ) : null}
         {/* The statement for exactly this window — the drill-down of a money
             number is the ledger the number came from, not a generic list. */}
-        <Kpi grad="grad-sky" icon={Wallet} label={periodLabel} value={bdt(collected)} delta={bdt(due)} period={t("বকেয়া", "due")} href={`/admin/fee/income-statement?from=${from}&to=${to}`} />
+        {can("fee.view") ? (
+          <Kpi
+            grad="grad-sky"
+            icon={Wallet}
+            label={periodLabel}
+            value={bdt(collected)}
+            delta={bdt(due)}
+            period={t("বকেয়া", "due")}
+            href={`/admin/fee/income-statement?from=${from}&to=${to}`}
+            change={collectedDelta}
+            changeLabel={t("গত সময়ের তুলনায়", "vs previous period")}
+          />
+        ) : null}
       </div>
 
-      {/* Analytics */}
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="flex-1 text-base font-semibold text-text-primary">{t("সময়কাল অনুযায়ী", "Over a period")}</h2>
-        <PeriodSelector value={preset} from={from} to={to} onChange={setPeriod} />
-      </div>
+      {/* Analytics. The heading and its selector go with the panels they
+          govern — an operator who can see neither gets neither. */}
+      {can("attendance.view") || can("fee.view") ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="flex-1 text-base font-semibold text-text-primary">{t("সময়কাল অনুযায়ী", "Over a period")}</h2>
+          <PeriodSelector value={preset} from={from} to={to} onChange={setPeriod} />
+        </div>
+      ) : null}
       {/* The selector governs THESE two panels and the collection tile, and
           nothing else. Enrolment counts and outstanding dues are point-in-time
           facts; a control that appeared to filter them would be reporting a
           falsehood, which is the defect this dashboard was rebuilt to remove. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_400px]">
+        {can("attendance.view") ? (
         <Card>
           <CardHead
             title={t("উপস্থিতির হার", "Attendance Rate")}
             subtitle={
-              trend.length > 0
-                ? t(`এই সময়ের গড় ${n(avgRate)}%`, `${avgRate}% average over this period`)
-                : t("এই সময়ে কোনো উপস্থিতি রেকর্ড নেই", "No attendance recorded in this period")
+              trend.length === 0
+                ? t("এই সময়ে কোনো উপস্থিতি রেকর্ড নেই", "No attendance recorded in this period")
+                : rateDelta === undefined
+                  ? t(`এই সময়ের গড় ${n(avgRate)}%`, `${avgRate}% average over this period`)
+                  : t(
+                      `এই সময়ের গড় ${n(avgRate)}% · গত সময়ের চেয়ে ${rateDelta >= 0 ? "+" : "−"}${n(Math.abs(rateDelta))} পয়েন্ট`,
+                      `${avgRate}% average over this period · ${rateDelta >= 0 ? "+" : "−"}${Math.abs(rateDelta)} points vs the previous period`,
+                    )
             }
           />
           {chartData.length > 0 ? (
@@ -305,7 +391,9 @@ export function OverviewScreen() {
             />
           )}
         </Card>
+        ) : null}
 
+        {can("fee.view") ? (
         <Card>
           <CardHead title={t("ফি আদায়", "Fee Collection")} />
           <div className="flex items-center justify-center py-2">
@@ -316,6 +404,7 @@ export function OverviewScreen() {
             <LegendRow color="bg-border-strong" label={t("বকেয়া", "Due")} value={bdt(due)} />
           </div>
         </Card>
+        ) : null}
       </div>
 
       {/* Activity + quick actions */}
@@ -390,6 +479,8 @@ function Kpi({
   delta,
   period,
   href,
+  change,
+  changeLabel,
 }: {
   grad: string;
   icon: LucideIcon;
@@ -399,7 +490,14 @@ function Kpi({
   period: string;
   /** The list this number summarises. A KPI without one is a dead end (A-1). */
   href: string;
+  /**
+   * Percent change against the same-length previous window (A-1 item 8).
+   * `undefined` means there is no comparable baseline — see `pctChange`.
+   */
+  change?: number;
+  changeLabel?: string;
 }) {
+  const { n } = useT();
   return (
     <Link
       href={href}
@@ -414,10 +512,24 @@ function Kpi({
           <Icon size={20} />
         </span>
       </div>
-      <p className="text-3xl font-bold tnum">{value}</p>
-      {/* No trend arrow: this is a secondary metric, not a period-over-period
-          change, and rendering an up-arrow beside it was actively misleading
-          (audit D-3). */}
+      <div className="flex flex-wrap items-baseline gap-2">
+        <p className="text-3xl font-bold tnum">{value}</p>
+        {/*
+          A trend arrow ONLY where a genuine period-over-period change exists
+          (A-1 item 8). It used to sit beside the secondary metric below, where
+          it compared nothing and was actively misleading (audit D-3) — hence
+          `change === undefined` rendering nothing at all rather than 0%.
+        */}
+        {change !== undefined ? (
+          <span
+            className="flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-meta font-semibold tnum"
+            title={changeLabel}
+          >
+            {change >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+            {change >= 0 ? "+" : "−"}{n(Math.abs(change))}%
+          </span>
+        ) : null}
+      </div>
       <div className="flex items-center gap-1.5 text-meta">
         <span className="font-semibold">{delta}</span>
         <span className="opacity-90">{period}</span>

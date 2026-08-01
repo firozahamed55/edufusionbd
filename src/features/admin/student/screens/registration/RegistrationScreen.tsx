@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserRound, Info } from "lucide-react";
+import { UserRound, Info, FileSpreadsheet } from "lucide-react";
 import { GENDER, RELIGION, BLOOD_GROUP } from "@/shared/constants/enums";
 import { useT } from "@/shared/i18n/useT";
 import { Button, FormCard, Field, Input, Select, Checkbox, SaveBar, UnsavedDot, useToast, FileDrop } from "@/shared/ui";
 import { createClient } from "@/shared/services/supabase/client";
 import { useInstitutionId } from "@/shared/services/institution/hooks";
 import { attachStudentFiles, type StudentDocType } from "../../logic/attachments";
+import { ImportWizard } from "@/shared/import/ImportWizard";
+import { studentImportSpec } from "../../logic/importSpec";
 import { useZodForm } from "@/shared/lib/useZodForm";
 import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import {
@@ -54,6 +56,9 @@ export function RegistrationScreen() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [docs, setDocs] = useState<Partial<Record<StudentDocType, File | null>>>({});
   const [attaching, setAttaching] = useState(false);
+  // SRA A-0.5: "a school onboarding must type in 800 students by hand through
+  // a 31-field form" — 40-80 person-hours before it sees any value.
+  const [importing, setImporting] = useState(false);
   const institutionId = useInstitutionId();
 
   /**
@@ -155,11 +160,23 @@ export function RegistrationScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("নতুন শিক্ষার্থী ভর্তি", "New Student Admission")}</h1>
-        <p className="mt-1 text-meta text-text-muted">
-          {t("শিক্ষার্থীর তথ্য, শ্রেণি বিন্যাস ও অভিভাবক যুক্ত করুন", "Add student info, class placement and guardian")}
-        </p>
+      <header className="flex flex-wrap items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("নতুন শিক্ষার্থী ভর্তি", "New Student Admission")}</h1>
+          <p className="mt-1 text-meta text-text-muted">
+            {t("শিক্ষার্থীর তথ্য, শ্রেণি বিন্যাস ও অভিভাবক যুক্ত করুন", "Add student info, class placement and guardian")}
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          onClick={() => setImporting(true)}
+          disabled={!f.academic_year_id || !f.class_section_id}
+          title={!f.academic_year_id || !f.class_section_id
+            ? t("প্রথমে শিক্ষাবর্ষ ও শাখা নির্বাচন করুন", "Choose an academic year and section first")
+            : undefined}
+        >
+          <FileSpreadsheet size={16} /> {t("CSV থেকে আনুন", "Import from CSV")}
+        </Button>
       </header>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_360px]">
@@ -354,6 +371,17 @@ export function RegistrationScreen() {
           </div>
         </div>
       </div>
+
+      {importing ? (
+        <ImportWizard
+          open
+          spec={studentImportSpec({
+            academic_year_id: f.academic_year_id,
+            class_section_id: f.class_section_id,
+          })}
+          onClose={() => setImporting(false)}
+        />
+      ) : null}
 
       <SaveBar
         status={

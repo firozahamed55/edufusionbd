@@ -7,7 +7,7 @@ import { Smartphone, WifiOff } from "lucide-react";
 import { createClient } from "@/shared/services/supabase/client";
 import { resolveLoginEmail } from "@/features/auth/lib/identity";
 import { useT } from "@/shared/i18n/useT";
-import { Button, PasswordInput, Checkbox } from "@/shared/ui";
+import { Button, Input, PasswordInput, Checkbox } from "@/shared/ui";
 import { AuthShell, AuthCard } from "@/features/auth/components";
 import { roleHome, isRole, safeInternalPath, ROLE_LABELS } from "@/features/auth/components/roles";
 import { useErrorMessage } from "@/shared/services/errors";
@@ -148,7 +148,11 @@ export default function LoginPage() {
           >
             {t("মোবাইল নম্বর", "Mobile number")}
           </label>
-          <input
+          {/* The shared primitive, not a hand-rolled copy of it. The copy used
+              `border-border-strong` — the decorative token, which does not meet
+              the 3:1 an interactive boundary owes (SC 1.4.11); `controlBase`
+              uses `border-border-control`, which does. */}
+          <Input
             id="identifier"
             type="text"
             inputMode="tel"
@@ -156,7 +160,7 @@ export default function LoginPage() {
             autoComplete="username"
             value={identifier}
             onChange={(e) => { setIdentifier(e.target.value); setLocked(false); }}
-            className="mb-4 h-10.5 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-primary tnum"
+            className="mb-4 tnum"
             placeholder="+880 1712-345678"
           />
 

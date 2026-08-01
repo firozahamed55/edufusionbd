@@ -123,6 +123,11 @@ export const queryKeys = {
     entitySearch: (term: string) => ["core", "entity-search", term] as const,
     permissionMatrix: ["core", "permission-matrix"] as const,
     setting: (key: string, scope: string) => ["core", "setting", key, scope] as const,
+    calendarAll: ["core", "calendar"] as const,
+    calendar: (from: string, to: string) => ["core", "calendar", from, to] as const,
+    calendarDay: (date: string) => ["core", "calendar", "day", date] as const,
+    termsAll: ["core", "terms"] as const,
+    terms: (yearId: Id) => ["core", "terms", yearId] as const,
   },
 
   exam: {
