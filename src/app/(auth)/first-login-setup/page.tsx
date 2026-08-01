@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Button, PasswordInput, Stepper } from "@/shared/ui";
+import { Button, PasswordInput, PasswordRequirements, Stepper } from "@/shared/ui";
+import { isAcceptable } from "@/shared/lib/passwordPolicy";
 import { AuthShell, AuthCard } from "@/features/auth/components";
 import { roleHome } from "@/features/auth/components/roles";
 import { useRouter } from "next/navigation";
@@ -32,8 +33,8 @@ export default function FirstLoginSetupPage() {
       return;
     }
     if (step === 1) {
-      if (pw.length < 8) {
-        setError(t("পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে", "Password must be at least 8 characters"));
+      if (!isAcceptable(pw)) {
+        setError(t("পাসওয়ার্ডটি প্রয়োজনীয় শর্ত পূরণ করে না", "That password does not meet the requirements"));
         return;
       }
       if (pw !== confirm) {
@@ -76,14 +77,11 @@ export default function FirstLoginSetupPage() {
 
         {step === 1 ? (
           <div>
-            <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-primary-subtle px-3.5 py-2.5 text-meta text-primary">
-              <ShieldCheck size={16} className="mt-0.5 shrink-0" />
-              {t("কমপক্ষে ৮ অক্ষর, একটি বড় হাতের অক্ষর ও একটি সংখ্যা দিন।", "Use at least 8 characters, one uppercase letter and a number.")}
-            </div>
             <label className="mb-1.5 block text-meta font-medium text-text-secondary" htmlFor="pw">
               {t("পাসওয়ার্ড সেট করুন", "Set a password")}
             </label>
             <PasswordInput id="pw" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
+            <PasswordRequirements value={pw} className="mt-2" />
             <label className="mb-1.5 mt-4 block text-meta font-medium text-text-secondary" htmlFor="confirm">
               {t("নিশ্চিত করুন", "Confirm")}
             </label>

@@ -48,6 +48,17 @@ export const queryKeys = {
     me: ["admin", "me"] as const,
   },
 
+  /** Account security: MFA factors, sessions, security events, own profile. */
+  security: {
+    all: ["security"] as const,
+    factors: ["security", "mfa-factors"] as const,
+    aal: ["security", "assurance-level"] as const,
+    recoveryCount: ["security", "recovery-count"] as const,
+    sessions: ["security", "sessions"] as const,
+    events: (limit: number) => ["security", "events", limit] as const,
+    myProfile: ["security", "my-profile"] as const,
+  },
+
   /** The caller's own institution id — needed by every storage upload path. */
   institution: {
     all: ["institution"] as const,

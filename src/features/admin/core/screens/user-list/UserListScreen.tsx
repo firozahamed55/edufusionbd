@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, ShieldCheck, UserCheck, UserX, Info } from "lucide-react";
+import { Users, ShieldCheck, UserCheck, UserX, KeyRound, Info } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
   Skeleton, EmptyState, ErrorState, PageHeader, Pagination, LiveRegion, DataToolbar,
-  Badge, Button, buttonClass, Modal, Checkbox, ConfirmDialog, useToast, RowActions,
+  Badge, Button, buttonClass, Modal, Checkbox, ConfirmDialog, DangerConfirm, useToast, RowActions,
   Table, THead, TBody, TR, TH, TD, TableEmpty, SortableTH,
 } from "@/shared/ui";
 import { useDataScreen, applyClientList } from "@/shared/lib/useDataScreen";
@@ -17,6 +17,7 @@ import {
   useUsers, usePermissionMatrix, useSetUserRoles, useSetUserStatus,
 } from "../../logic/hooks";
 import { USERS_PAGE_SIZE, type UserRow } from "../../logic/api";
+import { useAdminResetMfa } from "@/shared/services/security/hooks";
 
 /**
  * Core · User & Role Management (SRA F-4 / A-0.4, P0).
@@ -54,6 +55,8 @@ export function UserListScreen() {
 
   const [editing, setEditing] = useState<UserRow | null>(null);
   const [suspending, setSuspending] = useState<UserRow | null>(null);
+  const [resettingMfa, setResettingMfa] = useState<UserRow | null>(null);
+  const resetMfa = useAdminResetMfa();
 
   const all = q.data?.rows ?? [];
   const total = q.data?.total ?? 0;
@@ -185,6 +188,11 @@ export function UserListScreen() {
                           r.status === "suspended"
                             ? { label: t("পুনরায় সক্রিয়", "Reactivate"), icon: UserCheck, onClick: () => changeStatus(r, "active") }
                             : { label: t("স্থগিত করুন", "Suspend"), icon: UserX, tone: "danger" as const, onClick: () => setSuspending(r) },
+                          // SRA B-2, last bullet. The realistic failure: a head
+                          // teacher's phone is lost or wiped AND the recovery
+                          // codes are gone. Without this the institution's only
+                          // administrator is locked out of its own product.
+                          { label: t("দুই-ধাপ যাচাইকরণ রিসেট", "Reset two-step verification"), icon: KeyRound, tone: "danger" as const, onClick: () => setResettingMfa(r) },
                         ]}
                       />
                     </TD>
@@ -239,6 +247,32 @@ export function UserListScreen() {
         cancelLabel={t("বাতিল", "Cancel")}
         loading={setStatus.isPending}
       />
+
+      {resettingMfa ? (
+        <DangerConfirm
+          open
+          onClose={() => setResettingMfa(null)}
+          title={t("দুই-ধাপ যাচাইকরণ রিসেট করবেন?", "Reset two-step verification?")}
+          description={t(
+            `${resettingMfa.full_name ?? ""}-এর অথেন্টিকেটর ও সব রিকভারি কোড মুছে যাবে, এবং তারা শুধু পাসওয়ার্ড দিয়েই ঢুকতে পারবেন যতক্ষণ না নতুন করে সেটআপ করছেন। এটি একটি উচ্চ-ঝুঁকির কাজ এবং অডিট লগে লেখা হবে।`,
+            `${resettingMfa.full_name ?? ""}'s authenticator and every recovery code are removed, and they will sign in with a password alone until they enrol again. This is a high-severity action and is written to the audit log.`,
+          )}
+          count={1}
+          preview={resettingMfa.full_name ?? resettingMfa.phone ?? ""}
+          confirmLabel={t("রিসেট করুন", "Reset MFA")}
+          cancelLabel={t("বাতিল", "Cancel")}
+          typeToConfirmLabel={(phrase) => t(`নিশ্চিত করতে ${n(phrase)} টাইপ করুন`, `Type ${phrase} to confirm`)}
+          reasonLabel={t("কারণ", "Reason")}
+          reasonPlaceholder={t("যেমন: ফোন হারিয়ে গেছে, ব্যক্তিগতভাবে যাচাই করা হয়েছে", "e.g. phone lost, identity confirmed in person")}
+          loading={resetMfa.isPending}
+          onConfirm={(reason) => {
+            resetMfa.mutate({ profileId: resettingMfa.id, reason: reason ?? "" }, {
+              onSuccess: () => { toast({ title: t("রিসেট হয়েছে", "MFA reset"), variant: "success" }); setResettingMfa(null); },
+              onError: (e: unknown) => toast({ title: msg(e, { bn: "রিসেট ব্যর্থ", en: "Reset failed" }), variant: "error" }),
+            });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

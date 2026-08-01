@@ -22,6 +22,7 @@ export { RowActions, type RowAction } from "./RowActions";
 export { Skeleton, Spinner, EmptyState, ErrorState } from "./states";
 export { LiveRegion } from "./LiveRegion";
 export { PasswordInput } from "./PasswordInput";
+export { PasswordRequirements } from "./PasswordRequirements";
 export { OtpInput } from "./OtpInput";
 export { Stepper } from "./Stepper";
 export { Modal, ConfirmDialog, useFocusTrap } from "./Dialog";

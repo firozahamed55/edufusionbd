@@ -15,6 +15,7 @@ import {
   User,
   Keyboard,
   LifeBuoy,
+  ShieldCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { createClient } from "@/shared/services/supabase/client";
@@ -30,6 +31,7 @@ import { ThemeToggle, LocaleToggle, useFocusTrap, OfflineBanner } from "@/shared
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { CommandPalette } from "@/features/admin/core/components/CommandPalette";
+import { IdleTimeout } from "./IdleTimeout";
 
 type Tb = (b: { bn: string; en: string }) => string;
 
@@ -389,12 +391,23 @@ function AdminShellInner({ children }: { children: ReactNode }) {
                         {me.email}
                       </p>
                     ) : null}
+                    {/* SRA B-4: this pointed at /admin/core/user-list — a list
+                        of EVERY user in the institution, not the signed-in
+                        user's own account. It had been wired to the nearest
+                        existing route. */}
                     <Link
-                      href="/admin/core/user-list"
+                      href="/admin/account"
                       role="menuitem"
                       className="flex w-full items-center gap-2.5 px-3 py-2 text-meta font-medium text-text-primary hover:bg-sunken"
                     >
-                      <User size={16} /> {tx("প্রোফাইল", "Profile")}
+                      <User size={16} /> {tx("আমার অ্যাকাউন্ট", "My Account")}
+                    </Link>
+                    <Link
+                      href="/admin/account?tab=security"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-meta font-medium text-text-primary hover:bg-sunken"
+                    >
+                      <ShieldCheck size={16} /> {tx("নিরাপত্তা", "Security")}
                     </Link>
                     <button
                       type="button"
@@ -451,6 +464,8 @@ function AdminShellInner({ children }: { children: ReactNode }) {
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {/* SRA B-3 — the shell is the only place that sees every admin screen. */}
+      <IdleTimeout />
     </div>
   );
 }

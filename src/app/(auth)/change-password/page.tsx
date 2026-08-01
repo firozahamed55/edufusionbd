@@ -3,7 +3,9 @@
 import { useState, type FormEvent } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Button, PasswordInput } from "@/shared/ui";
+import { Button, PasswordInput, PasswordRequirements } from "@/shared/ui";
+import { isAcceptable } from "@/shared/lib/passwordPolicy";
+import { recordSecurityEvent } from "@/shared/services/security/api";
 import { AuthShell, AuthCard, AuthBackLink } from "@/features/auth/components";
 import { createClient } from "@/shared/services/supabase/client";
 
@@ -26,8 +28,11 @@ export default function ChangePasswordPage() {
       setError(t("বর্তমান পাসওয়ার্ড দিন", "Enter your current password"));
       return;
     }
-    if (pw.length < 8) {
-      setError(t("নতুন পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে", "New password must be at least 8 characters"));
+    // One policy across Reset, Change and First-Login (SRA B-5). These three
+    // screens previously disagreed, so the same account could be given a
+    // password one of them would have rejected.
+    if (!isAcceptable(pw)) {
+      setError(t("নতুন পাসওয়ার্ডটি প্রয়োজনীয় শর্ত পূরণ করে না", "That password does not meet the requirements"));
       return;
     }
     if (pw !== confirm) {
@@ -56,6 +61,7 @@ export default function ChangePasswordPage() {
       return;
     }
     const { error: upErr } = await supabase.auth.updateUser({ password: pw });
+    if (!upErr) void recordSecurityEvent(supabase, "auth.password_changed");
     setLoading(false);
     if (upErr) {
       setError(t("পাসওয়ার্ড আপডেট ব্যর্থ হয়েছে", "Could not update password"));
@@ -103,6 +109,7 @@ export default function ChangePasswordPage() {
               showLabel={t("দেখান", "Show")}
               hideLabel={t("লুকান", "Hide")}
             />
+            <PasswordRequirements value={pw} className="mt-2" />
 
             <label className="mb-1.5 mt-4 block text-meta font-medium text-text-secondary" htmlFor="confirm">
               {t("নতুন পাসওয়ার্ড নিশ্চিত করুন", "Confirm new password")}

@@ -1,21 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
-import { Button, PasswordInput } from "@/shared/ui";
+import { Button, PasswordInput, PasswordRequirements } from "@/shared/ui";
+import { isAcceptable } from "@/shared/lib/passwordPolicy";
 import { AuthShell, AuthCard, AuthBackLink } from "@/features/auth/components";
 import { createClient } from "@/shared/services/supabase/client";
-
-/** 0–3 strength score from length + character variety. */
-function scorePassword(pw: string): number {
-  let s = 0;
-  if (pw.length >= 8) s++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
-  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
-  return s;
-}
 
 /**
  * Reset Password — set a new password with confirm + live strength meter and
@@ -47,19 +39,12 @@ export default function ResetPasswordPage() {
     supabase.auth.getSession().then(({ data }) => setLinkOk(!!data.session));
   }, [params]);
 
-  const strength = useMemo(() => scorePassword(pw), [pw]);
-  const strengthLabel = [
-    t("দুর্বল", "Weak"),
-    t("দুর্বল", "Weak"),
-    t("মোটামুটি", "Fair"),
-    t("শক্তিশালী", "Strong"),
-  ][strength];
-  const strengthTone = ["bg-danger-fg", "bg-danger-fg", "bg-warning-fg", "bg-success-fg"][strength];
-
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (pw.length < 8) {
-      setError(t("পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে", "Password must be at least 8 characters"));
+    // The same predicate the checklist renders — a screen cannot accept a
+    // password its own requirement list says is not good enough (SRA B-5).
+    if (!isAcceptable(pw)) {
+      setError(t("পাসওয়ার্ডটি প্রয়োজনীয় শর্ত পূরণ করে না", "That password does not meet the requirements"));
       return;
     }
     if (pw !== confirm) {
@@ -149,19 +134,7 @@ export default function ResetPasswordPage() {
             showLabel={t("পাসওয়ার্ড দেখান", "Show password")}
             hideLabel={t("পাসওয়ার্ড লুকান", "Hide password")}
           />
-          {pw ? (
-            <div className="mt-2 flex items-center gap-2">
-              <div className="flex flex-1 gap-1">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className={`h-1 flex-1 rounded-full transition-colors ${i < strength ? strengthTone : "bg-border-strong"}`}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-text-muted">{strengthLabel}</span>
-            </div>
-          ) : null}
+          <PasswordRequirements value={pw} className="mt-2" />
 
           <label className="mb-1.5 mt-4 block text-meta font-medium text-text-secondary" htmlFor="confirm">
             {t("পাসওয়ার্ড নিশ্চিত করুন", "Confirm password")}

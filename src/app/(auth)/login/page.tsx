@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Smartphone } from "lucide-react";
+import { Smartphone, WifiOff } from "lucide-react";
 import { createClient } from "@/shared/services/supabase/client";
 import { resolveLoginEmail } from "@/features/auth/lib/identity";
 import { useT } from "@/shared/i18n/useT";
@@ -11,13 +11,24 @@ import { Button, PasswordInput, Checkbox } from "@/shared/ui";
 import { AuthShell, AuthCard } from "@/features/auth/components";
 import { roleHome, isRole, safeInternalPath, ROLE_LABELS } from "@/features/auth/components/roles";
 import { useErrorMessage } from "@/shared/services/errors";
+import { useOnline } from "@/shared/lib/useOnline";
+import * as security from "@/shared/services/security/api";
+
+/**
+ * SRA B-1. The OTP entry point invited every first-time parent and teacher —
+ * the users least able to recover — into a screen that then says "OTP sign-in
+ * isn't available yet". The screen is right to be honest; the DOOR should not
+ * have been there. Off unless an SMS provider is actually contracted, and
+ * flipped in the same release that ships one.
+ */
+const OTP_ENABLED = process.env.NEXT_PUBLIC_OTP_ENABLED === "true";
 
 /**
  * Login — Figma split-panel. Primary identifier is a mobile number (how
  * Bangladeshi parents log in); an email is also accepted so the existing
  * Supabase email/password flow keeps working (audit 7.2). Includes remember-me,
- * show/hide password, forgot-password link, an OTP-login path, field-level
- * validation, and loading/error states.
+ * show/hide password, forgot-password link, field-level validation, offline and
+ * account-locked states, and the MFA hand-off.
  */
 export default function LoginPage() {
   const { t } = useT();
@@ -32,7 +43,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(false);
+  const online = useOnline();
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -48,6 +61,10 @@ export default function LoginPage() {
     });
     if (error) {
       setLoading(false);
+      // Account-locked is its own state (SRA B-7), not a credentials error:
+      // telling a locked-out user their password is wrong sends them to reset
+      // it, which does not help and burns the reset quota as well.
+      setLocked(/locked|banned|too many/i.test(error.message));
       // Supabase Auth throttles /auth/v1/token per IP and answers 429. Reporting
       // that as "wrong password" made a throttled user retry harder, which keeps
       // the token bucket empty — so the classifier distinguishes them and only
@@ -58,11 +75,37 @@ export default function LoginPage() {
       }));
       return;
     }
+
+    const redirect = params.get("redirect");
+
+    /**
+     * SRA B-2. A password is only the FIRST factor. If this account has a
+     * verified authenticator, the session is still `aal1` and must be
+     * challenged before it reaches anything.
+     *
+     * `nextLevel` is Supabase's own answer to "does this session still owe a
+     * factor", so the app is not keeping a parallel notion of it that could
+     * drift. A failure to READ it routes to /2fa rather than past it — and
+     * /2fa re-checks and forwards when there is nothing to challenge, so an
+     * institution with no MFA at all is not locked out by a transient error.
+     */
+    try {
+      const aal = await security.assuranceLevel(supabase);
+      if (aal.next === "aal2" && aal.current !== "aal2") {
+        router.replace(`/2fa${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`);
+        return;
+      }
+    } catch {
+      router.replace(`/2fa${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`);
+      return;
+    }
+
+    void security.recordSecurityEvent(supabase, "auth.sign_in");
     // app_metadata only — user_metadata is client-writable (see middleware.ts).
     const actualRole = data.user?.app_metadata?.role as string | undefined;
     // Honor a safe internal deep-link (middleware sets ?redirect=…), else land
     // on the dashboard for the user's REAL role. External redirects are rejected.
-    const dest = safeInternalPath(params.get("redirect")) ?? roleHome(actualRole);
+    const dest = safeInternalPath(redirect) ?? roleHome(actualRole);
     router.replace(dest);
     router.refresh();
   }
@@ -88,6 +131,16 @@ export default function LoginPage() {
           </Link>
         }
       >
+        {!online ? (
+          <p
+            className="mb-4 flex items-center gap-2 rounded-lg bg-warning-bg px-3 py-2 text-sm text-warning-fg"
+            role="status"
+          >
+            <WifiOff size={16} className="shrink-0" />
+            {t("ইন্টারনেট সংযোগ নেই — লগইনের জন্য সংযোগ প্রয়োজন।", "You are offline — signing in needs a connection.")}
+          </p>
+        ) : null}
+
         <form onSubmit={onSubmit} noValidate>
           <label
             className="mb-1.5 block text-meta font-medium text-text-secondary"
@@ -102,7 +155,7 @@ export default function LoginPage() {
             required
             autoComplete="username"
             value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
+            onChange={(e) => { setIdentifier(e.target.value); setLocked(false); }}
             className="mb-4 h-10.5 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-primary tnum"
             placeholder="+880 1712-345678"
           />
@@ -138,32 +191,49 @@ export default function LoginPage() {
           </div>
 
           {error ? (
-            <p
+            <div
               className="mb-4 rounded-lg bg-danger-bg px-3 py-2 text-sm text-danger-fg"
               role="alert"
             >
-              {error}
-            </p>
+              <p>{error}</p>
+              {locked ? (
+                <p className="mt-1">
+                  {t(
+                    "অ্যাকাউন্টটি সাময়িকভাবে বন্ধ। কিছুক্ষণ পর আবার চেষ্টা করুন, অথবা প্রতিষ্ঠানের অ্যাডমিনের সাথে যোগাযোগ করুন।",
+                    "This account is temporarily locked. Wait a few minutes and try again, or contact your administrator.",
+                  )}
+                </p>
+              ) : null}
+            </div>
           ) : null}
 
-          <Button type="submit" size="lg" className="w-full justify-center" disabled={loading}>
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full justify-center"
+            disabled={loading || !online}
+          >
             {loading ? t("লগইন হচ্ছে…", "Signing in…") : t("লগইন", "Sign in")}
           </Button>
         </form>
 
-        <div className="my-5 flex items-center gap-3 text-xs text-text-muted">
-          <span className="h-px flex-1 bg-border-default" />
-          {t("অথবা", "or")}
-          <span className="h-px flex-1 bg-border-default" />
-        </div>
+        {OTP_ENABLED ? (
+          <>
+            <div className="my-5 flex items-center gap-3 text-xs text-text-muted">
+              <span className="h-px flex-1 bg-border-default" />
+              {t("অথবা", "or")}
+              <span className="h-px flex-1 bg-border-default" />
+            </div>
 
-        <Link
-          href="/otp"
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border-strong bg-surface text-sm font-medium text-text-primary transition-colors hover:bg-sunken"
-        >
-          <Smartphone size={16} />
-          {t("ওটিপি দিয়ে লগইন করুন", "Sign in with OTP")}
-        </Link>
+            <Link
+              href="/otp"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border-strong bg-surface text-sm font-medium text-text-primary transition-colors hover:bg-sunken"
+            >
+              <Smartphone size={16} />
+              {t("ওটিপি দিয়ে লগইন করুন", "Sign in with OTP")}
+            </Link>
+          </>
+        ) : null}
       </AuthCard>
     </AuthShell>
   );

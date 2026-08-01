@@ -5503,6 +5503,19 @@ export type Database = {
       }
     }
     Functions: {
+      fn_admin_reset_mfa: {
+        Args: { p_profile_id: string; p_reason: string }
+        Returns: undefined
+      }
+      fn_consume_recovery_code: { Args: { p_code: string }; Returns: boolean }
+      fn_generate_recovery_codes: { Args: never; Returns: string[] }
+      fn_my_profile: { Args: never; Returns: Json }
+      fn_my_security_events: { Args: { p_limit?: number }; Returns: Json }
+      fn_my_sessions: { Args: never; Returns: Json }
+      fn_record_security_event: { Args: { p_action: string }; Returns: undefined }
+      fn_recovery_code_count: { Args: never; Returns: number }
+      fn_revoke_session: { Args: { p_session_id?: string | null }; Returns: number }
+      fn_update_my_profile: { Args: { payload: Json }; Returns: undefined }
       fn_attach_student_file: { Args: { payload: Json }; Returns: undefined }
       fn_attendance_summary: {
         // `p_class_section_id` is nullable and means institution-wide. The

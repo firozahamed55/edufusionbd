@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { WifiOff } from "lucide-react";
+import { useOnline } from "@/shared/lib/useOnline";
 
 /**
  * Connection-loss warning (audit B-10).
@@ -15,18 +15,9 @@ import { WifiOff } from "lucide-react";
  * the form state; a generic component cannot know what is worth saving.
  */
 export function OfflineBanner({ message }: { message: string }) {
-  const [offline, setOffline] = useState(false);
-
-  useEffect(() => {
-    const sync = () => setOffline(!navigator.onLine);
-    sync();
-    window.addEventListener("online", sync);
-    window.addEventListener("offline", sync);
-    return () => {
-      window.removeEventListener("online", sync);
-      window.removeEventListener("offline", sync);
-    };
-  }, []);
+  // The listener wiring moved to `useOnline` so the auth screens can share it
+  // without this component's layout (SRA B-7).
+  const offline = !useOnline();
 
   if (!offline) return null;
 
