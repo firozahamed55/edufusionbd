@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/shared/services/supabase/client";
 import * as api from "./api";
+import * as receipts from "./receipts";
 import { queryKeys } from "@/shared/services/queryKeys";
 import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
@@ -74,6 +75,48 @@ export function useCollectFee() {
       qc.invalidateQueries({ queryKey: queryKeys.fee.appliedAll });
       qc.invalidateQueries({ queryKey: queryKeys.fee.digitalAll });
       qc.invalidateQueries({ queryKey: queryKeys.fee.incomeAll });
+      qc.invalidateQueries({ queryKey: queryKeys.fee.dayBookAll });
+      qc.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+  });
+}
+
+/* ------------------------------------------- receipt · void · day book (A-6.1) */
+
+export const useReceipt = (paymentId: string | null) =>
+  useQuery({
+    queryKey: queryKeys.documents.receipt(paymentId),
+    queryFn: () => receipts.fetchReceipt(c(), paymentId as string),
+    enabled: !!paymentId,
+  });
+
+export const useDayBook = (date: string, collector: string | null) =>
+  useQuery({
+    queryKey: queryKeys.fee.dayBook(date, collector),
+    queryFn: () => receipts.fetchDayBook(c(), date, collector),
+    enabled: !!date,
+  });
+
+export const useStudentSearch = (term: string) =>
+  useQuery({
+    queryKey: queryKeys.fee.studentSearch(term),
+    queryFn: () => receipts.searchStudents(c(), term),
+    enabled: term.trim().length >= 2,
+  });
+
+export function useVoidPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { paymentId: string; reason: string }) => receipts.voidPayment(c(), v.paymentId, v.reason),
+    // A void moves the same money the collection moved, in the other
+    // direction — so it invalidates the same set, plus the day book it lands in.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.fee.invoicesAll });
+      qc.invalidateQueries({ queryKey: queryKeys.fee.unpaidSectionAll });
+      qc.invalidateQueries({ queryKey: queryKeys.fee.unpaidInstitute });
+      qc.invalidateQueries({ queryKey: queryKeys.fee.appliedAll });
+      qc.invalidateQueries({ queryKey: queryKeys.fee.incomeAll });
+      qc.invalidateQueries({ queryKey: queryKeys.fee.dayBookAll });
       qc.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });

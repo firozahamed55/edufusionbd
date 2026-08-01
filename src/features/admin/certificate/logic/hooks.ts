@@ -5,6 +5,7 @@ import { createClient } from "@/shared/services/supabase/client";
 import type { RpcPayload } from "@/shared/services/supabase/types";
 import * as api from "./api";
 import * as docs from "./documents";
+import * as certs from "./certificates";
 import { queryKeys } from "@/shared/services/queryKeys";
 import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 import { useT } from "@/shared/i18n/useT";
@@ -69,6 +70,16 @@ export const useCancelBatch = (kind: "id" | "admit") =>
   );
 export const useTestimonials = () => useQuery({ queryKey: queryKeys.cert.testimonials, queryFn: () => api.fetchTestimonials(c()) });
 export const useTransfers = () => useQuery({ queryKey: queryKeys.cert.transfers, queryFn: () => api.fetchTransfers(c()) });
+/** One certificate, fully hydrated for the print template. */
+export const useCertificate = (kind: "testimonial" | "transfer", id: string | null) => {
+  const { isBn } = useT();
+  return useQuery({
+    queryKey: queryKeys.documents.certificate(kind, id),
+    queryFn: () => certs.fetchCertificate(c(), kind, id as string, isBn),
+    enabled: !!id,
+  });
+};
+
 export const useSetting = (key: string, scope: string) => useQuery({ queryKey: queryKeys.cert.setting(key, scope), queryFn: () => api.fetchSetting(c(), key, scope) });
 
 export const useUpsertTemplate = () => useMut((p: RpcPayload) => api.upsertTemplate(c(), p), [queryKeys.cert.templates]);

@@ -179,6 +179,7 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
           { href: "/admin/fee/digital-collection", bn: "ডিজিটাল ফি কালেকশন", en: "Digital Collection" },
           { href: "/admin/fee/unpaid-section", bn: "বকেয়া (সেকশন)", en: "Unpaid (Section)", group: { bn: "বকেয়া", en: "Unpaid" } },
           { href: "/admin/fee/unpaid-institute", bn: "বকেয়া (প্রতিষ্ঠান)", en: "Unpaid (Institute)", group: { bn: "বকেয়া", en: "Unpaid" } },
+          { href: "/admin/fee/day-book", bn: "দৈনিক হিসাব", en: "Day Book", group: { bn: "কালেকশন", en: "Collection" } },
           { href: "/admin/fee/income-statement", bn: "আয় বিবরণী", en: "Income Statement" },
           { href: "/admin/fee/fee-mapping", bn: "ফি ম্যাপিং", en: "Fee Mapping" },
           { href: "/admin/fee/delete-fees", bn: "ফি মুছুন", en: "Delete Fees" },

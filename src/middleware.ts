@@ -12,6 +12,11 @@ const PUBLIC_PREFIXES = [
   "/forgot-password",
   "/reset-password",
   "/first-login-setup",
+  // Certificate verification (SRA A-7 point 6). The person scanning the QR on
+  // a transfer certificate is a clerk at the RECEIVING school with no account
+  // here — a verification page behind a login verifies nothing. The RPC it
+  // calls is uuid-keyed and discloses only what the paper already says.
+  "/verify/",
 ];
 
 /** Roles allowed into the /admin/* app (teacher currently falls back to admin). */

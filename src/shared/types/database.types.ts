@@ -1742,6 +1742,11 @@ export type Database = {
       }
       fee_payment: {
         Row: {
+          receipt_no: string | null
+          reverses_payment_id: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
           account_id: string | null
           amount: number
           fee_invoice_id: string
@@ -1756,6 +1761,11 @@ export type Database = {
           txn_ref: string | null
         }
         Insert: {
+          receipt_no?: string | null
+          reverses_payment_id?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
           account_id?: string | null
           amount: number
           fee_invoice_id: string
@@ -1770,6 +1780,11 @@ export type Database = {
           txn_ref?: string | null
         }
         Update: {
+          receipt_no?: string | null
+          reverses_payment_id?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
           account_id?: string | null
           amount?: number
           fee_invoice_id?: string
@@ -3119,6 +3134,9 @@ export type Database = {
       }
       result_approval: {
         Row: {
+          published_at: string | null
+          published_by: string | null
+          unpublish_reason: string | null
           approved_at: string | null
           approved_by: string | null
           exam_id: string
@@ -3126,6 +3144,9 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          published_at?: string | null
+          published_by?: string | null
+          unpublish_reason?: string | null
           approved_at?: string | null
           approved_by?: string | null
           exam_id: string
@@ -3133,6 +3154,9 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          published_at?: string | null
+          published_by?: string | null
+          unpublish_reason?: string | null
           approved_at?: string | null
           approved_by?: string | null
           exam_id?: string
@@ -5511,6 +5535,20 @@ export type Database = {
       fn_delete_subject: { Args: { p_id: string }; Returns: undefined }
       fn_delete_subject_group: { Args: { p_id: string }; Returns: undefined }
       fn_digital_transaction_stats: { Args: never; Returns: Json }
+      fn_exam_tabulation: {
+        Args: { p_exam_id: string; p_class_section_id?: string | null }
+        Returns: Json
+      }
+      fn_result_status: { Args: { p_exam_id: string }; Returns: Json }
+      fn_set_result_publication: {
+        Args: { p_exam_id: string; p_publish: boolean; p_reason?: string | null }
+        Returns: undefined
+      }
+      fn_fee_day_book: {
+        Args: { p_date: string; p_collector?: string | null }
+        Returns: Json
+      }
+      fn_fee_receipt: { Args: { p_payment_id: string }; Returns: Json }
       fn_fee_income_statement: {
         Args: { p_from: string; p_to: string }
         Returns: Json
@@ -5555,6 +5593,10 @@ export type Database = {
         Returns: Json
       }
       fn_unpaid_by_institute: { Args: never; Returns: Json }
+      fn_void_fee_payment: {
+        Args: { p_payment_id: string; p_reason: string }
+        Returns: string
+      }
       fn_verify_document: {
         Args: { p_kind: string; p_id: string }
         Returns: Json

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Search, FileText, Award, Info } from "lucide-react";
+import { Search, FileText, Award, Printer } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import { createClient } from "@/shared/services/supabase/client";
 import { findStudentByCode, type StudentLite } from "@/shared/services/roster/api";
 import { Field, Input, Select, Textarea, Button, EmptyState, useToast, PageHeader } from "@/shared/ui";
 import { useCreateTestimonial, useCreateTransfer, useTestimonials, useTransfers } from "../logic/hooks";
+import { CertificateViewer } from "./CertificateViewer";
 import { useErrorMessage } from "@/shared/services/errors";
 
 /** Certificate record creator (testimonial | transfer) — live via fn_create_*. */
@@ -19,6 +20,10 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
   const [code, setCode] = useState("");
   const [student, setStudent] = useState<StudentLite | null>(null);
   const [f, setF] = useState<Record<string, string>>({ language: "bn" });
+  /** The certificate open in the print preview — set on creation, and on
+   *  clicking any row in the register (A-7: reprint is not optional for a
+   *  document somebody loses). */
+  const [printing, setPrinting] = useState<string | null>(null);
   const up = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   const createT = useCreateTestimonial();
@@ -40,7 +45,14 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
   function generate() {
     if (!student) { toast({ title: t("শিক্ষার্থী নির্বাচন করুন", "Select a student"), variant: "error" }); return; }
     const base = { student_id: student.id, ...f };
-    const onDone = () => { toast({ title: t("সনদ তৈরি হয়েছে", "Certificate created"), variant: "success" }); setF({ language: "bn" }); setStudent(null); setCode(""); };
+    // `useMut` is typed against `Promise<unknown>` for every RPC in the module;
+    // the certificate creators return the new row id, which is what the print
+    // preview needs, so it is narrowed here rather than widening the helper.
+    const onDone = (id: unknown) => {
+      toast({ title: t("সনদ তৈরি হয়েছে", "Certificate created"), variant: "success" });
+      setF({ language: "bn" }); setStudent(null); setCode("");
+      if (typeof id === "string" && id) setPrinting(id);
+    };
     const onErr = (e: unknown) => toast({ title: msg(e, { bn: "তৈরি ব্যর্থ", en: "Failed" }), variant: "error" });
     if (isT) createT.mutate(base, { onSuccess: onDone, onError: onErr });
     else createTr.mutate(base, { onSuccess: onDone, onError: onErr });
@@ -87,11 +99,6 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
               <Textarea value={f[isT ? "remarks" : "reason"] ?? ""} onChange={(e) => up(isT ? "remarks" : "reason", e.target.value)} />
             </Field>
           </div>
-          {/* A control that cannot be actioned in this release is not rendered. */}
-          <div className="flex items-start gap-2.5 rounded-xl border border-info-fg/30 bg-info-bg px-4 py-3 text-meta text-info-fg">
-            <Info size={15} className="mt-px shrink-0" />
-            <span>{t("PDF আউটপুট প্রিন্ট-টেমপ্লেট রিলিজের সাথে আসছে। সনদের রেকর্ড এখনই তৈরি ও সংরক্ষণ করা যাবে।", "PDF output arrives with the print-template release. Certificate records can be created and stored now.")}</span>
-          </div>
           <div className="flex justify-end gap-3">
             <Button variant="primary" onClick={generate} disabled={pending}>{pending ? t("তৈরি হচ্ছে…", "Creating…") : t("তৈরি করুন", "Generate")}</Button>
           </div>
@@ -108,17 +115,21 @@ export function CertRecordForm({ kind }: { kind: "testimonial" | "transfer" }) {
               <div className="flex-1">{t("শিক্ষার্থী", "Student")}</div>
               <div className="w-40">{t("সনদ নম্বর", "Cert no.")}</div>
               <div className="w-24">{t("সেশন", "Session")}</div>
+              <div className="w-24" />
             </div>
             {list.map((r, i) => (
               <div key={r.id} className={cn("flex items-center gap-3 px-5 py-3", i % 2 === 1 && "bg-sunken")}>
                 <div className="flex-1 text-sm font-medium text-text-primary">{isBn ? r.name_bn : r.name_en}</div>
                 <div className="w-40 font-latin text-meta text-text-secondary">{r.cert_no ?? "—"}</div>
                 <div className="w-24 text-meta text-text-secondary tnum">{r.session ? n(r.session) : "—"}</div>
+                <Button variant="ghost" onClick={() => setPrinting(r.id)}><Printer size={15} /> {t("প্রিন্ট", "Print")}</Button>
               </div>
             ))}
           </>
         )}
       </div>
+
+      {printing ? <CertificateViewer kind={kind} id={printing} onClose={() => setPrinting(null)} /> : null}
     </div>
   );
 }

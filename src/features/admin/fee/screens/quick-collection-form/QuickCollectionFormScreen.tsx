@@ -8,8 +8,10 @@ import { PAYMENT_METHOD } from "@/shared/constants/enums";
 import type { PaymentMethod } from "@/shared/lib/validation";
 import { createClient } from "@/shared/services/supabase/client";
 import { Field, Input, Select, Button, Skeleton, EmptyState, ErrorState, useToast, PageHeader } from "@/shared/ui";
-import { useStudentProfile, useStudentInvoices, useCollectFee, useAccounts } from "../../logic/hooks";
+import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
+import { useStudentProfile, useStudentInvoices, useCollectFee, useAccounts, useStudentSearch } from "../../logic/hooks";
 import { findStudentIdByCode } from "../../logic/api";
+import { ReceiptViewer } from "../../components/ReceiptViewer";
 import { useErrorMessage } from "@/shared/services/errors";
 
 /** Fee · Quick Collection (form) — look up a student, collect against their invoices. */
@@ -26,6 +28,14 @@ export function QuickCollectionFormScreen() {
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [accountId, setAccountId] = useState("");
   const [amounts, setAmounts] = useState<Record<string, string>>({});
+  /** The payment just taken. A collection that ends in a toast and no paper is
+   *  the defect A-6.1 item 1 names; the parent will not leave without one. */
+  const [receiptId, setReceiptId] = useState<string | null>(null);
+
+  // Name/mobile lookup alongside the code (A-6.1 item 9): a parent arriving
+  // without the ID number could not previously be served at all.
+  const debounced = useDebouncedValue(code, 300);
+  const matches = useStudentSearch(studentId ? "" : debounced);
 
   const profile = useStudentProfile(studentId);
   const invoices = useStudentInvoices(studentId);
@@ -81,7 +91,11 @@ export function QuickCollectionFormScreen() {
     collect.mutate(
       { fee_invoice_id: invoiceId, amount: amt, method, account_id: accountId || undefined, idempotency_key: key },
       {
-        onSuccess: () => { toast({ title: t("ফি আদায় সম্পন্ন হয়েছে", "Fee collected"), variant: "success" }); setAmounts((p) => ({ ...p, [invoiceId]: "" })); },
+        onSuccess: (paymentId) => {
+          toast({ title: t("ফি আদায় সম্পন্ন হয়েছে", "Fee collected"), variant: "success" });
+          setAmounts((p) => ({ ...p, [invoiceId]: "" }));
+          if (paymentId) setReceiptId(paymentId);
+        },
         onError: (e: unknown) => toast({ title: msg(e, { bn: "আদায় ব্যর্থ", en: "Collection failed" }), variant: "error" }),
       },
     );
@@ -102,9 +116,28 @@ export function QuickCollectionFormScreen() {
         <div className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-e1">
           <Field label={t("শিক্ষার্থী আইডি", "Student ID")} required
             error={notFound ? t("এই আইডিতে কোনো শিক্ষার্থী নেই", "No student with that ID") : undefined}>
-            <Input value={code} onChange={(e) => { setCode(e.target.value); setNotFound(false); }} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="STU-0001" className="font-latin" />
+            <Input value={code} onChange={(e) => { setCode(e.target.value); setNotFound(false); setStudentId(null); }} onKeyDown={(e) => e.key === "Enter" && search()} placeholder={t("STU-0001 বা নাম", "STU-0001 or name")} className="font-latin" />
           </Field>
           <Button variant="primary" onClick={search} disabled={searching}><Search size={15} /> {searching ? t("খুঁজছে…", "Searching…") : t("অনুসন্ধান", "Search")}</Button>
+
+          {!studentId && (matches.data?.length ?? 0) > 0 ? (
+            <ul className="max-h-64 overflow-y-auto rounded-lg border border-border-default">
+              {(matches.data ?? []).map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => { setStudentId(m.id); setNotFound(false); }}
+                    className="flex w-full flex-col gap-0.5 border-b border-border-default px-3 py-2 text-left last:border-0 hover:bg-sunken"
+                  >
+                    <span className="text-meta font-medium text-text-primary">{isBn ? m.name_bn : m.name_en}</span>
+                    <span className="text-micro text-text-muted">
+                      {m.code ? n(m.code) : "—"} · {m.section}{m.roll != null ? ` · ${t("রোল", "Roll")} ${n(m.roll)}` : ""}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-2.5 rounded-2xl bg-surface p-5 shadow-e1">
@@ -202,6 +235,8 @@ export function QuickCollectionFormScreen() {
           </div>
         </>
       ) : null}
+
+      {receiptId ? <ReceiptViewer paymentId={receiptId} onClose={() => setReceiptId(null)} /> : null}
     </div>
   );
 }

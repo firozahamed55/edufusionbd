@@ -130,6 +130,7 @@ export const queryKeys = {
       ["exam", "results", examId, sectionId ?? null] as const,
     subjectMarks: (subjectId: Id) => ["exam", "subject-marks", subjectId] as const,
     config: (kind: string) => ["exam", "config", kind] as const,
+    resultStatus: (examId: Id) => ["exam", "result-status", examId] as const,
   },
 
   fee: {
@@ -150,6 +151,9 @@ export const queryKeys = {
     digitalStats: ["fee", "digital", "stats"] as const,
     incomeAll: ["fee", "income"] as const,
     income: (from: string, to: string) => ["fee", "income", from, to] as const,
+    dayBookAll: ["fee", "day-book"] as const,
+    dayBook: (date: string, collector: Id) => ["fee", "day-book", date, collector ?? null] as const,
+    studentSearch: (term: string) => ["fee", "student-search", term] as const,
   },
 
   sms: {
