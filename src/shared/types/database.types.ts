@@ -3072,9 +3072,12 @@ export type Database = {
         Row: {
           avatar_file_id: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           institution_id: string | null
+          invited_at: string | null
+          invited_by: string | null
           is_platform_admin: boolean
           last_login_at: string | null
           linked_guardian_id: string | null
@@ -3082,14 +3085,19 @@ export type Database = {
           linked_teacher_id: string | null
           phone: string | null
           status: string
+          suspended_at: string | null
+          suspended_reason: string | null
           updated_at: string
         }
         Insert: {
           avatar_file_id?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
           institution_id?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           is_platform_admin?: boolean
           last_login_at?: string | null
           linked_guardian_id?: string | null
@@ -3097,14 +3105,19 @@ export type Database = {
           linked_teacher_id?: string | null
           phone?: string | null
           status?: string
+          suspended_at?: string | null
+          suspended_reason?: string | null
           updated_at?: string
         }
         Update: {
           avatar_file_id?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           institution_id?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           is_platform_admin?: boolean
           last_login_at?: string | null
           linked_guardian_id?: string | null
@@ -3112,6 +3125,8 @@ export type Database = {
           linked_teacher_id?: string | null
           phone?: string | null
           status?: string
+          suspended_at?: string | null
+          suspended_reason?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -5601,6 +5616,14 @@ export type Database = {
         Args: { p_profile_id: string; p_reason: string }
         Returns: undefined
       }
+      fn_admin_prepare_password_reset: {
+        Args: { p_profile_id: string }
+        Returns: string
+      }
+      fn_admin_revoke_sessions: {
+        Args: { p_profile_id: string }
+        Returns: number
+      }
       fn_attach_student_file: { Args: { payload: Json }; Returns: undefined }
       fn_attendance_summary: {
         Args: { p_class_section_id?: string; p_from?: string; p_to?: string }
@@ -5662,7 +5685,9 @@ export type Database = {
       fn_import_teachers: { Args: { payload: Json }; Returns: Json }
       fn_log_export: { Args: { payload: Json }; Returns: undefined }
       fn_mark_attendance: { Args: { payload: Json }; Returns: number }
+      fn_complete_user_invite: { Args: { payload: Json }; Returns: string }
       fn_my_permissions: { Args: never; Returns: string[] }
+      fn_prepare_user_invite: { Args: { payload: Json }; Returns: Json }
       fn_my_profile: { Args: never; Returns: Json }
       fn_my_security_events: { Args: { p_limit?: number }; Returns: Json }
       fn_my_sessions: { Args: never; Returns: Json }

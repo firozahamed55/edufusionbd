@@ -5,6 +5,7 @@ import { createClient } from "@/shared/services/supabase/client";
 import type { RpcPayload } from "@/shared/services/supabase/types";
 import * as api from "./api";
 import * as cal from "./calendar";
+import * as userOps from "./userOps";
 import { queryKeys } from "@/shared/services/queryKeys";
 import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
@@ -98,9 +99,25 @@ export const useSetUserRoles = () =>
   );
 export const useSetUserStatus = () =>
   useMut(
-    (v: { profileId: string; status: "active" | "suspended" }) => api.setUserStatus(c(), v.profileId, v.status),
+    (v: { profileId: string; status: "active" | "suspended"; reason?: string }) =>
+      api.setUserStatus(c(), v.profileId, v.status, v.reason),
     [queryKeys.core.usersAll],
   );
+
+/**
+ * Invite, password reset and session revoke (audit M-15).
+ *
+ * These three go over `fetch` to `/api/admin/users/*` rather than `supabase.rpc`
+ * — see `src/server/users/accountOps.ts` for why one of the three needs a
+ * server route and why the other two ride with it. Invite invalidates the user
+ * list because it produces a row; the other two change nothing the list shows.
+ */
+export const useInviteUser = () =>
+  useMut((p: userOps.InviteUserPayload) => userOps.inviteUser(p), [queryKeys.core.usersAll]);
+export const useSendPasswordReset = () =>
+  useMutation({ mutationFn: (profileId: string) => userOps.sendPasswordReset(profileId) });
+export const useRevokeSessions = () =>
+  useMutation({ mutationFn: (profileId: string) => userOps.revokeSessions(profileId) });
 
 /* ------------------------------------------------------ academic calendar */
 

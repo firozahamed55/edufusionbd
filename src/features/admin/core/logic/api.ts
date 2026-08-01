@@ -182,6 +182,14 @@ export type UserRow = {
   /** Was absent entirely — "has this account ever been used" is the first
    *  question anyone asks of a user list (SRA A-0.4). */
   lastLoginAt: string | null;
+  /** Mirror of `auth.users.email` (audit S-9.3). Identity was name + phone
+   *  only, which is not enough to tell two Rahmans apart, and is the address
+   *  every invite and recovery mail goes to. */
+  email: string | null;
+  /** When the invite was sent, so "invited" can say how long ago (S-9.6). */
+  invitedAt: string | null;
+  /** Why the account was suspended (S-9.10). */
+  suspendedReason: string | null;
 };
 
 export const USERS_PAGE_SIZE = 25;
@@ -194,11 +202,14 @@ export async function fetchUsers(
   const to = from + perPage - 1;
   let query = s
     .from("profile")
-    .select("id, full_name, phone, status, last_login_at, roles:user_role(role_id, role:role_id(name))", { count: "exact" })
+    .select(
+      "id, full_name, phone, email, status, last_login_at, invited_at, suspended_reason, roles:user_role(role_id, role:role_id(name))",
+      { count: "exact" },
+    )
     .order("created_at");
 
   const needle = q.trim().replace(/[%,]/g, "");
-  if (needle) query = query.or(`full_name.ilike.%${needle}%,phone.ilike.%${needle}%`);
+  if (needle) query = query.or(`full_name.ilike.%${needle}%,phone.ilike.%${needle}%,email.ilike.%${needle}%`);
   if (status) query = query.eq("status", status);
 
   const { data, error, count } = await query.range(from, to);
@@ -211,6 +222,9 @@ export async function fetchUsers(
     roles: (r.roles ?? []).map((x) => x.role?.name).filter(Boolean).join(", "),
     roleIds: (r.roles ?? []).map((x) => x.role_id).filter(Boolean),
     lastLoginAt: r.last_login_at,
+    email: r.email,
+    invitedAt: r.invited_at,
+    suspendedReason: r.suspended_reason,
   }));
   return { rows, total: count ?? 0 };
 }
@@ -253,9 +267,23 @@ export async function setUserRoles(s: BrowserClient, profileId: string, roleIds:
   if (error) throw new Error(error.message);
 }
 
-/** Suspend/reactivate. Never a delete — a profile carries audit attribution. */
-export async function setUserStatus(s: BrowserClient, profileId: string, status: "active" | "suspended"): Promise<void> {
-  const { error } = await s.rpc("fn_set_user_status", { payload: { profile_id: profileId, status } });
+/**
+ * Suspend/reactivate. Never a delete — a profile carries audit attribution.
+ *
+ * `reason` is optional and only meaningful on suspend (audit S-9.10). The RPC
+ * also ends the account's live sessions on suspend, which is what makes the
+ * confirm dialog's "will no longer be able to sign in" true rather than
+ * aspirational.
+ */
+export async function setUserStatus(
+  s: BrowserClient,
+  profileId: string,
+  status: "active" | "suspended",
+  reason?: string,
+): Promise<void> {
+  const { error } = await s.rpc("fn_set_user_status", {
+    payload: { profile_id: profileId, status, reason: reason ?? null },
+  });
   if (error) throw new Error(error.message);
 }
 

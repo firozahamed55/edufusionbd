@@ -74,6 +74,21 @@ describe("unauthenticated requests", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it.each([
+    "/api/admin/users/invite",
+    "/api/admin/users/reset-password",
+    "/api/admin/users/revoke-sessions",
+  ])("does NOT redirect %s either", async (path) => {
+    // Settings audit M-15. These three arrived outside the `/api/v1/` prefix
+    // the exemption was written against, so a signed-out `fetch()` would have
+    // followed a 307 to the HTML login page and reported a JSON parse error
+    // instead of the 401 the route already knows how to return.
+    signedOut();
+    const res = await middleware(req(path));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
   it("preserves the requested path as ?redirect= so login can return there", async () => {
     signedOut();
     const res = await middleware(req("/admin/student/list"));
