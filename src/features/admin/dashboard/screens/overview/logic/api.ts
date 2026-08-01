@@ -39,6 +39,8 @@ export type ActivityItem = {
    * pushed off by a single bulk operation.
    */
   count: number;
+  /** The run filled the fetch window, so `count` is a floor: render "N+". */
+  partial?: boolean;
 };
 
 export type DashboardData = {
@@ -56,6 +58,9 @@ export type DashboardData = {
 };
 
 const DAY_MS = 86_400_000;
+
+/** Audit rows read for the activity panel; see `collapseActivity`. */
+const ACTIVITY_FETCH = 200;
 
 function isoDay(offsetDays: number, now: number): string {
   return new Date(now - offsetDays * DAY_MS).toISOString().slice(0, 10);
@@ -112,7 +117,7 @@ export async function fetchDashboard(
       .from("audit_log")
       .select("id, action, entity, at")
       .order("at", { ascending: false })
-      .limit(200),
+      .limit(ACTIVITY_FETCH),
     // Head-only count — the checklist needs "any?", not the rows.
     supabase.from("subject").select("id", { count: "exact", head: true }),
   ]);
@@ -176,7 +181,7 @@ export async function fetchDashboard(
     notices: noticeRes.data ?? [],
     attention,
     attendanceTrend,
-    activity: collapseActivity(activityRes.data ?? []),
+    activity: collapseActivity(activityRes.data ?? [], 6, ACTIVITY_FETCH),
   };
 }
 
@@ -191,16 +196,33 @@ export async function fetchDashboard(
 export function collapseActivity(
   rows: { id: string; action: string; entity: string; at: string }[],
   limit = 6,
+  /**
+   * How many rows the query could have returned. A run that reaches the end of
+   * a FULL page is not necessarily finished — bulk-updating 268 students inside
+   * a 200-row window rendered "200 students updated", which is the fetch limit
+   * masquerading as a count. When that happens the item is marked `partial` and
+   * the screen shows "200+" rather than asserting a number it cannot know.
+   */
+  fetched = rows.length,
 ): ActivityItem[] {
   const out: ActivityItem[] = [];
+  let consumed = 0;
   for (const r of rows) {
     const last = out[out.length - 1];
     if (last && last.action === r.action && last.entity === r.entity) {
       last.count += 1;
+      consumed += 1;
       continue;
     }
     if (out.length === limit) break;
     out.push({ ...r, count: 1 });
+    consumed += 1;
+  }
+  const tail = out[out.length - 1];
+  // Only the LAST group can be truncated, and only if we actually exhausted a
+  // full page — a short page means the table simply had nothing more.
+  if (tail && consumed === rows.length && rows.length === fetched && fetched > 0) {
+    tail.partial = true;
   }
   return out;
 }

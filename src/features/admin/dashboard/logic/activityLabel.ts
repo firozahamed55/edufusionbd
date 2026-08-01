@@ -98,15 +98,22 @@ export function activitySentence(
   action: string,
   entity: string,
   count = 1,
+  /**
+   * The run filled the audit fetch window, so `count` is a FLOOR, not a total.
+   * Bulk-updating 268 students inside a 200-row page rendered "200 students
+   * updated" — the query limit presented as a fact. Rendered "200+".
+   */
+  partial = false,
 ): { bn: string; en: string } {
   const e = ENTITY[entity] ?? { bn: entity, en: entity };
   const a = isActionKind(action) ? action : null;
   if (!a) return { bn: `${e.bn} — ${action}`, en: `${e.en} — ${action}` };
   const v = VERB[a];
   if (count > 1) {
+    const nn = partial ? `${count}+` : `${count}`;
     return {
-      bn: `${count}টি ${e.bn} ${v.bn}`,
-      en: `${count} ${e.en} records ${v.en}`,
+      bn: `${nn}টি ${e.bn} ${v.bn}`,
+      en: `${nn} ${e.en} records ${v.en}`,
     };
   }
   return { bn: `${e.bn} ${v.bn}`, en: `${capitalise(e.en)} ${v.en}` };

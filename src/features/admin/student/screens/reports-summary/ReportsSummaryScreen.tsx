@@ -92,7 +92,6 @@ export function ReportsSummaryScreen() {
           const ageKnown = d.age_known ?? d.total;
           const dobMissing = d.dob_missing ?? 0;
           const religionMissing = d.religion_missing ?? 0;
-          const dobSynthetic = d.dob_synthetic ?? 0;
           const KPIS = [
             { label: t("মোট শিক্ষার্থী", "Total Students"), value: d.total, grad: "grad-indigo", shadow: "shadow-e2", up: true },
             { label: t("ছেলে", "Boys"), value: d.boys, sub: `${pct(d.boys, d.total)}%`, grad: "grad-emerald", shadow: "shadow-e2" },
@@ -102,22 +101,6 @@ export function ReportsSummaryScreen() {
 
           return (
             <>
-              {/*
-                Generated dates of birth are still generated. The age chart below
-                is drawable and internally consistent, which is exactly why this
-                banner exists — without it a test fixture reads as a demographic
-                finding about 268 real children, and it would be printed.
-              */}
-              {dobSynthetic > 0 ? (
-                <p className="flex items-start gap-2 rounded-xl bg-warning-bg px-4 py-3 text-meta text-warning-fg" role="status">
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                  {t(
-                    `${n(dobSynthetic)} জন শিক্ষার্থীর জন্মতারিখ শ্রেণি অনুযায়ী তৈরি করা হয়েছে (পরীক্ষামূলক) — বয়সভিত্তিক পরিসংখ্যান প্রকৃত তথ্য নয়।`,
-                    `${dobSynthetic} students have dates of birth generated from their class (test data) — the age statistics below do not describe real students.`,
-                  )}
-                </p>
-              ) : null}
-
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {KPIS.map((k) => (
                   <div key={k.label} className={cn("flex flex-col gap-3 rounded-2xl px-5 py-4.5 text-white", k.grad, k.shadow)}>

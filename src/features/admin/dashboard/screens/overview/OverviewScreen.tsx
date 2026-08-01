@@ -435,7 +435,7 @@ export function OverviewScreen() {
           ) : (
             data?.activity.map((a) => {
               // SRA B-2: a sentence, not `insert · student_enrollment`.
-              const s = activitySentence(a.action, a.entity, a.count);
+              const s = activitySentence(a.action, a.entity, a.count, a.partial);
               const href = activityHref(a.entity);
               const label = t(s.bn, s.en);
               const row = (

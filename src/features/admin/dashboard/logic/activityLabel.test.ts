@@ -76,4 +76,22 @@ describe("collapseActivity (SRA B-2)", () => {
   it("returns an empty list for no activity", () => {
     expect(collapseActivity([])).toEqual([]);
   });
+
+  it("marks a run that fills the fetch window as partial, not exact", () => {
+    // 268 students updated inside a 200-row page rendered "200 updated" —
+    // the query limit presented as a count.
+    const rows = Array.from({ length: 200 }, (_, i) => row(`s${i}`, "update", "student"));
+    const [only] = collapseActivity(rows, 6, 200);
+    expect(only.count).toBe(200);
+    expect(only.partial).toBe(true);
+    expect(activitySentence("update", "student", only.count, only.partial).en)
+      .toBe("200+ student records updated");
+  });
+
+  it("does NOT mark a short page as partial — the table simply had no more", () => {
+    const rows = Array.from({ length: 12 }, (_, i) => row(`s${i}`, "update", "student"));
+    const [only] = collapseActivity(rows, 6, 200);
+    expect(only.count).toBe(12);
+    expect(only.partial).toBeUndefined();
+  });
 });
