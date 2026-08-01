@@ -307,21 +307,75 @@ is where cross-cutting, decision-support and printable output lives. The rail's
 Sequenced so that each step is independently shippable and each removes a stated
 falsehood or an unanswerable question.
 
-| # | Work | From | Size |
-|---|---|---|---|
-| 1 | Auth redesign — chrome, rail, card, typography | A.1 | M |
-| 2 | Auth correctness — role interstitial removed, field-level errors, reauth, recovery dead end | A-3/4/5/2 | M |
-| 3 | Dashboard "Today" band + attendance-not-taken | D-1, D-2, D-10 | M |
-| 4 | Declarative attention rules | D-11 | M |
-| 5 | Collection rate against billing + ageing | D-3, D-4 | M |
-| 6 | Reports hub + filters on enrolment | R-2, R-5 | M |
-| 7 | Academic performance report | R-1 | L |
-| 8 | Insight layer | R-3 | M |
-| 9 | At-risk register | R-4 | L |
-| 10 | Export logging | R-7 | S |
-| 11 | Print output + provenance | R-8, R-9 | M |
-| 12 | Drill-down, term pipeline, as-of | D-12, D-6, D-14 | M |
+**Status: all twelve items shipped.**
+
+| # | Work | From | Size | Shipped |
+|---|---|---|---|---|
+| 1 | Auth redesign — chrome, rail, card, typography | A.1 | M | `4f5fc7b` |
+| 2 | Auth correctness — role interstitial removed, field-level errors, reauth, recovery dead end | A-3/4/5/2 | M | `4f5fc7b`, `bdbb68e` |
+| 3 | Dashboard "Today" band + attendance-not-taken | D-1, D-2, D-10 | M | `b2b5f0e` |
+| 4 | Declarative attention rules | D-11 | M | `b2b5f0e` |
+| 5 | Collection rate against billing + ageing | D-3, D-4 | M | `b2b5f0e` (D-4), `4c483dc` (D-3) |
+| 6 | Reports hub + filters on enrolment | R-2, R-5 | M | `246a303` |
+| 7 | Academic performance report | R-1 | L | `246a303` |
+| 8 | Insight layer | R-3 | M | `246a303` |
+| 9 | At-risk register | R-4 | L | `246a303` |
+| 10 | Export logging | R-7 | S | `7de278c`, `4c483dc` |
+| 11 | Print output + provenance | R-8, R-9 | M | `246a303` |
+| 12 | Drill-down, term pipeline, as-of | D-12, D-6, D-14 | M | `837fc88`, `b2b5f0e` |
 
 **Explicitly out of scope and why:** SMS-based password recovery (needs a contracted
 provider — Phase 4 W13); scheduled reports (needs `pg_cron` — Phase 4 W12); the
 teacher application (A-8, an architectural gap larger than these three surfaces).
+
+## D.1 · What the build found that the analysis did not
+
+Three defects surfaced only when the work was run against the live database.
+All three share a shape worth naming, because it is the shape this whole
+document was written to hunt: **a figure that looks like a finding about
+children but is actually a fact about the data.**
+
+**The at-risk register's first run named 22 children as dropout risks.** All at
+"0% attendance". The school has taken the register once — 272 of 280
+student-section rows hold `total_days = 1` — so every child absent on that one
+day was listed, with their guardian's phone number, on a page a head teacher is
+meant to act on. One absence is an incident; a pattern needs enough
+observations to be a pattern. Signals now require 20 recorded days.
+
+The more important half of that fix is the second one: **a signal that cannot be
+computed now says so.** "No child is at attendance risk" and "we have not taken
+enough registers to know" render identically as a shorter list, and only one of
+them is good news. The same applies to the marks signal, which needs two
+processed exams and currently has one. The clean-bill-of-health finding is
+suppressed whenever any signal is dark — otherwise the most reassuring sentence
+on the page is the one with the least evidence behind it.
+
+**`fn_process_exam_result` never wrote `exam_result.grade`.** Found because R-1's
+headline panel is a grade distribution and every band rendered zero. Not a
+grading gap — `grade_scale` is seeded, `gpa` is computed from it, `result` is
+derived from it — the `INSERT` simply never listed the column. Four readers have
+rendered an em-dash since Phase 2, including `MarksheetDoc`: **every marksheet
+this product has handed to a guardian says "Grade: —".** Fixed and backfilled.
+This is the `export_log` pattern again — a column with types, constraints and no
+writer — and it suggests a standing check is worth having: *which columns does
+the schema define that no code path populates?*
+
+**`exportCsv`'s audit argument was required but only 6 of 19 call sites passed
+it**, so `tsc` failed on `main` from `7de278c` until `4c483dc`. The type system
+caught it; nothing ran the type system on the way in. Worth a CI gate.
+
+## D.2 · What is now next
+
+Not scoped here, but named because the build made them visible:
+
+1. **Attendance is not being taken.** Every finding above traces back to it. The
+   product's own D-2 rule exists to chase this daily and the school is not yet
+   on it — which is an onboarding problem, not a software one, but the software
+   is now the thing that can see it.
+2. **`/admin/reports/attendance` and `/admin/reports/finance`** are in §C.5's
+   target IA and are not built; the hub links to the existing module screens and
+   labels them as living there. Honest, but not the same thing.
+3. **The academic report's populated path is untested against real data** — there
+   are no processed results in the live database. Its empty and workflow states
+   are verified; its grade distribution, ranking and subject table are verified
+   only by construction and by the GPA→letter mapping checked across the scale.
