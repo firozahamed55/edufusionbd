@@ -125,6 +125,9 @@ export const queryKeys = {
     entitySearch: (term: string) => ["core", "entity-search", term] as const,
     permissionMatrix: ["core", "permission-matrix"] as const,
     setting: (key: string, scope: string) => ["core", "setting", key, scope] as const,
+    /** "What points at this record" — fetched only while a confirm is open. */
+    entityImpact: (entity: string, id: string | null) => ["core", "impact", entity, id] as const,
+    calendarImpact: (from: string | null, to: string | null) => ["core", "impact", "calendar", from, to] as const,
     calendarAll: ["core", "calendar"] as const,
     calendar: (from: string, to: string) => ["core", "calendar", from, to] as const,
     calendarDay: (date: string) => ["core", "calendar", "day", date] as const,

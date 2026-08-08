@@ -6,16 +6,35 @@ import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import {
   PageHeader, Field, Input, Button, Modal, ConfirmDialog, useToast,
-  Skeleton, EmptyState, ErrorState, Badge, Checkbox,
+  Skeleton, EmptyState, ErrorState, Badge, Checkbox, ImpactPreview,
 } from "@/shared/ui";
 import { useErrorMessage } from "@/shared/services/errors";
 import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 import { localDay } from "@/shared/lib/format";
 import { monthGrid, type TermRow } from "../../logic/calendar";
+import { calendarRangeSchema, termSchema } from "../../logic/schemas";
+import { useCalendarImpact, useEntityImpact, useImpactLabel } from "../../logic/impact";
 import {
   useCalendarRange, useSetCalendarRange, useClearCalendarRange,
   useTerms, useUpsertTerm, useDeleteTerm, useSetting,
 } from "../../logic/hooks";
+
+/**
+ * Field errors for whichever schema a small local draft is being edited
+ * against. These two dialogs hold plain `useState` drafts rather than
+ * `useZodForm` values (the range editor is a nullable object, the term editor
+ * is nested inside a panel), so this is the seam that gets them the same
+ * messages the rest of the module now shows.
+ */
+function issuesOf(result: { success: boolean; error?: { issues: { path: PropertyKey[]; message: string }[] } }) {
+  const out: Record<string, string> = {};
+  if (result.success || !result.error) return out;
+  for (const i of result.error.issues) {
+    const key = String(i.path[0] ?? "");
+    if (key && !out[key]) out[key] = i.message;
+  }
+  return out;
+}
 
 const MONTHS = [
   ["জানুয়ারি", "January"], ["ফেব্রুয়ারি", "February"], ["মার্চ", "March"], ["এপ্রিল", "April"],
@@ -85,9 +104,30 @@ export function CalendarScreen() {
 
   /** The range editor. Opened blank from the toolbar, or pre-filled by a cell. */
   const [editing, setEditing] = useState<{ from: string; to: string; label: string; working: boolean } | null>(null);
+  const [rangeTouched, setRangeTouched] = useState(false);
+
+  /*
+   * S-4.3: `to < from` was prevented by the `min` attribute alone, which a paste
+   * or a scripted client walks straight past — and an inverted range marks
+   * nothing while reporting success. The 366-day ceiling catches the other
+   * common shape, a mistyped year.
+   */
+  const rangeErrors = useMemo(
+    () => (editing ? issuesOf(calendarRangeSchema.safeParse(editing)) : {}),
+    [editing],
+  );
+  const rangeError = (k: string) => (rangeTouched ? rangeErrors[k] : undefined);
+
+  /** S-4.11: what a mark on these dates would sit on top of. */
+  const rangeImpact = useCalendarImpact(editing?.from ?? null, editing?.to || (editing?.from ?? null));
+  const impactLabel = useImpactLabel();
 
   function submitRange() {
     if (!editing) return;
+    if (Object.keys(rangeErrors).length > 0) {
+      setRangeTouched(true);
+      return;
+    }
     setRange.mutate(
       {
         from: editing.from,
@@ -99,6 +139,7 @@ export function CalendarScreen() {
       {
         onSuccess: (count) => {
           setEditing(null);
+          setRangeTouched(false);
           toast({ title: t(`${n(Number(count))} দিন চিহ্নিত হয়েছে`, `${Number(count)} days marked`), variant: "success" });
         },
         onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
@@ -256,13 +297,10 @@ export function CalendarScreen() {
               <Button
                 variant="primary"
                 onClick={submitRange}
-                disabled={
-                  !editing.from ||
-                  setRange.isPending ||
-                  // The RPC refuses an unlabelled holiday; say so before the
-                  // round trip rather than after it.
-                  (!editing.working && !editing.label.trim())
-                }
+                // Every rule the RPC enforces, said before the round trip
+                // rather than after it — including the unlabelled holiday it
+                // has always refused.
+                disabled={setRange.isPending || Object.keys(rangeErrors).length > 0}
               >
                 {setRange.isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("সংরক্ষণ করুন", "Save")}
               </Button>
@@ -271,13 +309,38 @@ export function CalendarScreen() {
         >
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={t("শুরুর তারিখ", "From")} required>
+              <Field label={t("শুরুর তারিখ", "From")} required error={rangeError("from")} onBlur={() => setRangeTouched(true)}>
                 <Input type="date" value={editing.from} onChange={(e) => setEditing((p) => p && { ...p, from: e.target.value })} />
               </Field>
-              <Field label={t("শেষ তারিখ", "To")} hint={t("খালি রাখলে এক দিন", "Leave blank for a single day")}>
+              <Field
+                label={t("শেষ তারিখ", "To")}
+                hint={t("খালি রাখলে এক দিন", "Leave blank for a single day")}
+                error={rangeError("to")}
+                onBlur={() => setRangeTouched(true)}
+              >
                 <Input type="date" value={editing.to} min={editing.from} onChange={(e) => setEditing((p) => p && { ...p, to: e.target.value })} />
               </Field>
             </div>
+
+            {/* S-4.11: marking a day a holiday does not delete the attendance
+                already recorded on it — it makes that attendance unexplainable.
+                Say so before, not in a support ticket after. */}
+            {(rangeImpact.data?.items.length ?? 0) > 0 ? (
+              <div className="rounded-lg bg-warning-bg px-3 py-2 text-warning-fg">
+                <ImpactPreview
+                  items={rangeImpact.data?.items ?? []}
+                  loading={rangeImpact.isLoading}
+                  label={impactLabel}
+                  emptyLabel=""
+                />
+                <p className="mt-1 text-micro">
+                  {t(
+                    "এই তারিখগুলোতে ইতিমধ্যে উপস্থিতি নেওয়া হয়েছে — ছুটি চিহ্নিত করলে সেগুলো রয়ে যাবে কিন্তু হিসাবের বাইরে চলে যাবে।",
+                    "Attendance is already recorded on these dates. Marking them a holiday leaves those rows in place but takes them out of every average.",
+                  )}
+                </p>
+              </div>
+            ) : null}
             <label className="flex items-center gap-2 text-meta text-text-secondary">
               <Checkbox
                 checked={editing.working}
@@ -288,6 +351,8 @@ export function CalendarScreen() {
             <Field
               label={editing.working ? t("বিবরণ", "Note") : t("ছুটির কারণ", "Holiday name")}
               required={!editing.working}
+              error={rangeError("label")}
+              onBlur={() => setRangeTouched(true)}
               hint={
                 editing.working
                   ? t("যেমন — সাপ্তাহিক ছুটির দিনে অতিরিক্ত ক্লাস", "e.g. make-up class on a weekly holiday")
@@ -326,10 +391,36 @@ function TermsPanel({ yearId }: { yearId: string | undefined }) {
   const remove = useDeleteTerm();
 
   const [draft, setDraft] = useState<typeof EMPTY_TERM | null>(null);
+  const [touched, setTouched] = useState(false);
   const [confirming, setConfirming] = useState<TermRow | null>(null);
+
+  const impactLabel = useImpactLabel();
+  const delImpact = useEntityImpact("academic_term", confirming?.id ?? null);
+
+  /** Which term "this is the current term" would displace (audit S-4.9). */
+  const currentTerm = (terms.data ?? []).find((x) => x.is_current) ?? null;
+
+  /*
+   * S-4.9: term ranges were validated against nothing. Two terms could cover
+   * the same day, which makes "which term is this mark in" unanswerable and
+   * lets the marksheet pick one arbitrarily.
+   */
+  const errors = useMemo(() => {
+    if (!draft) return {};
+    return issuesOf(
+      termSchema.safeParse({
+        ...draft,
+        others: (terms.data ?? [])
+          .filter((x) => x.id !== draft.id)
+          .map((x) => ({ start: x.start_date, end: x.end_date, name: x.name_en })),
+      }),
+    );
+  }, [draft, terms.data]);
+  const err = (k: string) => (touched ? errors[k] : undefined);
 
   function save() {
     if (!draft || !yearId) return;
+    if (Object.keys(errors).length > 0) { setTouched(true); return; }
     upsert.mutate(
       {
         id: draft.id || undefined,
@@ -341,7 +432,7 @@ function TermsPanel({ yearId }: { yearId: string | undefined }) {
         is_current: draft.is_current,
       },
       {
-        onSuccess: () => { setDraft(null); toast({ title: t("টার্ম সংরক্ষিত", "Term saved"), variant: "success" }); },
+        onSuccess: () => { setDraft(null); setTouched(false); toast({ title: t("টার্ম সংরক্ষিত", "Term saved"), variant: "success" }); },
         onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
       },
     );
@@ -412,7 +503,7 @@ function TermsPanel({ yearId }: { yearId: string | undefined }) {
           footer={
             <>
               <Button variant="secondary" onClick={() => setDraft(null)}>{t("বাতিল", "Cancel")}</Button>
-              <Button variant="primary" onClick={save} disabled={!draft.name_en.trim() || upsert.isPending}>
+              <Button variant="primary" onClick={save} disabled={upsert.isPending || Object.keys(errors).length > 0}>
                 {upsert.isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("সংরক্ষণ করুন", "Save")}
               </Button>
             </>
@@ -420,16 +511,16 @@ function TermsPanel({ yearId }: { yearId: string | undefined }) {
         >
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={t("নাম (English)", "Name (English)")} required>
+              <Field label={t("নাম (English)", "Name (English)")} required error={err("name_en")} onBlur={() => setTouched(true)}>
                 <Input value={draft.name_en} placeholder="1st Term" onChange={(e) => setDraft((p) => p && { ...p, name_en: e.target.value })} />
               </Field>
-              <Field label={t("নাম (বাংলা)", "Name (Bangla)")}>
+              <Field label={t("নাম (বাংলা)", "Name (Bangla)")} error={err("name_bn")} onBlur={() => setTouched(true)}>
                 <Input value={draft.name_bn} placeholder="১ম সাময়িক" onChange={(e) => setDraft((p) => p && { ...p, name_bn: e.target.value })} />
               </Field>
-              <Field label={t("শুরু", "Starts")}>
+              <Field label={t("শুরু", "Starts")} error={err("start_date")} onBlur={() => setTouched(true)}>
                 <Input type="date" value={draft.start_date} onChange={(e) => setDraft((p) => p && { ...p, start_date: e.target.value })} />
               </Field>
-              <Field label={t("শেষ", "Ends")}>
+              <Field label={t("শেষ", "Ends")} error={err("end_date")} onBlur={() => setTouched(true)}>
                 <Input type="date" value={draft.end_date} min={draft.start_date || undefined} onChange={(e) => setDraft((p) => p && { ...p, end_date: e.target.value })} />
               </Field>
             </div>
@@ -440,6 +531,16 @@ function TermsPanel({ yearId }: { yearId: string | undefined }) {
               />
               {t("এটিই চলমান টার্ম", "This is the current term")}
             </label>
+            {/* S-4.9: exclusivity was enforced server-side with no UI signal
+                about which term was about to stop being current. */}
+            {draft.is_current && currentTerm && currentTerm.id !== draft.id ? (
+              <p className="rounded-lg bg-warning-bg px-3 py-2 text-meta text-warning-fg">
+                {t(
+                  `“${currentTerm.name_en}” আর চলমান টার্ম থাকবে না।`,
+                  `“${currentTerm.name_en}” will stop being the current term.`,
+                )}
+              </p>
+            ) : null}
           </div>
         </Modal>
       ) : null}
@@ -454,16 +555,28 @@ function TermsPanel({ yearId }: { yearId: string | undefined }) {
         )}
         confirmLabel={t("মুছুন", "Delete")}
         tone="danger"
+        confirmDisabled={delImpact.isLoading || delImpact.data?.blocking}
         onConfirm={() => {
           const target = confirming;
+          if (!target || delImpact.data?.blocking) return;
           setConfirming(null);
-          if (!target) return;
           remove.mutate(target.id, {
             onSuccess: () => toast({ title: t("টার্ম মুছে ফেলা হয়েছে", "Term deleted"), variant: "success" }),
             onError: (e: unknown) => toast({ title: msg(e, { bn: "মোছা যায়নি", en: "Delete failed" }), variant: "error" }),
           });
         }}
-      />
+      >
+        <ImpactPreview
+          items={delImpact.data?.items ?? []}
+          loading={delImpact.isLoading}
+          label={impactLabel}
+          emptyLabel={t("কোনো পরীক্ষা বা চালান এই টার্মে নেই।", "No exam or invoice belongs to this term.")}
+          blockedLabel={t(
+            "এই টার্মে ফি চালান তৈরি হয়েছে — মুছলে সেগুলো কোন সময়সীমার তা আর বলা যাবে না।",
+            "Fee invoices were raised against this term — deleting it leaves them with no billing period.",
+          )}
+        />
+      </ConfirmDialog>
     </div>
   );
 }

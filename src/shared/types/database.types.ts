@@ -4500,18 +4500,21 @@ export type Database = {
           id: string
           institution_id: string
           name: string
+          name_bn: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           institution_id: string
           name: string
+          name_bn?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           institution_id?: string
           name?: string
+          name_bn?: string | null
         }
         Relationships: [
           {
@@ -5722,6 +5725,8 @@ export type Database = {
       }
       fn_set_user_roles: { Args: { payload: Json }; Returns: undefined }
       fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
+      fn_entity_impact: { Args: { p_entity: string; p_id: string }; Returns: Json }
+      fn_calendar_impact: { Args: { p_from: string; p_to: string }; Returns: Json }
       fn_audit_log: {
         Args: {
           p_action?: string

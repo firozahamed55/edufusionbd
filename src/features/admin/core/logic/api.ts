@@ -46,12 +46,19 @@ export async function fetchTeacherOptions(s: BrowserClient): Promise<TeacherOpti
 }
 
 /* class sections (Class Config master-detail) */
-export type ClassSectionRow = { id: string; sectionName: string; capacity: number | null; enrolled: number; classTeacherName: string | null };
+export type ClassSectionRow = {
+  id: string; sectionName: string; capacity: number | null; enrolled: number;
+  classTeacherName: string | null;
+  /** Needed to PREFILL the edit form. Without it, editing a section's capacity
+   *  sent an empty teacher id and the RPC's `nullif(...)` cleared the class
+   *  teacher as a side effect (audit S-3.4's second half). */
+  classTeacherId: string | null;
+};
 // Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
 export async function fetchClassSections(s: BrowserClient, classId: string, yearId: string): Promise<ClassSectionRow[]> {
   const { data, error } = await s
     .from("class_section")
-    .select("id, capacity, section:section_id(name), teacher:class_teacher_id(name_bn, name_en), enrollments:student_enrollment(count)")
+    .select("id, capacity, class_teacher_id, section:section_id(name), teacher:class_teacher_id(name_bn, name_en), enrollments:student_enrollment(count)")
     .eq("class_id", classId)
     .eq("academic_year_id", yearId)
     .is("deleted_at", null).limit(MAX_OPTIONS);
@@ -59,6 +66,7 @@ export async function fetchClassSections(s: BrowserClient, classId: string, year
   return (data ?? []).map((r) => ({
     id: r.id, sectionName: r.section?.name ?? "—", capacity: r.capacity,
     enrolled: r.enrollments?.[0]?.count ?? 0, classTeacherName: r.teacher ? `${r.teacher.name_bn}` : null,
+    classTeacherId: r.class_teacher_id,
   }));
 }
 export const upsertClassSection = (s: BrowserClient, payload: RpcPayload) => call(s, "fn_upsert_class_section", { payload });
@@ -137,13 +145,20 @@ export const upsertSubject = (s: BrowserClient, payload: RpcPayload) => call(s, 
 export const deleteSubject = (s: BrowserClient, id: string) => call(s, "fn_delete_subject", { p_id: id });
 
 /* subject groups */
-export type GroupRow = { id: string; name: string; subject_ids: string[]; subject_names: string };
+export type GroupRow = {
+  id: string; name: string;
+  /** Every sibling entity carries both names; the group carried one untranslated
+   *  `name`, so a Bangla operator read an English label next to Bangla subject
+   *  chips (audit S-7.9). Null until the operator supplies one. */
+  name_bn: string | null;
+  subject_ids: string[]; subject_names: string;
+};
 export async function fetchSubjectGroups(s: BrowserClient): Promise<GroupRow[]> {
-  const { data, error } = await s.from("subject_group").select("id, name, members:subject_group_member(subject:subject_id(id, name_en))").order("name").limit(MAX_OPTIONS);
+  const { data, error } = await s.from("subject_group").select("id, name, name_bn, members:subject_group_member(subject:subject_id(id, name_en))").order("name").limit(MAX_OPTIONS);
   if (error) throw error;
   return (data ?? []).map((r) => {
     const subs = (r.members ?? []).map((m) => m.subject).filter(Boolean) as { id: string; name_en: string }[];
-    return { id: r.id, name: r.name, subject_ids: subs.map((x) => x.id), subject_names: subs.map((x) => x.name_en).join(", ") };
+    return { id: r.id, name: r.name, name_bn: r.name_bn, subject_ids: subs.map((x) => x.id), subject_names: subs.map((x) => x.name_en).join(", ") };
   });
 }
 export const upsertSubjectGroup = (s: BrowserClient, payload: RpcPayload) => call(s, "fn_upsert_subject_group", { payload });

@@ -93,6 +93,41 @@ export function validateGradeScale(scales: GradeScale[]): ScaleProblem[] {
     });
   }
 
+  /*
+   * GPA sanity (audit S-8.7). Negative points, and points above the scheme's
+   * own maximum, were both accepted — and a GPA is not a display value, it is
+   * summed and averaged into a result. `10` is the ceiling because a few
+   * madrasha boards grade on 10 rather than the national 5; anything above that
+   * is a typo, not a scale.
+   */
+  for (const s of rows) {
+    if (s.gpa_point < 0) {
+      problems.push({
+        bn: `${s.grade_letter}: জিপিএ ঋণাত্মক হতে পারে না।`,
+        en: `${s.grade_letter}: GPA cannot be negative.`,
+      });
+    } else if (s.gpa_point > 10) {
+      problems.push({
+        bn: `${s.grade_letter}: জিপিএ ${s.gpa_point} — ১০ এর বেশি কোনো গ্রেড পয়েন্ট নেই।`,
+        en: `${s.grade_letter}: GPA ${s.gpa_point} is above any grade-point scale.`,
+      });
+    }
+  }
+
+  /*
+   * A higher band must not score below a lower one. An A worth 3.5 sitting
+   * above an A- worth 4 inverts the ranking for a whole cohort, and every check
+   * above passes it.
+   */
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].gpa_point < rows[i - 1].gpa_point) {
+      problems.push({
+        bn: `${rows[i].grade_letter} (${rows[i].gpa_point}) নিচের গ্রেড ${rows[i - 1].grade_letter} (${rows[i - 1].gpa_point}) এর চেয়ে কম জিপিএ পাচ্ছে।`,
+        en: `${rows[i].grade_letter} (${rows[i].gpa_point}) scores below the lower grade ${rows[i - 1].grade_letter} (${rows[i - 1].gpa_point}).`,
+      });
+    }
+  }
+
   // A scheme where every band scores 0 GPA passes nobody and is almost
   // certainly half-edited.
   if (!rows.some((s) => s.gpa_point > 0)) {

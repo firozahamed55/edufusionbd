@@ -150,7 +150,14 @@ export function Modal({
   );
 }
 
-/** Confirmation dialog — enforces a deliberate step before destructive actions. */
+/**
+ * Confirmation dialog — enforces a deliberate step before destructive actions.
+ *
+ * `children` and `confirmDisabled` exist for `ImpactPreview` (settings audit
+ * M-16): a confirm that lists what points at the record, and refuses outright
+ * when one of those references is a hard one. A hard reference is not something
+ * to warn about — it is something the dialog must not let happen.
+ */
 export function ConfirmDialog({
   open,
   onClose,
@@ -161,6 +168,8 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   tone = "primary",
   loading = false,
+  confirmDisabled = false,
+  children,
 }: {
   open: boolean;
   onClose: () => void;
@@ -171,6 +180,8 @@ export function ConfirmDialog({
   cancelLabel?: string;
   tone?: "primary" | "danger";
   loading?: boolean;
+  confirmDisabled?: boolean;
+  children?: ReactNode;
 }) {
   return (
     <Modal
@@ -186,12 +197,14 @@ export function ConfirmDialog({
           <Button
             variant={tone === "danger" ? "danger" : "primary"}
             onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || confirmDisabled}
           >
             {confirmLabel}
           </Button>
         </>
       }
-    />
+    >
+      {children}
+    </Modal>
   );
 }

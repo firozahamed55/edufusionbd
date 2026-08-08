@@ -58,8 +58,29 @@ export type ZodForm<T extends Record<string, unknown>, Out> = {
   patch: (values: Partial<T>) => void;
   /** Mark a field touched — wire to `onBlur`. */
   touch: (key: keyof T & string) => void;
+  /**
+   * `error` + `touch` in one spread: `<Field {...bind("eiin")}>`.
+   *
+   * Generalised out of `BasicConfigScreen`, which invented it and was the only
+   * screen that had it (settings audit M-7, Phase 2's `useFieldErrors` item).
+   * The `onBlur` belongs on the `Field` and not on the control because React's
+   * synthetic blur is `focusout`, which bubbles — so one spread covers whatever
+   * `Input`, `Select` or `Textarea` sits inside.
+   */
+  bind: (key: keyof T & string) => { error: string | undefined; onBlur: () => void };
   /** Errors for fields the operator has seen. Pass straight to `Field error`. */
   errors: FieldErrors<T>;
+  /**
+   * The first invalid field in `initial`-key order, after a failed `submit()`.
+   *
+   * WCAG 3.3.1 / 2.4.3, and audit A-4: a toast saying "fix the highlighted
+   * fields" with focus left on the Save button tells a keyboard or
+   * screen-reader user that something is wrong and gives them no route to it.
+   * Screens pair this with `id={\`f-${key}\`}` on the control.
+   */
+  firstErrorKey: () => (keyof T & string) | undefined;
+  /** Focus `#f-<firstErrorKey>`. Returns false when everything is valid. */
+  focusFirstError: (prefix?: string) => boolean;
   /**
    * Validate everything and return the parsed output, or `null` if invalid.
    * Marks every field touched as a side effect, so the errors become visible.
@@ -159,12 +180,38 @@ export function useZodForm<T extends Record<string, unknown>, Out>(
     [values],
   );
 
+  const bind = useCallback(
+    (key: keyof T & string) => ({ error: errors[key], onBlur: () => touch(key) }),
+    [errors, touch],
+  );
+
+  // Ordered by the shape of `values`, not by zod's issue order, so "the first
+  // invalid field" means the first one on the SCREEN — which is what an
+  // operator being sent to it expects.
+  const firstErrorKey = useCallback((): (keyof T & string) | undefined => {
+    const keys = Object.keys(values) as (keyof T & string)[];
+    return keys.find((k) => allErrors[k] !== undefined);
+  }, [values, allErrors]);
+
+  const focusFirstError = useCallback(
+    (prefix = "f-") => {
+      const key = firstErrorKey();
+      if (!key) return false;
+      document.getElementById(`${prefix}${key}`)?.focus();
+      return true;
+    },
+    [firstErrorKey],
+  );
+
   return {
     values,
     setValue,
     patch,
     touch,
+    bind,
     errors,
+    firstErrorKey,
+    focusFirstError,
     submit,
     isValid: parsed.success,
     isDirty,

@@ -47,6 +47,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.21",
     "eslint-plugin-boundaries": "^7.1.0",
+    "graphify": "^1.0.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.23",
     "tailwindcss": "^4.0.0",
