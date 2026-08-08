@@ -1,6 +1,7 @@
 // Supabase data access for Core Settings. RLS-scoped; writes via fn_* RPCs.
 import type { BrowserClient, RpcPayload } from "@/shared/services/supabase/types";
 import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
+import type { InviteUserPayload } from "./users";
 
 // One narrow seam for the RPCs this module calls: they all return the affected
 // row id, so the shared "throw on error, coalesce to string" shape is worth a
@@ -174,6 +175,9 @@ export type UserRow = {
   id: string;
   full_name: string | null;
   phone: string | null;
+  /** Denormalized from `auth.users` — RLS cannot read it there (audit S-9.3).
+   *  Two teachers called Rahim were previously indistinguishable in this list. */
+  email: string | null;
   status: string;
   /** Display string, comma-joined. */
   roles: string;
@@ -194,11 +198,11 @@ export async function fetchUsers(
   const to = from + perPage - 1;
   let query = s
     .from("profile")
-    .select("id, full_name, phone, status, last_login_at, roles:user_role(role_id, role:role_id(name))", { count: "exact" })
+    .select("id, full_name, phone, email, status, last_login_at, roles:user_role(role_id, role:role_id(name))", { count: "exact" })
     .order("created_at");
 
   const needle = q.trim().replace(/[%,]/g, "");
-  if (needle) query = query.or(`full_name.ilike.%${needle}%,phone.ilike.%${needle}%`);
+  if (needle) query = query.or(`full_name.ilike.%${needle}%,phone.ilike.%${needle}%,email.ilike.%${needle}%`);
   if (status) query = query.eq("status", status);
 
   const { data, error, count } = await query.range(from, to);
@@ -207,6 +211,7 @@ export async function fetchUsers(
     id: r.id,
     full_name: r.full_name,
     phone: r.phone,
+    email: r.email,
     status: r.status,
     roles: (r.roles ?? []).map((x) => x.role?.name).filter(Boolean).join(", "),
     roleIds: (r.roles ?? []).map((x) => x.role_id).filter(Boolean),
@@ -221,7 +226,13 @@ export async function fetchUsers(
  * Roles, permissions and grants — the model that shipped in migration
  * 20260726043308 and had no way into the product (SRA F-4).
  */
-export type RoleRow = { id: string; code: string; name: string; is_system: boolean };
+export type RoleRow = {
+  id: string; code: string; name: string; is_system: boolean;
+  /** What ticking this box actually grants (audit S-9.7). */
+  description: string | null;
+  /** How many people in THIS institution hold it (audit S-10.4). */
+  user_count: number;
+};
 export type PermissionRow = { id: string; code: string; label: string; module: string };
 export type PermissionMatrix = {
   roles: RoleRow[];
@@ -253,10 +264,78 @@ export async function setUserRoles(s: BrowserClient, profileId: string, roleIds:
   if (error) throw new Error(error.message);
 }
 
-/** Suspend/reactivate. Never a delete — a profile carries audit attribution. */
-export async function setUserStatus(s: BrowserClient, profileId: string, status: "active" | "suspended"): Promise<void> {
-  const { error } = await s.rpc("fn_set_user_status", { payload: { profile_id: profileId, status } });
+/**
+ * Suspend/reactivate. Never a delete — a profile carries audit attribution.
+ *
+ * `reason` is optional but recorded (audit S-9.10): MFA reset has required one
+ * since it shipped, and suspension — the comparable action — recorded nothing
+ * but a status flip. The RPC also deletes the target's refresh tokens, so a
+ * suspension now actually ends the session rather than greying out a row.
+ */
+export async function setUserStatus(
+  s: BrowserClient,
+  profileId: string,
+  status: "active" | "suspended",
+  reason?: string,
+): Promise<void> {
+  const { error } = await s.rpc("fn_set_user_status", {
+    payload: { profile_id: profileId, status, reason: reason ?? null },
+  });
   if (error) throw new Error(error.message);
+}
+
+/* ------------------------------------------------------- account operations */
+
+/**
+ * Invite a new user. The only write in this module that goes through a route
+ * rather than an RPC — creating an auth user needs the service-role key.
+ * See `src/server/users/inviteUser.ts`.
+ */
+export async function inviteUser(payload: InviteUserPayload): Promise<string> {
+  const res = await fetch("/api/admin/users/invite", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const body = (await res.json().catch(() => ({}))) as { profileId?: string; message?: string };
+  if (!res.ok) throw new Error(body.message ?? "Could not send the invitation");
+  return body.profileId ?? "";
+}
+
+/**
+ * Send a password-reset mail to an existing user.
+ *
+ * Two steps, deliberately. `fn_authorize_account_action` is the control: it
+ * checks `core.user_manage`, checks the target is in the caller's institution,
+ * rate-limits, writes the audit row, and hands back the address. Only then does
+ * the browser call GoTrue's `resetPasswordForEmail`, which is an
+ * unauthenticated endpoint and needs no service-role key — so this needs no
+ * route, and the admin never learns an address the database would not give
+ * them.
+ */
+export async function sendPasswordReset(s: BrowserClient, profileId: string): Promise<void> {
+  const { data, error } = await s.rpc("fn_authorize_account_action", {
+    p_profile_id: profileId,
+    p_action: "password_reset",
+  });
+  if (error) throw new Error(error.message);
+  const email = (data as { email?: string } | null)?.email;
+  if (!email) throw new Error("That account has no email address on file");
+
+  const { error: mailError } = await s.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  if (mailError) throw new Error(mailError.message);
+}
+
+/** End every session the target holds. Returns how many were killed. */
+export async function revokeUserSessions(s: BrowserClient, profileId: string, reason?: string): Promise<number> {
+  const { data, error } = await s.rpc("fn_admin_revoke_sessions", {
+    p_profile_id: profileId,
+    p_reason: reason ?? undefined,
+  });
+  if (error) throw new Error(error.message);
+  return (data as number) ?? 0;
 }
 
 /* ----------------------------------------------------- global entity search */

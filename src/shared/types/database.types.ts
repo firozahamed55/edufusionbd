@@ -3072,9 +3072,12 @@ export type Database = {
         Row: {
           avatar_file_id: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           institution_id: string | null
+          invited_at: string | null
+          invited_by: string | null
           is_platform_admin: boolean
           last_login_at: string | null
           linked_guardian_id: string | null
@@ -3087,9 +3090,12 @@ export type Database = {
         Insert: {
           avatar_file_id?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
           institution_id?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           is_platform_admin?: boolean
           last_login_at?: string | null
           linked_guardian_id?: string | null
@@ -3102,9 +3108,12 @@ export type Database = {
         Update: {
           avatar_file_id?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           institution_id?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           is_platform_admin?: boolean
           last_login_at?: string | null
           linked_guardian_id?: string | null
@@ -5713,6 +5722,16 @@ export type Database = {
       }
       fn_set_user_roles: { Args: { payload: Json }; Returns: undefined }
       fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
+      fn_admin_revoke_sessions: {
+        Args: { p_profile_id: string; p_reason?: string }
+        Returns: number
+      }
+      fn_authorize_account_action: {
+        Args: { p_action: string; p_profile_id: string; p_reason?: string }
+        Returns: Json
+      }
+      fn_complete_user_invite: { Args: { payload: Json }; Returns: string }
+      fn_invite_user_precheck: { Args: { p_email: string }; Returns: Json }
       fn_sms_campaign_totals: { Args: never; Returns: Json }
       fn_student_report_summary: {
         Args: { p_academic_year_id?: string; p_filters?: Json }

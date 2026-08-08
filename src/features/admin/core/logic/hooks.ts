@@ -98,7 +98,25 @@ export const useSetUserRoles = () =>
   );
 export const useSetUserStatus = () =>
   useMut(
-    (v: { profileId: string; status: "active" | "suspended" }) => api.setUserStatus(c(), v.profileId, v.status),
+    (v: { profileId: string; status: "active" | "suspended"; reason?: string }) =>
+      api.setUserStatus(c(), v.profileId, v.status, v.reason),
+    [queryKeys.core.usersAll],
+  );
+
+/**
+ * Invite, reset, revoke (audit M-15 / S-9.1 / S-9.2).
+ *
+ * `useInviteUser` invalidates the list AND `myPermissions`: nothing about the
+ * caller changed, but the "1 user" warning on the Settings hub is derived from
+ * the same data and an invitation is the moment it stops being true.
+ */
+export const useInviteUser = () =>
+  useMut((p: Parameters<typeof api.inviteUser>[0]) => api.inviteUser(p), [queryKeys.core.usersAll]);
+export const useSendPasswordReset = () =>
+  useMut((profileId: string) => api.sendPasswordReset(c(), profileId), []);
+export const useRevokeSessions = () =>
+  useMut(
+    (v: { profileId: string; reason?: string }) => api.revokeUserSessions(c(), v.profileId, v.reason),
     [queryKeys.core.usersAll],
   );
 
