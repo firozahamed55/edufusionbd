@@ -52,7 +52,7 @@ Total: **~2,523 lines of screen code + 282 lines of data access + 129 lines of h
 | **0.4 Constrain uploads** | ✅ **Done** | `0010b1b` |
 | **1.1 Per-tab permissions** | ✅ **Done** | `a7ee1b1` |
 | **1.2 Invite + account operations** | ✅ **Done** — and suspension turned out to be decorative | `5edc45c` |
-| **1.3 Audit-log investigation tools** | ✅ **Done** — the action filter had never matched a single row | `2b7dc06` |
+| **1.3 Audit-log investigation tools** | ✅ **Done** — the action filter had never matched a single row | `2deb951` |
 | 2–9 | Not started | — |
 
 **What Phase 1 turned up that the audit did not.**
