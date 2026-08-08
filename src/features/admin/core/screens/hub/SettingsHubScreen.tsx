@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle, Award, BookOpen, CalendarDays, Check, GraduationCap, History,
-  Layers, PenLine, Search, Settings2, ShieldCheck, Building2, Users,
+  Layers, PenLine, Search, Settings2, ShieldCheck, Building2, Users, CalendarRange,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
@@ -53,8 +53,11 @@ type Area = {
   descBn: string;
   descEn: string;
   group: "institution" | "academic" | "access";
-  /** The chip. `warn` renders in the caution tone and counts against setup. */
-  chip: (s: SettingsStatus, t: (bn: string, en: string) => string, n: (v: string | number) => string) =>
+  /**
+   * The chip. `warn` renders in the caution tone. Optional: a card whose area
+   * has no number worth stating is better with nothing than with a placeholder.
+   */
+  chip?: (s: SettingsStatus, t: (bn: string, en: string) => string, n: (v: string | number) => string) =>
     { label: string; warn?: boolean } | null;
   /** Words the search box matches beyond the title — the settings inside. */
   keywords: string[];
@@ -79,7 +82,6 @@ const AREAS: Area[] = [
     descBn: "শিক্ষাবর্ষ, কার্যদিবস, পিরিয়ড, পাস মার্ক ও ফিচার",
     descEn: "Academic year, working days, periods, pass mark and features",
     group: "institution",
-    chip: () => null,
     keywords: ["academic year", "session start", "week start", "working days", "weekend", "daily periods", "period duration", "pass mark", "attendance type", "language", "number system", "edusathi", "sms", "online fee payment", "grading system"],
   },
   {
@@ -103,6 +105,13 @@ const AREAS: Area[] = [
         ? { label: t("ছুটি নির্ধারিত নয়", "No holidays set"), warn: true }
         : { label: t(`${n(s.calendar_days)} দিন ছুটি · ${n(s.terms)}টি টার্ম`, `${n(s.calendar_days)} holidays · ${n(s.terms)} terms`) },
     keywords: ["holiday", "eid", "term", "working day", "vacation", "weekend"],
+  },
+  {
+    href: "/admin/core/academic-year", icon: CalendarRange, bn: "শিক্ষাবর্ষ", en: "Academic Year",
+    descBn: "নতুন বর্ষ তৈরি, চলতি বর্ষ নির্ধারণ ও পুরোনো বর্ষ বন্ধ",
+    descEn: "Create a year, choose the current one, close a finished one",
+    group: "institution",
+    keywords: ["year", "session", "rollover", "archive", "current year"],
   },
   {
     href: "/admin/core/signature", icon: PenLine, bn: "অনুমোদিত স্বাক্ষর", en: "Approved Signatures",
@@ -325,7 +334,7 @@ export function SettingsHubScreen() {
               <h2 className="text-micro font-semibold uppercase tracking-wide text-text-decorative">{t(g.bn, g.en)}</h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {items.map((a) => {
-                  const chip = s ? a.chip(s, t, n) : null;
+                  const chip = s && a.chip ? a.chip(s, t, n) : null;
                   const Icon = a.icon;
                   return (
                     <Link

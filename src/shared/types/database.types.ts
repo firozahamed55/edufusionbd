@@ -5754,6 +5754,10 @@ export type Database = {
       fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
       fn_entity_impact: { Args: { p_entity: string; p_id: string }; Returns: Json }
       fn_settings_status: { Args: never; Returns: Json }
+      fn_upsert_academic_year: { Args: { payload: Json }; Returns: string }
+      fn_set_current_academic_year: { Args: { p_id: string }; Returns: undefined }
+      fn_close_academic_year: { Args: { p_id: string }; Returns: undefined }
+      fn_academic_year_stats: { Args: never; Returns: Json }
       fn_national_holidays: { Args: { p_year: number }; Returns: Json }
       fn_import_national_holidays: { Args: { p_year: number; p_academic_year_id?: string }; Returns: number }
       fn_calendar_impact: { Args: { p_from: string; p_to: string }; Returns: Json }

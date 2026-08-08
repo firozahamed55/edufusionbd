@@ -294,6 +294,56 @@ export async function fetchSettingsStatus(s: BrowserClient): Promise<SettingsSta
   return { ...ZERO_STATUS, ...d, identity: { ...ZERO_STATUS.identity, ...(d.identity ?? {}) } };
 }
 
+/* -------------------------------------------------- academic year (Phase 6) */
+
+/**
+ * Creating, switching and closing an academic year.
+ *
+ * `AcademicYearProvider` shipped, archived years render read-only, seven tables
+ * are year-scoped — and there was no way to create a year. A school reaching
+ * the end of its first session had no path into its second one except a direct
+ * SQL statement.
+ */
+export type AcademicYearRow = {
+  id: string; year_label: string; start_date: string | null; end_date: string | null; is_current: boolean;
+  sections: number; enrollments: number; exams: number; terms: number;
+};
+
+export async function fetchAcademicYearRows(s: BrowserClient): Promise<AcademicYearRow[]> {
+  const [years, stats] = await Promise.all([
+    s.from("academic_year").select("id, year_label, start_date, end_date, is_current")
+      .is("deleted_at", null).order("year_label", { ascending: false }).limit(MAX_OPTIONS),
+    s.rpc("fn_academic_year_stats"),
+  ]);
+  if (years.error) throw years.error;
+  if (stats.error) throw new Error(stats.error.message);
+
+  const byId = new Map(
+    ((stats.data ?? []) as Record<string, unknown>[]).map((r) => [String(r.id), r]),
+  );
+  return (years.data ?? []).map((y) => {
+    const c = byId.get(y.id) ?? {};
+    return {
+      id: y.id, year_label: y.year_label, start_date: y.start_date, end_date: y.end_date,
+      is_current: y.is_current,
+      sections: Number(c.sections ?? 0), enrollments: Number(c.enrollments ?? 0),
+      exams: Number(c.exams ?? 0), terms: Number(c.terms ?? 0),
+    };
+  });
+}
+
+export const upsertAcademicYear = (s: BrowserClient, payload: RpcPayload) => call(s, "fn_upsert_academic_year", { payload });
+
+export async function setCurrentAcademicYear(s: BrowserClient, id: string): Promise<void> {
+  const { error } = await s.rpc("fn_set_current_academic_year", { p_id: id });
+  if (error) throw new Error(error.message);
+}
+
+export async function closeAcademicYear(s: BrowserClient, id: string): Promise<void> {
+  const { error } = await s.rpc("fn_close_academic_year", { p_id: id });
+  if (error) throw new Error(error.message);
+}
+
 /* ------------------------------------------------------------------ RBAC */
 
 /**

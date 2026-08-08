@@ -34,6 +34,16 @@ export const useMyPermissions = () =>
 export const useSettingsStatus = () =>
   useQuery({ queryKey: queryKeys.core.settingsStatus, queryFn: () => api.fetchSettingsStatus(c()), staleTime: 5 * 60_000 });
 
+export const useAcademicYearRows = () =>
+  useQuery({ queryKey: queryKeys.core.academicYears, queryFn: () => api.fetchAcademicYearRows(c()) });
+
+export const useUpsertAcademicYear = () =>
+  useMut((p: RpcPayload) => api.upsertAcademicYear(c(), p), [queryKeys.core.academicYears, queryKeys.academicYear.all]);
+export const useSetCurrentAcademicYear = () =>
+  useMut((id: string) => api.setCurrentAcademicYear(c(), id), [queryKeys.core.academicYears, queryKeys.academicYear.all]);
+export const useCloseAcademicYear = () =>
+  useMut((id: string) => api.closeAcademicYear(c(), id), [queryKeys.core.academicYears, queryKeys.academicYear.all]);
+
 export const usePermissionMatrix = () =>
   useQuery({ queryKey: queryKeys.core.permissionMatrix, queryFn: () => api.fetchPermissionMatrix(c()) });
 

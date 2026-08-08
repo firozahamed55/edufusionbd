@@ -93,8 +93,8 @@ describe("canSeeTab (settings audit M-4)", () => {
     expect(canSeeTab(core, tab("/admin/core/audit-log"), settingsOnly)).toBe(false);
   });
 
-  // Eleven screens plus the hub added in Phase 4 (audit M-6).
-  const TAB_COUNT = 12;
+  // Eleven screens, the hub (Phase 4) and Academic Year (Phase 6).
+  const TAB_COUNT = 13;
 
   it("an institution admin sees every tab", () => {
     const admin = ["core.settings", "core.user_manage", "audit.read"];
