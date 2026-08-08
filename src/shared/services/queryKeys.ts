@@ -124,6 +124,7 @@ export const queryKeys = {
     myPermissions: ["core", "my-permissions"] as const,
     entitySearch: (term: string) => ["core", "entity-search", term] as const,
     permissionMatrix: ["core", "permission-matrix"] as const,
+    settingsStatus: ["core", "settings-status"] as const,
     setting: (key: string, scope: string) => ["core", "setting", key, scope] as const,
     /** "What points at this record" — fetched only while a confirm is open. */
     entityImpact: (entity: string, id: string | null) => ["core", "impact", entity, id] as const,

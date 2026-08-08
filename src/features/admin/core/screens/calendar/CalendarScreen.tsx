@@ -239,7 +239,7 @@ export function CalendarScreen() {
         <PageHeader
           className="min-w-0 flex-1"
           crumbs={[
-            { label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" },
+            { label: t("সেটিংস", "Settings"), href: "/admin/core" },
             { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") },
             { label: t("শিক্ষাপঞ্জি", "Academic Calendar") },
           ]}

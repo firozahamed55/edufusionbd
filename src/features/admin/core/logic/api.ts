@@ -235,6 +235,36 @@ export async function fetchUsers(
   return { rows, total: count ?? 0 };
 }
 
+/* --------------------------------------------------------- settings status */
+
+/**
+ * The per-area counts and setup flags the Settings hub renders (audit M-6).
+ *
+ * One RPC rather than eleven `count` queries: this is the first screen an
+ * administrator meets when they click Settings, and eleven round trips before
+ * first paint is the wrong trade for a page whose whole job is to orient
+ * someone quickly.
+ */
+export type SettingsStatus = {
+  classes: number; sections: number; subjects: number; subject_groups: number;
+  grade_schemes: number; signatures: number; users: number; roles: number;
+  terms: number; calendar_days: number; audit_events_30d: number;
+  identity: { name: boolean; eiin: boolean; address: boolean; logo: boolean; head_teacher: boolean };
+};
+
+const ZERO_STATUS: SettingsStatus = {
+  classes: 0, sections: 0, subjects: 0, subject_groups: 0, grade_schemes: 0,
+  signatures: 0, users: 0, roles: 0, terms: 0, calendar_days: 0, audit_events_30d: 0,
+  identity: { name: false, eiin: false, address: false, logo: false, head_teacher: false },
+};
+
+export async function fetchSettingsStatus(s: BrowserClient): Promise<SettingsStatus> {
+  const { data, error } = await s.rpc("fn_settings_status");
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Partial<SettingsStatus>;
+  return { ...ZERO_STATUS, ...d, identity: { ...ZERO_STATUS.identity, ...(d.identity ?? {}) } };
+}
+
 /* ------------------------------------------------------------------ RBAC */
 
 /**

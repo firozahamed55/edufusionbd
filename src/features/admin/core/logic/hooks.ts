@@ -30,6 +30,10 @@ export const useUsers = (params: { page: number; q?: string; status?: string }) 
 export const useMyPermissions = () =>
   useQuery({ queryKey: queryKeys.core.myPermissions, queryFn: () => api.fetchMyPermissions(c()), staleTime: 5 * 60_000 });
 
+/** Hub status. Configuration changes monthly, not per-interaction. */
+export const useSettingsStatus = () =>
+  useQuery({ queryKey: queryKeys.core.settingsStatus, queryFn: () => api.fetchSettingsStatus(c()), staleTime: 5 * 60_000 });
+
 export const usePermissionMatrix = () =>
   useQuery({ queryKey: queryKeys.core.permissionMatrix, queryFn: () => api.fetchPermissionMatrix(c()) });
 

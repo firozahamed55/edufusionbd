@@ -93,14 +93,17 @@ describe("canSeeTab (settings audit M-4)", () => {
     expect(canSeeTab(core, tab("/admin/core/audit-log"), settingsOnly)).toBe(false);
   });
 
-  it("an institution admin sees all eleven", () => {
+  // Eleven screens plus the hub added in Phase 4 (audit M-6).
+  const TAB_COUNT = 12;
+
+  it("an institution admin sees every tab", () => {
     const admin = ["core.settings", "core.user_manage", "audit.read"];
-    expect(core.tabs!.filter((x) => canSeeTab(core, x, admin))).toHaveLength(11);
+    expect(core.tabs!.filter((x) => canSeeTab(core, x, admin))).toHaveLength(TAB_COUNT);
   });
 
   it("fails OPEN while loading and for an account with no roles", () => {
-    expect(core.tabs!.filter((x) => canSeeTab(core, x, undefined))).toHaveLength(11);
-    expect(core.tabs!.filter((x) => canSeeTab(core, x, []))).toHaveLength(11);
+    expect(core.tabs!.filter((x) => canSeeTab(core, x, undefined))).toHaveLength(TAB_COUNT);
+    expect(core.tabs!.filter((x) => canSeeTab(core, x, []))).toHaveLength(TAB_COUNT);
   });
 
   it("an accountant sees none of Settings", () => {

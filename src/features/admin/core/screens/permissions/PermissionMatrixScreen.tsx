@@ -81,7 +81,7 @@ export function PermissionMatrixScreen() {
         <PageHeader
           className="flex-1"
           crumbs={[
-            { label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" },
+            { label: t("সেটিংস", "Settings"), href: "/admin/core" },
             { label: t("ব্যবহারকারী", "Users"), href: "/admin/core/user-list" },
             { label: t("অনুমতি ম্যাট্রিক্স", "Permission Matrix") },
           ]}

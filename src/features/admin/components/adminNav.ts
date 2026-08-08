@@ -279,15 +279,21 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
 
 export const ADMIN_SETTINGS_MODULE: AdminModule = {
   key: "core",
-  href: "/admin/core/basic-config",
+  // The hub, not a form. Settings is the module a new administrator meets
+  // during onboarding and returns to least often, and it used to open on
+  // `basic-config` — fifteen fields, no context (audit M-6).
+  href: "/admin/core",
   match: "/admin/core",
   icon: Settings,
   bn: "সেটিংস",
   en: "Settings",
   permission: "core.settings",
   tabs: [
+    { href: "/admin/core", bn: "ওভারভিউ", en: "Overview" },
     { href: "/admin/core/basic-config", bn: "বেসিক কনফিগ", en: "Basic Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
-    { href: "/admin/core/startup", bn: "স্টার্টআপ", en: "StartUp", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
+    // Renamed from "StartUp", which named a setup step rather than the thing
+    // it edits (audit §4.3). The route stays put so bookmarks survive.
+    { href: "/admin/core/startup", bn: "প্রতিষ্ঠানের পরিচিতি", en: "Institution Identity", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/class", bn: "ক্লাস কনফিগ", en: "Class Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/calendar", bn: "শিক্ষাপঞ্জি", en: "Academic Calendar", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/signature", bn: "স্বাক্ষর", en: "Signature", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },

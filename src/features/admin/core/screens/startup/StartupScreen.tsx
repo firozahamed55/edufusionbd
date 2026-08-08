@@ -142,8 +142,8 @@ export function StartupScreen() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <PageHeader
-        crumbs={[{ label: t("সেটিংস", "Settings"), href: "/admin/core" }, { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") }, { label: t("স্টার্টআপ", "StartUp") }]}
-        title={t("স্টার্টআপ কনফিগারেশন", "Startup Configuration")}
+        crumbs={[{ label: t("সেটিংস", "Settings"), href: "/admin/core" }, { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") }, { label: t("প্রতিষ্ঠানের পরিচিতি", "Institution Identity") }]}
+        title={t("প্রতিষ্ঠানের পরিচিতি", "Institution Identity")}
         subtitle={t("প্রতিষ্ঠানের মৌলিক পরিচিতি ও প্রাথমিক সেটআপ", "The institution's core identity & initial setup")}
       />
 

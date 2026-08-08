@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Pencil, Award, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Award, X, Download } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
   Field, Input, Select, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader,
   Table, THead, TBody, TR, TH, TD, Checkbox, ImpactPreview,
 } from "@/shared/ui";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useGradeSchemes, useUpsertScheme, useDeleteScheme } from "../../logic/hooks";
 import { validateGradeScale } from "../../logic/gradeScale";
 import { useEntityImpact, useImpactLabel } from "../../logic/impact";
@@ -147,7 +148,7 @@ export function GradingScreen() {
     <div className="flex flex-col gap-5 pb-6">
       <div className="flex flex-wrap items-start gap-3">
         <PageHeader
-          crumbs={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("গ্রেডিং স্কিম", "Grading Scheme") }]}
+          crumbs={[{ label: t("সেটিংস", "Settings"), href: "/admin/core" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("গ্রেডিং স্কিম", "Grading Scheme") }]}
           title={t("গ্রেডিং স্কিম", "Grading Scheme")}
           subtitle={t("GPA ৫.০ ভিত্তিক গ্রেড, নম্বর সীমা ও গ্রেড পয়েন্ট", "GPA-5 based grades, mark ranges & grade points")}
           className="flex-1"
@@ -170,6 +171,30 @@ export function GradingScreen() {
               options={rows.map((r) => ({ value: r.id, label: t(`স্কিম: ${r.name}`, `Scheme: ${r.name}`) }))}
             />
             <div className="flex-1" />
+            {/*
+              M-8: "a grading scheme cannot be exported for the board" was a
+              literal finding. A scheme is a table a board asks for on paper,
+              and the only way to produce one was a screenshot.
+            */}
+            {active ? (
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  exportCsv(
+                    `grading-${active.name.replace(/[^\w.-]+/g, "-").toLowerCase()}.csv`,
+                    sortedScales.map((x) => ({
+                      grade: x.grade_letter,
+                      min_marks: x.min_marks,
+                      max_marks: x.max_marks,
+                      grade_point: x.gpa_point,
+                    })),
+                    { kind: "core.grade_scheme", params: { scheme: active.name, bands: sortedScales.length } },
+                  )
+                }
+              >
+                <Download size={14} /> {t("এক্সপোর্ট", "Export")}
+              </Button>
+            ) : null}
             {active ? (
               <div className="flex items-center gap-2 rounded-lg bg-primary-subtle px-3 py-2 text-primary">
                 <span className="text-meta">ⓘ</span>

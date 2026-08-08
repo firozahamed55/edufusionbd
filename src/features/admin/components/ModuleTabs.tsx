@@ -35,6 +35,17 @@ export function ModuleTabs({ moduleKey }: { moduleKey: string }) {
   const tabs = mod.tabs.filter((tab) => canSeeTab(mod, tab, permissions));
   if (tabs.length === 0) return null;
 
+  /*
+   * Longest prefix wins, not first prefix.
+   *
+   * The Settings hub lives at `/admin/core`, which is a prefix of all eleven
+   * other tabs — a plain `startsWith` would light up "Overview" on every screen
+   * in the module and mark two tabs current at once. Same rule the rail uses.
+   */
+  const activeHref = tabs
+    .filter((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`))
+    .reduce<string | null>((best, tab) => (best && best.length >= tab.href.length ? best : tab.href), null);
+
   let lastGroup: string | undefined;
 
   return (
@@ -43,7 +54,7 @@ export function ModuleTabs({ moduleKey }: { moduleKey: string }) {
         const groupKey = tab.group ? t(tab.group.bn, tab.group.en) : undefined;
         const showGroup = groupKey && groupKey !== lastGroup;
         lastGroup = groupKey;
-        const active = pathname.startsWith(tab.href);
+        const active = tab.href === activeHref;
         return (
           <div key={tab.href} className="flex shrink-0 items-center">
             {showGroup ? (

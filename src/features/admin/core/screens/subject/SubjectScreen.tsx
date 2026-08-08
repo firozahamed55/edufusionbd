@@ -1,13 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Pencil, BookOpen, Search } from "lucide-react";
+import { Plus, Trash2, Pencil, BookOpen } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
   Field, Input, Select, Button, Badge, ConfirmDialog, Modal, useToast, PageHeader, Skeleton,
   ImpactPreview, Switch, Table, THead, TBody, TR, TH, TD, TableEmpty,
+  DataToolbar, Pagination, LiveRegion, SortableTH,
 } from "@/shared/ui";
 import { useZodForm } from "@/shared/lib/useZodForm";
+import { useDataScreen, applyClientList } from "@/shared/lib/useDataScreen";
+import { exportCsv } from "@/shared/lib/exportCsv";
+import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
 import { useSubjects, useUpsertSubject, useDeleteSubject, useClasses } from "../../logic/hooks";
 import { subjectSchema } from "../../logic/schemas";
 import { useEntityImpact, useImpactLabel } from "../../logic/impact";
@@ -45,8 +49,23 @@ export function SubjectScreen() {
   const del = useDeleteSubject();
   const [open, setOpen] = useState(false);
   const [delId, setDelId] = useState<string | null>(null);
-  const [q, setQ] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+
+  /*
+   * The house data contract (audit M-8). This screen had a hand-rolled `<input>`
+   * and `<select>` and nothing else: no URL state, so a filtered subject list
+   * could not be sent to a colleague; no sort; no pagination; no export, so a
+   * grading committee could not take the list to a meeting; and no live region,
+   * so a screen-reader user got no signal that a filter had changed the table
+   * underneath them.
+   *
+   * Filtering stays CLIENT-side here, deliberately. `MAX_OPTIONS` is documented
+   * in `services/supabase/paging.ts` as a tripwire set at 1000 — roughly twenty
+   * times a real school's subject count — not as a page size. Moving this to
+   * the server would add a round trip per keystroke to make correct something
+   * that is already correct, and the case it guards against (a tenant past the
+   * tripwire) is reported by the banner below instead.
+   */
+  const ds = useDataScreen({ filters: { type: "" } });
 
   const form = useZodForm(subjectSchema, EMPTY);
   const f = form.values;
@@ -109,15 +128,37 @@ export function SubjectScreen() {
     });
   }
 
-  const rows = (subjects.data ?? []).filter((r) => {
-    if (typeFilter && r.type !== typeFilter) return false;
-    if (q.trim()) {
-      const term = q.trim().toLowerCase();
-      if (!r.name_bn.includes(q.trim()) && !r.name_en.toLowerCase().includes(term) && !(r.code ?? "").toLowerCase().includes(term)) return false;
-    }
-    return true;
+  const all = useMemo(() => subjects.data ?? [], [subjects.data]);
+  const filtered = useMemo(
+    () => (ds.filters.type ? all.filter((r) => r.type === ds.filters.type) : all),
+    [all, ds.filters.type],
+  );
+  const { rows, total } = applyClientList(filtered, ds, {
+    search: (r) => [r.name_bn, r.name_en, r.code],
+    sort: {
+      code: (r) => r.code,
+      name: (r) => (isBn ? r.name_bn : r.name_en),
+      full_marks: (r) => r.full_marks,
+      pass_marks: (r) => r.pass_marks,
+      status: (r) => r.status,
+    },
   });
-  const deleting = (subjects.data ?? []).find((r) => r.id === delId) ?? null;
+  const deleting = all.find((r) => r.id === delId) ?? null;
+
+  /** The tripwire, not a page boundary — see `services/supabase/paging.ts`. */
+  const trippedCap = all.length >= MAX_OPTIONS;
+
+  const csvRow = (r: (typeof all)[number]) => ({
+    code: r.code ?? "",
+    name_bn: r.name_bn,
+    name_en: r.name_en,
+    type: r.type,
+    full_marks: r.full_marks ?? "",
+    pass_marks: r.pass_marks ?? "",
+    applicable_from: r.min_class_level ?? "",
+    applicable_to: r.max_class_level ?? "",
+    status: r.status,
+  });
 
   return (
     <div className="flex flex-col gap-5 pb-6">
@@ -131,17 +172,42 @@ export function SubjectScreen() {
         <Button variant="primary" onClick={openNew}><Plus size={16} /> {t("নতুন বিষয়", "New subject")}</Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
-        <div className="relative w-70 max-w-full">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} aria-label={t("বিষয় খুঁজুন", "Search subjects")} placeholder={t("বিষয় খুঁজুন", "Search subjects")} className="h-10.5 w-full rounded-lg border border-border-strong bg-surface pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none" />
-        </div>
-        <div className="flex-1" />
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label={t("ধরন ফিল্টার", "Filter by type")} className="h-10.5 rounded-lg border border-border-strong bg-surface px-3 text-meta font-medium text-text-secondary">
-          <option value="">{t("ধরন: সব", "Type: All")}</option>
-          {TYPES.map((x) => <option key={x.value} value={x.value}>{isBn ? x.bn : x.en}</option>)}
-        </select>
-      </div>
+      <DataToolbar
+        q={ds.q}
+        onQChange={ds.setQ}
+        placeholder={t("বিষয় খুঁজুন", "Search subjects")}
+        searchLabel={t("বিষয় খুঁজুন", "Search subjects")}
+        isFiltered={ds.isFiltered}
+        onReset={ds.reset}
+        filters={
+          <Select
+            value={ds.filters.type}
+            onChange={(e) => ds.setFilter("type", e.target.value)}
+            aria-label={t("ধরন ফিল্টার", "Filter by type")}
+            className="w-auto"
+            options={[
+              { value: "", label: t("ধরন: সব", "Type: All") },
+              ...TYPES.map((x) => ({ value: x.value, label: isBn ? x.bn : x.en })),
+            ]}
+          />
+        }
+        onExportPage={() => exportCsv(`subjects-page-${ds.page}.csv`, rows.map(csvRow), { kind: "core.subjects", params: { scope: "page", page: ds.page, q: ds.debouncedQ, type: ds.filters.type } })}
+        exportPageCount={rows.length}
+        onExportAll={() => exportCsv("subjects.csv", all.map(csvRow), { kind: "core.subjects", params: { scope: "all" } })}
+        exportAllCount={all.length}
+      />
+
+      {/* The cap is a tripwire (paging.ts), so hitting it means an assumption
+          broke — not that someone scrolled far. Silence here would let a
+          filtered result look complete while it was not. */}
+      {trippedCap ? (
+        <p role="alert" className="rounded-lg bg-warning-bg px-3 py-2 text-meta text-warning-fg">
+          {t(
+            `তালিকায় ${n(MAX_OPTIONS)}টি বিষয়ে সীমাবদ্ধ — খোঁজা ও ফিল্টারের ফলাফল অসম্পূর্ণ হতে পারে।`,
+            `The list is capped at ${MAX_OPTIONS} subjects — search and filter results may be incomplete.`,
+          )}
+        </p>
+      ) : null}
 
       {/* Seven columns of subject data. It was nested flex <div>s with no
           <th scope>, so nothing told a screen reader which number was the
@@ -149,13 +215,13 @@ export function SubjectScreen() {
       <Table minWidth={1040}>
         <THead>
           <TR>
-            <TH className="w-22.5">{t("কোড", "Code")}</TH>
-            <TH>{t("বিষয়", "Subject")}</TH>
+            <SortableTH sortKey="code" sort={ds.sort} onSort={ds.setSort} className="w-22.5">{t("কোড", "Code")}</SortableTH>
+            <SortableTH sortKey="name" sort={ds.sort} onSort={ds.setSort}>{t("বিষয়", "Subject")}</SortableTH>
             <TH className="w-32.5">{t("ধরন", "Type")}</TH>
-            <TH className="w-25 text-right">{t("পূর্ণমান", "Full marks")}</TH>
-            <TH className="w-25 text-right">{t("পাস নম্বর", "Pass marks")}</TH>
+            <SortableTH sortKey="full_marks" sort={ds.sort} onSort={ds.setSort} className="w-25 text-right">{t("পূর্ণমান", "Full marks")}</SortableTH>
+            <SortableTH sortKey="pass_marks" sort={ds.sort} onSort={ds.setSort} className="w-25 text-right">{t("পাস নম্বর", "Pass marks")}</SortableTH>
             <TH className="w-40">{t("প্রযোজ্য শ্রেণি", "Applicable classes")}</TH>
-            <TH className="w-27.5">{t("স্ট্যাটাস", "Status")}</TH>
+            <SortableTH sortKey="status" sort={ds.sort} onSort={ds.setSort} className="w-27.5">{t("স্ট্যাটাস", "Status")}</SortableTH>
             <TH className="w-20"><span className="sr-only">{t("অ্যাকশন", "Actions")}</span></TH>
           </TR>
         </THead>
@@ -190,6 +256,29 @@ export function SubjectScreen() {
           ))}
         </TBody>
       </Table>
+
+      {/* "Showing N of M" on every capped list (audit M-8): a truncated list
+          that says nothing looks complete. */}
+      <Pagination
+        label={t(
+          `${n(ds.from)}–${n(ds.to(total))} দেখানো হচ্ছে · মোট ${n(total)}টি বিষয়`,
+          `Showing ${ds.from}-${ds.to(total)} of ${total} subjects`,
+        )}
+        pages={ds.pages(total)}
+        current={ds.page}
+        perPage={ds.perPage}
+        onPageChange={ds.setPage}
+      />
+
+      {/* WCAG 4.1.3: without this a filter silently rewrites the table under a
+          screen-reader user with no announcement that anything happened. */}
+      <LiveRegion
+        message={
+          subjects.isLoading
+            ? t("বিষয় লোড হচ্ছে", "Loading subjects")
+            : t(`${n(total)}টি বিষয় পাওয়া গেছে`, `${total} subjects found`)
+        }
+      />
 
       <Modal open={open} onClose={() => setOpen(false)} title={f.id ? t("বিষয় সম্পাদনা", "Edit subject") : t("নতুন বিষয়", "New subject")}
         footer={<><Button variant="secondary" onClick={() => setOpen(false)}>{t("বাতিল", "Cancel")}</Button><Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button></>}
