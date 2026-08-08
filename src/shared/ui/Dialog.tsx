@@ -27,6 +27,29 @@ export function useFocusTrap(
   const restoreRef = useRef<HTMLElement | null>(null);
   const { lockScroll = true } = opts;
 
+  /*
+   * `onClose` through a ref, and NOT in the dependency array.
+   *
+   * THE BUG THIS FIXES, found by a Phase 9 behaviour test and then reproduced
+   * in the browser: typing one character into any modal form moved focus out of
+   * the field and onto the dialog's close button.
+   *
+   * Every caller passes `onClose={() => setOpen(false)}` — an inline arrow, so
+   * a new function identity on every render. This effect depended on it, so
+   * every keystroke re-rendered the screen, changed the identity, and re-ran
+   * the whole effect: the cleanup fired `restoreRef.current?.focus()` (sending
+   * focus back to the trigger behind the modal) and the setup then focused the
+   * first focusable element in the panel. One character in, focus gone.
+   *
+   * It affected every `Modal` and `ConfirmDialog` in the product, not only
+   * Settings, and it is the kind of defect that survives review because the
+   * dependency array looks correct — `onClose` IS used inside. The rule it
+   * breaks is that an effect which should run on a STATE TRANSITION must not
+   * depend on a callback identity. WCAG 2.4.3 and 3.2.2.
+   */
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     restoreRef.current = document.activeElement as HTMLElement | null;
@@ -37,7 +60,7 @@ export function useFocusTrap(
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key === "Tab" && panel) {
@@ -69,7 +92,8 @@ export function useFocusTrap(
       if (lockScroll) document.body.style.overflow = prevOverflow;
       restoreRef.current?.focus?.();
     };
-  }, [open, onClose, panelRef, lockScroll]);
+    // `onClose` is deliberately absent — see the note above.
+  }, [open, panelRef, lockScroll]);
 }
 
 /**
