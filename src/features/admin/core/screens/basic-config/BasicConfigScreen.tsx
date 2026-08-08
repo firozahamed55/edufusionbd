@@ -34,12 +34,29 @@ const NUMBER_SYSTEMS = [["bn", "বাংলা সংখ্যা", "Bangla num
 const ATTENDANCE_TYPES = [["daily", "দৈনিক", "Daily"], ["period", "পিরিয়ড-ভিত্তিক", "Per-period"]] as const;
 
 type Toggle = { key: string; bn: string; en: string; sub_bn: string; sub_en: string };
+
+/**
+ * EduSathi is deliberately NOT in this list any more (audit S-1.7).
+ *
+ * It is the product's headline differentiator and it sat as the second of four
+ * undifferentiated checkboxes — an institution-wide kill switch with no
+ * confirmation and no statement of who it affects, rendered identically to
+ * "leave a signature line on the printout". It gets its own card below, with
+ * the scope controls that make it a configuration surface rather than a
+ * boolean.
+ */
 const TOGGLES: Toggle[] = [
   { key: "parent_sms_notification", bn: "অভিভাবক SMS বিজ্ঞপ্তি", en: "Parent SMS notifications", sub_bn: "অনুপস্থিতি, ফলাফল ও ফি বিষয়ে স্বয়ংক্রিয় বার্তা", sub_en: "Automatic messages for absence, results & fees" },
-  { key: "edusathi_ai_assistant", bn: "EduSathi AI সহকারী", en: "EduSathi AI assistant", sub_bn: "স্টাফদের জন্য AI সহকারী সক্রিয় করুন", sub_en: "Enable the AI assistant for staff" },
   { key: "online_fee_payment", bn: "অনলাইন ফি পরিশোধ", en: "Online fee payment", sub_bn: "বিকাশ, নগদ ও কার্ড গেটওয়ে", sub_en: "bKash, Nagad & card gateways" },
   { key: "marksheet_parent_signature", bn: "মার্কশিটে অভিভাবকের স্বাক্ষর", en: "Parent signature on marksheet", sub_bn: "প্রিন্টে স্বাক্ষরের স্থান রাখুন", sub_en: "Leave a signature line on the printout" },
 ];
+
+/** Which staff roles may use the assistant. Stored as a string array. */
+const EDUSATHI_ROLES = [
+  ["admin", "অ্যাডমিন", "Administrators"],
+  ["teacher", "শিক্ষক", "Teachers"],
+  ["accountant", "হিসাবরক্ষক", "Accountants"],
+] as const;
 
 function opts(list: readonly (readonly [string, string, string])[], isBn: boolean) {
   return list.map(([value, bn, en]) => ({ value, label: isBn ? bn : en }));
@@ -84,6 +101,7 @@ export function BasicConfigScreen() {
   /** The `updated_at` this screen loaded, and the baseline the RPC checks. */
   const [baseline, setBaseline] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [confirmEduSathiOff, setConfirmEduSathiOff] = useState(false);
 
   useEffect(() => {
     if (!config.data) return;
@@ -137,6 +155,9 @@ export function BasicConfigScreen() {
     error: touched.has(k) ? errors[k] : undefined,
     onBlur: () => setTouched((p) => (p.has(k) ? p : new Set(p).add(k))),
   });
+
+  const edusathiOn = Boolean(form.edusathi_ai_assistant);
+  const edusathiRoles = Array.isArray(form.edusathi_roles) ? (form.edusathi_roles as string[]) : [];
 
   /** Just the touched keys — see `changed`. */
   const patch = useMemo(() => {
@@ -298,6 +319,68 @@ export function BasicConfigScreen() {
             </div>
           </FormCard>
 
+          {/*
+            S-1.7. EduSathi is what the product is sold on, and switching it off
+            for the whole institution was one checkbox in a row of four, with no
+            confirmation and no statement of who it affects. A kill switch for
+            the headline feature should not be easier to hit by accident than
+            deleting a subject.
+          */}
+          <FormCard title={t("EduSathi AI সহকারী", "EduSathi AI assistant")}>
+            <Switch
+              checked={edusathiOn}
+              onChange={(next) => {
+                // Turning it OFF asks; turning it back on does not. Confirming
+                // an enable is friction with nothing behind it.
+                if (!next) { setConfirmEduSathiOff(true); return; }
+                set("edusathi_ai_assistant", true);
+              }}
+              label={t("প্রতিষ্ঠানে সক্রিয়", "Enabled for this institution")}
+              description={t(
+                "স্টাফ যেকোনো স্ক্রিন থেকে প্রশ্ন করতে পারবেন — উপস্থিতি, ফলাফল, ফি ও রুটিন নিয়ে।",
+                "Staff can ask questions from any screen — attendance, results, fees and routines.",
+              )}
+            />
+
+            <div className="flex flex-col gap-2 border-t border-border-default pt-3.5">
+              <span id="edusathi-roles-label" className="text-meta font-medium text-text-secondary">
+                {t("কারা ব্যবহার করতে পারবেন", "Who can use it")}
+              </span>
+              <div role="group" aria-labelledby="edusathi-roles-label" className="flex flex-wrap gap-2">
+                {EDUSATHI_ROLES.map(([value, bn, en]) => {
+                  const on = edusathiRoles.includes(value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={!edusathiOn}
+                      aria-pressed={on}
+                      onClick={() =>
+                        set(
+                          "edusathi_roles",
+                          on ? edusathiRoles.filter((r) => r !== value) : [...edusathiRoles, value],
+                        )
+                      }
+                      className={
+                        on
+                          ? "rounded-full border border-primary bg-primary-subtle px-3 py-1.5 text-meta font-medium text-primary disabled:opacity-50"
+                          : "rounded-full border border-border-default px-3 py-1.5 text-meta text-text-secondary hover:border-border-strong disabled:opacity-50"
+                      }
+                    >
+                      {t(bn, en)}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-micro text-text-muted">
+                {t(
+                  "কেউ নির্বাচিত না থাকলে সব স্টাফ ব্যবহার করতে পারবেন।",
+                  "With nobody selected, every staff role can use it.",
+                )}
+              </p>
+            </div>
+          </FormCard>
+
           <SaveBar status={dirty ? <><UnsavedDot /> {t("অসংরক্ষিত পরিবর্তন", "Unsaved changes")}</> : null}>
             <Button variant="secondary" onClick={onReset} disabled={!dirty}>{t("রিসেট", "Reset")}</Button>
             <Button variant="primary" onClick={onSave} disabled={save.isPending || !dirty}>{save.isPending ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button>
@@ -322,6 +405,20 @@ export function BasicConfigScreen() {
             confirmLabel={t("আমার পরিবর্তন রাখুন", "Keep my changes")}
             cancelLabel={t("রিলোড করুন", "Reload")}
             loading={save.isPending}
+          />
+
+          <ConfirmDialog
+            open={confirmEduSathiOff}
+            onClose={() => setConfirmEduSathiOff(false)}
+            onConfirm={() => { set("edusathi_ai_assistant", false); setConfirmEduSathiOff(false); }}
+            tone="danger"
+            title={t("EduSathi বন্ধ করবেন?", "Turn EduSathi off?")}
+            description={t(
+              "প্রতিষ্ঠানের সব স্টাফের জন্য AI সহকারী বন্ধ হয়ে যাবে — কোনো স্ক্রিনে আর প্রশ্ন করা যাবে না। যেকোনো সময় আবার চালু করা যাবে।",
+              "The assistant stops for every member of staff in the institution — no screen will offer it. You can switch it back on at any time.",
+            )}
+            confirmLabel={t("বন্ধ করুন", "Turn off")}
+            cancelLabel={t("বাতিল", "Cancel")}
           />
         </>
       )}

@@ -7,13 +7,15 @@ import {
   Field, Input, Button, EmptyState, ConfirmDialog, Modal, useToast, PageHeader, Checkbox, ImpactPreview,
 } from "@/shared/ui";
 import { useZodForm } from "@/shared/lib/useZodForm";
-import { useSubjectGroups, useSubjects, useUpsertGroup, useDeleteGroup } from "../../logic/hooks";
+import { useSubjectGroups, useSubjects, useUpsertGroup, useDeleteGroup, useClasses } from "../../logic/hooks";
 import { subjectGroupSchema } from "../../logic/schemas";
 import { useEntityImpact, useImpactLabel } from "../../logic/impact";
 import { useErrorMessage } from "@/shared/services/errors";
 
 const EMPTY = {
-  id: "", name: "", name_bn: "", subject_ids: [] as string[], takenNames: [] as string[],
+  id: "", name: "", name_bn: "",
+  subject_ids: [] as string[], elective_ids: [] as string[], elective_pick: "",
+  class_ids: [] as string[], takenNames: [] as string[],
 };
 
 /**
@@ -40,6 +42,7 @@ export function SubjectGroupScreen() {
   const toast = useToast();
   const groups = useSubjectGroups();
   const subjects = useSubjects();
+  const classes = useClasses();
   const upsert = useUpsertGroup();
   const del = useDeleteGroup();
   const [open, setOpen] = useState(false);
@@ -64,27 +67,54 @@ export function SubjectGroupScreen() {
   function openEdit(g: NonNullable<typeof groups.data>[number]) {
     form.reset({
       id: g.id, name: g.name, name_bn: g.name_bn ?? "",
-      subject_ids: [...g.subject_ids], takenNames: takenNames(g.id),
+      subject_ids: [...g.subject_ids],
+      elective_ids: g.members.filter((m) => m.is_elective).map((m) => m.id),
+      elective_pick: g.elective_pick != null ? String(g.elective_pick) : "",
+      class_ids: [...g.class_ids],
+      takenNames: takenNames(g.id),
     });
     setPickerQuery("");
     setOpen(true);
   }
 
   const toggle = (sid: string) => {
-    const next = f.subject_ids.includes(sid)
-      ? f.subject_ids.filter((x) => x !== sid)
-      : [...f.subject_ids, sid];
-    form.setValue("subject_ids", next);
+    const on = f.subject_ids.includes(sid);
+    form.setValue("subject_ids", on ? f.subject_ids.filter((x) => x !== sid) : [...f.subject_ids, sid]);
+    // Removing a subject must remove it from the elective pool too, or the
+    // group carries an elective that is not in it.
+    if (on) form.setValue("elective_ids", f.elective_ids.filter((x) => x !== sid));
     // The list is not a `Field`, so nothing would ever mark it touched and the
     // "choose at least one subject" error would stay invisible until submit.
     form.touch("subject_ids");
+  };
+
+  /** Compulsory <-> elective for a subject already in the group (S-7.6). */
+  const toggleElective = (sid: string) => {
+    form.setValue(
+      "elective_ids",
+      f.elective_ids.includes(sid) ? f.elective_ids.filter((x) => x !== sid) : [...f.elective_ids, sid],
+    );
+    form.touch("elective_pick");
+  };
+
+  const toggleClass = (cid: string) => {
+    form.setValue("class_ids", f.class_ids.includes(cid) ? f.class_ids.filter((x) => x !== cid) : [...f.class_ids, cid]);
   };
 
   function save() {
     const parsed = form.submit();
     if (!parsed) { form.focusFirstError(); return; }
     upsert.mutate(
-      { id: parsed.id || undefined, name: parsed.name, name_bn: parsed.name_bn, subject_ids: parsed.subject_ids },
+      {
+        id: parsed.id || undefined,
+        name: parsed.name,
+        name_bn: parsed.name_bn,
+        // {id, is_elective} per subject — the RPC still accepts a bare uuid, so
+        // the bulk importer is unaffected.
+        subject_ids: parsed.subject_ids.map((id) => ({ id, is_elective: parsed.elective_ids.includes(id) })),
+        elective_pick: parsed.elective_pick,
+        class_ids: parsed.class_ids,
+      },
       {
         onSuccess: () => { toast({ title: t("গ্রুপ সংরক্ষিত", "Group saved"), variant: "success" }); setOpen(false); },
         onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
@@ -142,12 +172,44 @@ export function SubjectGroupScreen() {
                 <button onClick={() => openEdit(g)} aria-label={t(`${groupLabel(g)} সম্পাদনা`, `Edit ${g.name}`)} className="grid size-8.5 shrink-0 place-items-center rounded-lg border border-border-strong text-text-secondary hover:bg-sunken"><Pencil size={15} /></button>
                 <button onClick={() => setDelId(g.id)} aria-label={t(`${groupLabel(g)} মুছুন`, `Delete ${g.name}`)} className="grid size-8.5 shrink-0 place-items-center rounded-lg border border-border-strong text-danger-fg hover:bg-sunken"><Trash2 size={15} /></button>
               </div>
-              {g.subject_ids.length > 0 ? (
+              {/* S-7.5: a "Science" group means nothing until it is attached to
+                  classes 9 and 10, and that relationship was absent from the UI
+                  entirely — so an unattached group looked exactly like a
+                  working one. */}
+              <p className="text-meta">
+                {g.class_ids.length === 0 ? (
+                  <span className="text-warning-fg">{t("কোনো শ্রেণিতে যুক্ত নয় — এখনও ব্যবহার হচ্ছে না", "Not attached to any class — not in use yet")}</span>
+                ) : (
+                  <>
+                    <span className="text-text-muted">{t("প্রযোজ্য: ", "Applies to: ")}</span>
+                    <span className="text-text-secondary">
+                      {(classes.data ?? []).filter((c) => g.class_ids.includes(c.id)).map((c) => (isBn ? c.name_bn : c.name_en)).join(", ")}
+                    </span>
+                  </>
+                )}
+              </p>
+
+              {g.members.length > 0 ? (
                 <>
-                  <p className="text-meta font-semibold text-text-secondary">{t(`বিষয়সমূহ (${n(g.subject_ids.length)})`, `Subjects (${n(g.subject_ids.length)})`)}</p>
+                  <p className="text-meta font-semibold text-text-secondary">
+                    {t(`বিষয়সমূহ (${n(g.members.length)})`, `Subjects (${n(g.members.length)})`)}
+                    {g.elective_pick != null ? (
+                      <span className="ml-2 font-normal text-text-muted">
+                        {t(`ঐচ্ছিক থেকে ${n(g.elective_pick)}টি নিতে হবে`, `pick ${g.elective_pick} from the electives`)}
+                      </span>
+                    ) : null}
+                  </p>
                   <div className="flex flex-wrap gap-2">
-                    {subs.filter((s) => g.subject_ids.includes(s.id)).map((s) => (
-                      <span key={s.id} className="rounded-full bg-sunken px-2.5 py-1.5 text-meta font-medium text-text-secondary">{isBn ? s.name_bn : s.name_en}</span>
+                    {g.members.map((m) => (
+                      <span
+                        key={m.id}
+                        className={m.is_elective
+                          ? "rounded-full border border-primary/40 bg-primary-subtle px-2.5 py-1.5 text-meta font-medium text-primary"
+                          : "rounded-full bg-sunken px-2.5 py-1.5 text-meta font-medium text-text-secondary"}
+                      >
+                        {isBn ? m.name_bn : m.name_en}
+                        {m.is_elective ? <span className="sr-only"> ({t("ঐচ্ছিক", "elective")})</span> : null}
+                      </span>
                     ))}
                   </div>
                 </>
@@ -205,17 +267,95 @@ export function SubjectGroupScreen() {
                 <p className="p-2 text-meta text-text-muted">{t("প্রথমে বিষয় যোগ করুন", "Add subjects first")}</p>
               ) : pickerRows.length === 0 ? (
                 <p className="p-2 text-meta text-text-muted">{t("কিছু মেলেনি", "Nothing matched")}</p>
-              ) : pickerRows.map((s) => (
-                <label key={s.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-meta text-text-secondary hover:bg-sunken">
-                  {/* A-9: was a raw <input type="checkbox">, so it carried none
-                      of the shared focus-ring or hit-target treatment. */}
-                  <Checkbox checked={f.subject_ids.includes(s.id)} onChange={() => toggle(s.id)} />
-                  {isBn ? s.name_bn : s.name_en}
-                </label>
-              ))}
+              ) : pickerRows.map((s) => {
+                const picked = f.subject_ids.includes(s.id);
+                const elective = f.elective_ids.includes(s.id);
+                return (
+                  <div key={s.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-sunken">
+                    <label className="flex min-w-0 flex-1 items-center gap-2 text-meta text-text-secondary">
+                      {/* A-9: was a raw <input type="checkbox">, so it carried
+                          none of the shared focus-ring or hit-target treatment. */}
+                      <Checkbox checked={picked} onChange={() => toggle(s.id)} />
+                      <span className="truncate">{isBn ? s.name_bn : s.name_en}</span>
+                    </label>
+                    {/* S-7.6: compulsory vs elective. Only meaningful once the
+                        subject is in the group, so it appears with it. */}
+                    {picked ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleElective(s.id)}
+                        aria-pressed={elective}
+                        className={elective
+                          ? "shrink-0 rounded-full border border-primary/40 bg-primary-subtle px-2 py-0.5 text-micro font-medium text-primary"
+                          : "shrink-0 rounded-full border border-border-default px-2 py-0.5 text-micro text-text-muted hover:border-border-strong"}
+                      >
+                        {elective ? t("ঐচ্ছিক", "Elective") : t("আবশ্যিক", "Compulsory")}
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
             {form.errors.subject_ids ? (
               <span role="alert" className="text-micro font-medium text-danger-fg">{form.errors.subject_ids}</span>
+            ) : null}
+          </div>
+
+          {/* The pick-N rule. Only shown once there is a pool to pick from —
+              "choose 1 of 0" is not a question worth asking. */}
+          {f.elective_ids.length > 0 ? (
+            <Field
+              label={t("ঐচ্ছিক থেকে কতটি নিতে হবে", "How many electives a student takes")}
+              hint={t(
+                `${n(f.elective_ids.length)}টি ঐচ্ছিক বিষয় চিহ্নিত — যেমন “৩টির মধ্যে ১টি”`,
+                `${f.elective_ids.length} subjects marked elective — e.g. "1 of 3"`,
+              )}
+              {...form.bind("elective_pick")}
+            >
+              <Input
+                id="f-elective_pick"
+                type="number"
+                min={1}
+                max={f.elective_ids.length}
+                value={f.elective_pick}
+                onChange={(e) => form.setValue("elective_pick", e.target.value)}
+                className="w-24 font-latin"
+              />
+            </Field>
+          ) : null}
+
+          {/* S-7.5 */}
+          <div className="flex flex-col gap-2">
+            <span id="group-classes-label" className="text-meta font-medium text-text-secondary">
+              {t("কোন শ্রেণিতে প্রযোজ্য", "Which classes this applies to")}
+            </span>
+            <div role="group" aria-labelledby="group-classes-label" className="flex flex-wrap gap-2">
+              {(classes.data ?? []).length === 0 ? (
+                <p className="text-meta text-text-muted">{t("প্রথমে শ্রেণি যোগ করুন", "Add classes first")}</p>
+              ) : (classes.data ?? []).map((c) => {
+                const on = f.class_ids.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggleClass(c.id)}
+                    aria-pressed={on}
+                    className={on
+                      ? "rounded-full border border-primary bg-primary-subtle px-3 py-1.5 text-meta font-medium text-primary"
+                      : "rounded-full border border-border-default px-3 py-1.5 text-meta text-text-secondary hover:border-border-strong"}
+                  >
+                    {isBn ? c.name_bn : c.name_en}
+                  </button>
+                );
+              })}
+            </div>
+            {f.class_ids.length === 0 ? (
+              <p className="text-micro text-text-muted">
+                {t(
+                  "কোনো শ্রেণি না দিলে গ্রুপটি সংরক্ষিত হবে কিন্তু কোথাও ব্যবহৃত হবে না।",
+                  "With no class selected the group saves, but nothing uses it.",
+                )}
+              </p>
             ) : null}
           </div>
         </div>

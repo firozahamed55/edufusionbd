@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, CalendarDays, Plus, Trash2, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Plus, Trash2, Pencil, Download, Check, Info } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import {
@@ -17,6 +17,7 @@ import { useCalendarImpact, useEntityImpact, useImpactLabel } from "../../logic/
 import {
   useCalendarRange, useSetCalendarRange, useClearCalendarRange,
   useTerms, useUpsertTerm, useDeleteTerm, useSetting,
+  useNationalHolidays, useImportNationalHolidays,
 } from "../../logic/hooks";
 
 /**
@@ -117,6 +118,7 @@ export function CalendarScreen() {
   /** The range editor. Opened blank from the toolbar, or pre-filled by a cell. */
   const [editing, setEditing] = useState<{ from: string; to: string; label: string; working: boolean } | null>(null);
   const [rangeTouched, setRangeTouched] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   /*
    * S-4.3: `to < from` was prevented by the `min` attribute alone, which a paste
@@ -249,6 +251,9 @@ export function CalendarScreen() {
             "Set holidays and working days — attendance and every statistic follow this calendar",
           )}
         />
+        <Button variant="secondary" onClick={() => setImporting(true)}>
+          <Download size={16} /> {t("সরকারি ছুটি আনুন", "Import government holidays")}
+        </Button>
         <Button
           variant="primary"
           onClick={() => setEditing({ from: localDay(new Date()), to: "", label: "", working: false })}
@@ -372,6 +377,8 @@ export function CalendarScreen() {
 
       <TermsPanel yearId={yearId} />
 
+      {importing ? <NationalHolidayImport year={cursor.y} yearId={yearId} onClose={() => setImporting(false)} /> : null}
+
       {editing ? (
         <Modal
           open
@@ -468,6 +475,115 @@ export function CalendarScreen() {
         </Modal>
       ) : null}
     </div>
+  );
+}
+
+/* ------------------------------------------------- national holidays (S-4.8) */
+
+/**
+ * "Import Bangladesh government holidays" — the highest-value feature on this
+ * screen, per the audit, and for a boring reason: every school in the country
+ * types the same public holidays by hand every single year.
+ *
+ * PREVIEW BEFORE APPLY, always. An import that writes first and reports after
+ * is one an operator cannot risk running on a calendar they have already
+ * edited. This lists every date, marks the ones already set, and only then
+ * offers the button.
+ *
+ * AND IT SAYS WHAT IT CANNOT KNOW. Eid, Durga Puja, Buddha Purnima and the
+ * other lunar and lunisolar holidays move each year and are announced by the
+ * Ministry; the product does not guess them. A wrong Eid date in the register
+ * is precisely the error an inspector notices, and it is worse than an absent
+ * one because nobody re-checks a date the software filled in.
+ */
+function NationalHolidayImport({
+  year, yearId, onClose,
+}: { year: number; yearId: string | undefined; onClose: () => void }) {
+  const { t, n, isBn } = useT();
+  const msg = useErrorMessage();
+  const toast = useToast();
+  const holidays = useNationalHolidays(year, true);
+  const run = useImportNationalHolidays();
+
+  const rows = holidays.data ?? [];
+  const fresh = rows.filter((h) => !h.already_marked).length;
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={t(`${n(year)} সালের সরকারি ছুটি`, `Government holidays for ${year}`)}
+      description={t(
+        "নিচের তারিখগুলো ছুটি হিসেবে চিহ্নিত হবে। ইতিমধ্যে চিহ্নিত তারিখের নাম সরকারি নামে বদলে যাবে।",
+        "These dates will be marked as holidays. Dates already marked will take the official name.",
+      )}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>{t("বাতিল", "Cancel")}</Button>
+          <Button
+            variant="primary"
+            disabled={run.isPending || rows.length === 0}
+            onClick={() =>
+              run.mutate(
+                { year, academicYearId: yearId },
+                {
+                  onSuccess: (count) => {
+                    onClose();
+                    toast({
+                      title: t(`${n(Number(count))}টি সরকারি ছুটি যোগ হয়েছে`, `${Number(count)} government holidays applied`),
+                      variant: "success",
+                    });
+                  },
+                  onError: (e: unknown) => toast({ title: msg(e, { bn: "আনা যায়নি", en: "Import failed" }), variant: "error" }),
+                },
+              )
+            }
+          >
+            {run.isPending
+              ? t("যোগ হচ্ছে…", "Applying…")
+              : t(`${n(rows.length)}টি ছুটি যোগ করুন`, `Apply ${rows.length} holidays`)}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {holidays.isLoading ? (
+          <Skeleton className="h-40" />
+        ) : holidays.isError ? (
+          <ErrorState title={t("তালিকা আনা যায়নি", "Could not load the list")} description={msg(holidays.error)} />
+        ) : (
+          <>
+            <p className="text-meta text-text-muted">
+              {t(
+                `${n(rows.length)}টির মধ্যে ${n(fresh)}টি নতুন`,
+                `${fresh} of ${rows.length} are new`,
+              )}
+            </p>
+            <ul className="flex flex-col divide-y divide-border-default rounded-lg border border-border-default">
+              {rows.map((h) => (
+                <li key={h.date} className="flex items-center gap-3 px-3 py-2">
+                  <span className="w-24 shrink-0 font-latin text-meta tabular-nums text-text-secondary">{h.date}</span>
+                  <span className="min-w-0 flex-1 text-meta text-text-primary">{isBn ? h.name_bn : h.name_en}</span>
+                  {h.already_marked ? (
+                    <span className="flex shrink-0 items-center gap-1 text-micro text-text-muted">
+                      <Check size={13} aria-hidden /> {t("আগে থেকেই আছে", "already set")}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+
+            <p className="flex items-start gap-2 rounded-lg bg-sunken px-3 py-2.5 text-micro text-text-secondary">
+              <Info size={14} className="mt-0.5 shrink-0" aria-hidden />
+              {t(
+                "ঈদুল ফিতর, ঈদুল আজহা, দুর্গাপূজা, বুদ্ধ পূর্ণিমা ও অন্যান্য চান্দ্র ছুটি প্রতি বছর আলাদা তারিখে পড়ে এবং সরকার আলাদাভাবে ঘোষণা করে — সেগুলো এখানে নেই, হাতে যোগ করতে হবে।",
+                "Eid-ul-Fitr, Eid-ul-Adha, Durga Puja, Buddha Purnima and the other lunar holidays fall on different dates each year and are announced separately by the government — they are not in this list and must be added by hand.",
+              )}
+            </p>
+          </>
+        )}
+      </div>
+    </Modal>
   );
 }
 

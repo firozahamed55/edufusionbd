@@ -4494,6 +4494,27 @@ export type Database = {
           },
         ]
       }
+      subject_group_class: {
+        Row: { class_id: string; subject_group_id: string }
+        Insert: { class_id: string; subject_group_id: string }
+        Update: { class_id?: string; subject_group_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "subject_group_class_subject_group_id_fkey"
+            columns: ["subject_group_id"]
+            isOneToOne: false
+            referencedRelation: "subject_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_group_class_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subject_group: {
         Row: {
           created_at: string
@@ -4501,6 +4522,7 @@ export type Database = {
           institution_id: string
           name: string
           name_bn: string | null
+          elective_pick: number | null
         }
         Insert: {
           created_at?: string
@@ -4508,6 +4530,7 @@ export type Database = {
           institution_id: string
           name: string
           name_bn?: string | null
+          elective_pick?: number | null
         }
         Update: {
           created_at?: string
@@ -4515,6 +4538,7 @@ export type Database = {
           institution_id?: string
           name?: string
           name_bn?: string | null
+          elective_pick?: number | null
         }
         Relationships: [
           {
@@ -4537,14 +4561,17 @@ export type Database = {
         Row: {
           subject_group_id: string
           subject_id: string
+          is_elective: boolean
         }
         Insert: {
           subject_group_id: string
           subject_id: string
+          is_elective?: boolean
         }
         Update: {
           subject_group_id?: string
           subject_id?: string
+          is_elective?: boolean
         }
         Relationships: [
           {
@@ -5727,6 +5754,8 @@ export type Database = {
       fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
       fn_entity_impact: { Args: { p_entity: string; p_id: string }; Returns: Json }
       fn_settings_status: { Args: never; Returns: Json }
+      fn_national_holidays: { Args: { p_year: number }; Returns: Json }
+      fn_import_national_holidays: { Args: { p_year: number; p_academic_year_id?: string }; Returns: number }
       fn_calendar_impact: { Args: { p_from: string; p_to: string }; Returns: Json }
       fn_audit_log: {
         Args: {

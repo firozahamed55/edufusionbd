@@ -171,11 +171,46 @@ export const subjectGroupSchema = z
      * assignment.
      */
     subject_ids: z.array(uuid).min(1, "Choose at least one subject"),
+    /**
+     * Which of those subjects are the elective pool (audit S-7.6). "Choose 1 of
+     * Higher Math / Biology / Agriculture" is the most common rule in a
+     * Bangladeshi school and the old model could not express it at all — every
+     * subject in a group was equally, silently compulsory.
+     */
+    elective_ids: z.array(uuid).default([]),
+    /**
+     * How many of the pool a student takes. Blank = no elective rule.
+     *
+     * `.default("")` because this is a string field over a `<input type=number>`
+     * and an absent key is a legitimate caller (a group created before the
+     * elective model existed). Without it a missing key fails `.trim()` and the
+     * whole parse reports as "group name required", which is a lie.
+     */
+    elective_pick: optionalIntField(1, 10, "Students pick between 1 and 10 subjects").default(""),
+    /**
+     * The classes this group applies to (audit S-7.5). A "Science" group means
+     * nothing until it is attached to classes 9 and 10, and that relationship
+     * was absent from the product entirely.
+     */
+    class_ids: z.array(uuid).default([]),
     takenNames: z.array(z.string()).default([]),
   })
   .refine((v) => !v.takenNames.includes(v.name.trim().toLowerCase()), {
     path: ["name"],
     message: "A group with this name already exists",
+  })
+  .refine(
+    (v) => blank(v.elective_pick) || Number(v.elective_pick) <= v.elective_ids.length,
+    {
+      path: ["elective_pick"],
+      // "Pick 3 of 2" is a rule no student can satisfy, and it would surface at
+      // enrolment as an unexplainable failure rather than here as a typo.
+      message: "That is more subjects than are marked elective",
+    },
+  )
+  .refine((v) => v.elective_ids.every((id) => v.subject_ids.includes(id)), {
+    path: ["elective_ids"],
+    message: "An elective must also be a subject in the group",
   });
 
 /* ---------------------------------------------------------- 2.8 Grading */

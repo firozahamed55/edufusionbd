@@ -122,7 +122,14 @@ export function ClassScreen() {
       id: s.id,
       section_name: s.sectionName,
       capacity: s.capacity != null ? String(s.capacity) : "",
-      class_teacher_id: "",
+      /*
+       * The id, not a blank. `fn_upsert_class_section` writes
+       * `class_teacher_id = nullif(payload->>'class_teacher_id','')`, so an
+       * empty string here means "clear the class teacher" — editing a section's
+       * capacity would silently unassign whoever was teaching it. This is why
+       * `fetchClassSections` selects the id alongside the display name.
+       */
+      class_teacher_id: s.classTeacherId ?? "",
       enrolled: s.enrolled,
     });
   }

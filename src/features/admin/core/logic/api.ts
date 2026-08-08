@@ -145,20 +145,49 @@ export const upsertSubject = (s: BrowserClient, payload: RpcPayload) => call(s, 
 export const deleteSubject = (s: BrowserClient, id: string) => call(s, "fn_delete_subject", { p_id: id });
 
 /* subject groups */
+export type GroupMember = { id: string; name_bn: string; name_en: string; is_elective: boolean };
 export type GroupRow = {
   id: string; name: string;
   /** Every sibling entity carries both names; the group carried one untranslated
    *  `name`, so a Bangla operator read an English label next to Bangla subject
    *  chips (audit S-7.9). Null until the operator supplies one. */
   name_bn: string | null;
-  subject_ids: string[]; subject_names: string;
+  /** How many of the elective pool a student takes. Null = no elective rule. */
+  elective_pick: number | null;
+  /** The classes this group applies to. A group attached to none is a template
+   *  nobody uses (audit S-7.5). */
+  class_ids: string[];
+  members: GroupMember[];
+  subject_ids: string[];
+  subject_names: string;
 };
+
 export async function fetchSubjectGroups(s: BrowserClient): Promise<GroupRow[]> {
-  const { data, error } = await s.from("subject_group").select("id, name, name_bn, members:subject_group_member(subject:subject_id(id, name_en))").order("name").limit(MAX_OPTIONS);
+  const { data, error } = await s
+    .from("subject_group")
+    .select("id, name, name_bn, elective_pick, members:subject_group_member(is_elective, subject:subject_id(id, name_bn, name_en)), classes:subject_group_class(class_id)")
+    .order("name")
+    .limit(MAX_OPTIONS);
   if (error) throw error;
   return (data ?? []).map((r) => {
-    const subs = (r.members ?? []).map((m) => m.subject).filter(Boolean) as { id: string; name_en: string }[];
-    return { id: r.id, name: r.name, name_bn: r.name_bn, subject_ids: subs.map((x) => x.id), subject_names: subs.map((x) => x.name_en).join(", ") };
+    const members: GroupMember[] = (r.members ?? [])
+      .filter((m) => m.subject)
+      .map((m) => ({
+        id: m.subject!.id,
+        name_bn: m.subject!.name_bn,
+        name_en: m.subject!.name_en,
+        is_elective: m.is_elective,
+      }));
+    return {
+      id: r.id,
+      name: r.name,
+      name_bn: r.name_bn,
+      elective_pick: r.elective_pick,
+      class_ids: (r.classes ?? []).map((c) => c.class_id),
+      members,
+      subject_ids: members.map((m) => m.id),
+      subject_names: members.map((m) => m.name_en).join(", "),
+    };
   });
 }
 export const upsertSubjectGroup = (s: BrowserClient, payload: RpcPayload) => call(s, "fn_upsert_subject_group", { payload });

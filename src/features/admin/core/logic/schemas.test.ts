@@ -133,11 +133,25 @@ describe("subjectSchema", () => {
 
 const UUID_A = "11111111-1111-4111-8111-111111111111";
 
+const UUID_B = "22222222-2222-4222-8222-222222222222";
+const UUID_C = "33333333-3333-4333-8333-333333333333";
+
 describe("subjectGroupSchema", () => {
-  const GROUP = { id: "", name: "Science", name_bn: "বিজ্ঞান", subject_ids: [UUID_A], takenNames: [] as string[] };
+  const GROUP = {
+    id: "", name: "Science", name_bn: "বিজ্ঞান",
+    subject_ids: [UUID_A], elective_ids: [] as string[], elective_pick: "",
+    class_ids: [] as string[], takenNames: [] as string[],
+  };
 
   it("accepts a named group with at least one subject", () => {
     expect(ok(subjectGroupSchema.safeParse(GROUP))).toBe(true);
+  });
+
+  it("accepts a group saved before the elective model existed", () => {
+    // An absent `elective_pick` must not fail as "group name required".
+    const legacy: Record<string, unknown> = { ...GROUP };
+    delete legacy.elective_pick;
+    expect(ok(subjectGroupSchema.safeParse(legacy))).toBe(true);
   });
 
   it("rejects a group with no subjects — a valid-looking row that does nothing", () => {
@@ -146,6 +160,29 @@ describe("subjectGroupSchema", () => {
 
   it("rejects a duplicate group name", () => {
     expect(errOn(subjectGroupSchema.safeParse({ ...GROUP, takenNames: ["science"] }), "name")).toBeDefined();
+  });
+
+  it("accepts a 'pick 1 of 3' elective rule", () => {
+    expect(ok(subjectGroupSchema.safeParse({
+      ...GROUP,
+      subject_ids: [UUID_A, UUID_B, UUID_C],
+      elective_ids: [UUID_A, UUID_B, UUID_C],
+      elective_pick: "1",
+    }))).toBe(true);
+  });
+
+  it("rejects 'pick 3 of 2' — a rule no student can satisfy", () => {
+    const bad = subjectGroupSchema.safeParse({
+      ...GROUP,
+      subject_ids: [UUID_A, UUID_B],
+      elective_ids: [UUID_A, UUID_B],
+      elective_pick: "3",
+    });
+    expect(errOn(bad, "elective_pick")).toBeDefined();
+  });
+
+  it("rejects an elective that is not a subject of the group", () => {
+    expect(errOn(subjectGroupSchema.safeParse({ ...GROUP, elective_ids: [UUID_B] }), "elective_ids")).toBeDefined();
   });
 });
 

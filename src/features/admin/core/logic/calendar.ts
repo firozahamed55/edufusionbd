@@ -49,6 +49,42 @@ export async function clearCalendarRange(s: BrowserClient, from: string, to: str
   return Number(data ?? 0);
 }
 
+/* ------------------------------------------------- national holidays (S-4.8) */
+
+export type NationalHoliday = { date: string; name_bn: string; name_en: string; already_marked: boolean };
+
+/**
+ * The fixed-date government holidays for a year, each flagged with whether the
+ * institution has already marked it.
+ *
+ * Only the FIXED-DATE ones. Eid, Durga Puja, Buddha Purnima and the rest are
+ * lunar or lunisolar and are announced annually by the Ministry of Public
+ * Administration; a guessed Eid date in the attendance register is exactly the
+ * error an inspector notices, and the operator would never think to check a
+ * date the product filled in for them. See the migration for the full argument.
+ */
+export async function fetchNationalHolidays(s: BrowserClient, year: number): Promise<NationalHoliday[]> {
+  const { data, error } = await s.rpc("fn_national_holidays", { p_year: year });
+  if (error) throw new Error(error.message);
+  const rows = ((data ?? {}) as { holidays?: unknown[] }).holidays ?? [];
+  return rows.map((raw) => {
+    const r = raw as Record<string, unknown>;
+    return {
+      date: String(r.date), name_bn: String(r.name_bn), name_en: String(r.name_en),
+      already_marked: Boolean(r.already_marked),
+    };
+  });
+}
+
+export async function importNationalHolidays(s: BrowserClient, year: number, academicYearId?: string): Promise<number> {
+  const { data, error } = await s.rpc("fn_import_national_holidays", {
+    p_year: year,
+    p_academic_year_id: academicYearId,
+  });
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}
+
 /* ----------------------------------------------------------------- terms */
 
 export type TermRow = {

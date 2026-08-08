@@ -150,6 +150,21 @@ export const useSetCalendarRange = () =>
 export const useClearCalendarRange = () =>
   useMut((v: { from: string; to: string }) => cal.clearCalendarRange(c(), v.from, v.to), [queryKeys.core.calendarAll]);
 
+/** Fixed-date government holidays for a year, with a preview of what changes. */
+export const useNationalHolidays = (year: number, enabled: boolean) =>
+  useQuery({
+    queryKey: queryKeys.core.nationalHolidays(year),
+    queryFn: () => cal.fetchNationalHolidays(c(), year),
+    enabled,
+    staleTime: 60_000,
+  });
+
+export const useImportNationalHolidays = () =>
+  useMut(
+    (v: { year: number; academicYearId?: string }) => cal.importNationalHolidays(c(), v.year, v.academicYearId),
+    [queryKeys.core.calendarAll],
+  );
+
 export const useTerms = (yearId: string | undefined) =>
   useQuery({
     queryKey: queryKeys.core.terms(yearId),

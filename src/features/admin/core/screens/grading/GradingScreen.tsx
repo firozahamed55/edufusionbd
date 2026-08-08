@@ -195,6 +195,7 @@ export function GradingScreen() {
                 <Download size={14} /> {t("এক্সপোর্ট", "Export")}
               </Button>
             ) : null}
+            {active ? <MarkTester scales={sortedScales} /> : null}
             {active ? (
               <div className="flex items-center gap-2 rounded-lg bg-primary-subtle px-3 py-2 text-primary">
                 <span className="text-meta">ⓘ</span>
@@ -358,6 +359,59 @@ export function GradingScreen() {
           )}
         />
       </ConfirmDialog>
+    </div>
+  );
+}
+
+/**
+ * "What grade does 67 produce under this scheme?" (audit S-8.4).
+ *
+ * That question could not be asked anywhere in the product, and it is the
+ * question an operator actually has — the bands table answers it only by
+ * arithmetic they have to do themselves, against a table whose correctness is
+ * the thing they are trying to check. Five lines of component, and it removes
+ * the main reason to distrust this screen.
+ *
+ * It resolves marks the same way `fn_process_exam_result` does — the band whose
+ * inclusive range contains the mark — so a disagreement between this and a
+ * printed marksheet is a real defect rather than two different rules.
+ */
+function MarkTester({ scales }: { scales: GradeScale[] }) {
+  const { t, n } = useT();
+  const [mark, setMark] = useState("");
+
+  const value = mark.trim() === "" ? null : Number(mark);
+  const valid = value != null && Number.isFinite(value) && value >= 0 && value <= 100;
+  const band = valid ? scales.find((s) => value >= s.min_marks && value <= s.max_marks) ?? null : null;
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border-default bg-surface px-3 py-1.5">
+      <label htmlFor="mark-tester" className="text-meta text-text-muted">
+        {t("নম্বর পরীক্ষা", "Try a mark")}
+      </label>
+      <Input
+        id="mark-tester"
+        type="number"
+        min={0}
+        max={100}
+        value={mark}
+        onChange={(e) => setMark(e.target.value)}
+        className="h-8 w-18 font-latin"
+        placeholder="67"
+      />
+      <span className="min-w-24 text-meta" aria-live="polite">
+        {!valid ? (
+          <span className="text-text-muted">—</span>
+        ) : band ? (
+          <span className="font-semibold text-text-primary">
+            {band.grade_letter} · GP {n(band.gpa_point.toFixed(2))}
+          </span>
+        ) : (
+          /* Only reachable when the bands leave a hole — which `validateGradeScale`
+             blocks at save, but an older scheme may still carry. */
+          <span className="font-semibold text-danger-fg">{t("কোনো গ্রেড নেই", "no grade covers this")}</span>
+        )}
+      </span>
     </div>
   );
 }

@@ -132,6 +132,7 @@ export const queryKeys = {
     calendarAll: ["core", "calendar"] as const,
     calendar: (from: string, to: string) => ["core", "calendar", from, to] as const,
     calendarDay: (date: string) => ["core", "calendar", "day", date] as const,
+    nationalHolidays: (year: number) => ["core", "national-holidays", year] as const,
     termsAll: ["core", "terms"] as const,
     terms: (yearId: Id) => ["core", "terms", yearId] as const,
   },
