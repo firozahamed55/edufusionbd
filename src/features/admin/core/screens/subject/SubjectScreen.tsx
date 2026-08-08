@@ -2,11 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, BookOpen, Search } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
 import {
   Field, Input, Select, Button, Badge, ConfirmDialog, Modal, useToast, PageHeader, Skeleton,
-  ImpactPreview, Table, THead, TBody, TR, TH, TD, TableEmpty,
+  ImpactPreview, Switch, Table, THead, TBody, TR, TH, TD, TableEmpty,
 } from "@/shared/ui";
 import { useZodForm } from "@/shared/lib/useZodForm";
 import { useSubjects, useUpsertSubject, useDeleteSubject, useClasses } from "../../logic/hooks";
@@ -227,10 +226,14 @@ export function SubjectScreen() {
           {/* A11y A-2: this was a <button> inside a <label>, which does not
               label a button — a screen reader announced it as "button", with
               no name and no state. `Switch` carries both. */}
-          <SubjectActiveSwitch
-            checked={f.status === "active"}
-            onChange={(next) => up("status", next ? "active" : "inactive")}
-          />
+          <div className="rounded-lg border border-border-default px-3 py-1">
+            <Switch
+              checked={f.status === "active"}
+              onChange={(next) => up("status", next ? "active" : "inactive")}
+              label={t("সক্রিয়", "Active")}
+              description={t("নিষ্ক্রিয় বিষয় নতুন রুটিন ও পরীক্ষায় দেখাবে না", "An inactive subject stops appearing in new routines and exams")}
+            />
+          </div>
         </div>
       </Modal>
 
@@ -261,22 +264,3 @@ export function SubjectScreen() {
   );
 }
 
-/** The shared switch, pending the Phase 3 primitive; see `Switch`. */
-function SubjectActiveSwitch({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
-  const { t } = useT();
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-border-default px-3 py-2.5">
-      <span id="subject-active-label" className="text-meta font-medium text-text-secondary">{t("সক্রিয়", "Active")}</span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-labelledby="subject-active-label"
-        onClick={() => onChange(!checked)}
-        className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", checked ? "bg-primary" : "bg-border-strong")}
-      >
-        <span className={cn("absolute size-4 rounded-full bg-white transition-all", checked ? "right-0.5" : "left-0.5")} />
-      </button>
-    </div>
-  );
-}

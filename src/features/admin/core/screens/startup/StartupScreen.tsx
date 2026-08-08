@@ -240,7 +240,10 @@ export function StartupScreen() {
                   <Upload size={14} /> {logoUploading ? t("আপলোড হচ্ছে…", "Uploading…") : t("লোগো আপলোড করুন", "Upload logo")}
                 </button>
                 <p className="text-micro text-text-muted">{t("PNG, JPG বা SVG • সর্বোচ্চ ১ MB", "PNG, JPG or SVG • up to 1 MB")}</p>
-                <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) onLogoPick(file); e.target.value = ""; }} />
+                {/* display:none and clicked programmatically — but still needs
+                    a name, or it announces as "file, blank" to anyone who
+                    reaches it through the forms rota. */}
+                <input ref={fileInputRef} type="file" aria-label={t("প্রতিষ্ঠানের লোগো ফাইল", "Institution logo file")} accept="image/png,image/jpeg,image/svg+xml" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) onLogoPick(file); e.target.value = ""; }} />
               </div>
             </FormCard>
 

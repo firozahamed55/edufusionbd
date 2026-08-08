@@ -261,6 +261,11 @@ export function SignatureScreen() {
                 <input
                   ref={(el) => { fileInputs.current[r.key] = el; }}
                   type="file"
+                  // The visible affordance is the button above; this input is
+                  // display:none and clicked programmatically. It still needs a
+                  // name — axe flags it, and a screen reader that reaches it
+                  // through the forms rota otherwise announces "file, blank".
+                  aria-label={t(`${r.bn} স্বাক্ষরের ছবি`, `${r.en} signature image`)}
                   accept="image/png,image/jpeg"
                   className="hidden"
                   onChange={(e) => { const file = e.target.files?.[0]; if (file) onImagePick(r.key, file); e.target.value = ""; }}

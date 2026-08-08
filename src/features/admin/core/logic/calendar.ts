@@ -105,3 +105,50 @@ export function monthGrid(year: number, month: number): (string | null)[] {
   while (cells.length % 7 !== 0) cells.push(null);
   return cells;
 }
+
+/**
+ * Where a keystroke moves the focused date (audit A-3, WCAG 2.1.1).
+ *
+ * The month grid was 42 `<button>`s in a `<div>`, reachable only by Tab — so
+ * reaching 28 April cost 28 Tab presses, and there was no way to leave the
+ * month by keyboard at all. This is the movement half of the fix.
+ *
+ * It is DATE arithmetic, not cell arithmetic. Right at the end of a row lands
+ * on the next day, which is the first cell of the next row, and Right on the
+ * last day of the month lands on the first of the next one — the operator is
+ * moving through a year, not around a 7×6 rectangle. That is also why this
+ * lives here rather than in `shared/lib/useGridNavigation`, which is built for
+ * grids of inputs where Tab already means the right thing and deliberately
+ * does not take it over.
+ *
+ * Returns the target ISO date, or null when the key is not ours to handle.
+ */
+export function calendarKeyTarget(key: string, iso: string): string | null {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  const shift = (days: number) => {
+    const next = new Date(d.getTime() + days * 86_400_000);
+    return next.toISOString().slice(0, 10);
+  };
+  const shiftMonths = (months: number) => {
+    const y = d.getUTCFullYear();
+    const m = d.getUTCMonth() + months;
+    // Clamp the day: 31 March + 1 month is 30 April, not 1 May.
+    const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    const day = Math.min(d.getUTCDate(), lastDay);
+    return new Date(Date.UTC(y, m, day)).toISOString().slice(0, 10);
+  };
+
+  switch (key) {
+    case "ArrowRight": return shift(1);
+    case "ArrowLeft": return shift(-1);
+    case "ArrowDown": return shift(7);
+    case "ArrowUp": return shift(-7);
+    // Saturday-first week, matching `monthGrid`: Saturday is column 0.
+    case "Home": return shift(-((d.getUTCDay() + 1) % 7));
+    case "End": return shift(6 - ((d.getUTCDay() + 1) % 7));
+    case "PageUp": return shiftMonths(-1);
+    case "PageDown": return shiftMonths(1);
+    default: return null;
+  }
+}

@@ -117,7 +117,7 @@ export function PermissionMatrixScreen() {
           <Table minWidth={280 + roles.length * 150}>
             <THead>
               <TR>
-                <TH className="min-w-64">{t("সক্ষমতা", "Capability")}</TH>
+                <TH className="sticky left-0 z-[2] min-w-64 bg-sunken">{t("সক্ষমতা", "Capability")}</TH>
                 {roles.map((r) => (
                   <TH key={r.id} className="w-37.5 text-center">
                     <span className="block text-text-primary">{r.name}</span>
@@ -133,14 +133,18 @@ export function PermissionMatrixScreen() {
                     <TH
                       scope="colgroup"
                       colSpan={roles.length + 1}
-                      className="text-left text-meta uppercase tracking-wide text-text-muted"
+                      className="sticky left-0 z-[1] bg-sunken text-left text-meta uppercase tracking-wide text-text-muted"
                     >
                       {t(moduleLabel(g.module).bn, moduleLabel(g.module).en)}
                     </TH>
                   </TR>
                   {g.items.map((p) => (
                     <TR key={p.id}>
-                      <TH scope="row" className="text-left font-normal">
+                      {/* A-7 / WCAG 1.4.10 Reflow: the table scrolls at
+                          280 + roles x 150 px, and this column used to scroll
+                          away with it — leaving a row of ticks whose subject
+                          was off-screen. */}
+                      <TH scope="row" className="sticky left-0 z-[1] bg-surface text-left font-normal">
                         <span className="block text-sm text-text-primary">{p.label}</span>
                         <span className="block font-latin text-xs text-text-muted">{p.code}</span>
                       </TH>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, Plus, Trash2, Pencil } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
@@ -11,7 +11,7 @@ import {
 import { useErrorMessage } from "@/shared/services/errors";
 import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 import { localDay } from "@/shared/lib/format";
-import { monthGrid, type TermRow } from "../../logic/calendar";
+import { monthGrid, calendarKeyTarget, type TermRow } from "../../logic/calendar";
 import { calendarRangeSchema, termSchema } from "../../logic/schemas";
 import { useCalendarImpact, useEntityImpact, useImpactLabel } from "../../logic/impact";
 import {
@@ -46,6 +46,13 @@ const MONTHS = [
 const DOW = [
   ["শনি", "Sat"], ["রবি", "Sun"], ["সোম", "Mon"], ["মঙ্গল", "Tue"],
   ["বুধ", "Wed"], ["বৃহঃ", "Thu"], ["শুক্র", "Fri"],
+] as const;
+
+/** Sunday-first, indexed by `getUTCDay()` — for the spoken cell label, where an
+ *  abbreviation is worse than the whole word. */
+const DOW_FULL = [
+  ["রবিবার", "Sunday"], ["সোমবার", "Monday"], ["মঙ্গলবার", "Tuesday"], ["বুধবার", "Wednesday"],
+  ["বৃহস্পতিবার", "Thursday"], ["শুক্রবার", "Friday"], ["শনিবার", "Saturday"],
 ] as const;
 
 /**
@@ -86,6 +93,11 @@ export function CalendarScreen() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
   const cells = useMemo(() => monthGrid(cursor.y, cursor.m), [cursor]);
+  /** The same cells in rows of seven — `role="row"` needs the grouping. */
+  const weeks = useMemo(
+    () => Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7)),
+    [cells],
+  );
   const dates = cells.filter(Boolean) as string[];
   const from = dates[0] ?? `${isoMonth(cursor.y, cursor.m)}-01`;
   const to = dates[dates.length - 1] ?? from;
@@ -160,6 +172,67 @@ export function CalendarScreen() {
   const monthLabel = `${t(MONTHS[cursor.m][0], MONTHS[cursor.m][1])} ${n(cursor.y)}`;
   const nonWorking = (marks.data ?? []).filter((d) => !d.working);
 
+  /* ------------------------------------------------------- keyboard (A-3) */
+
+  /**
+   * The one cell in the grid that is tabbable — the roving-tabindex half of
+   * `role="grid"`. Tab reaches the calendar once; arrows move inside it. Before
+   * this, reaching 28 April cost 28 Tab presses and leaving the month by
+   * keyboard was impossible.
+   */
+  const [focusDate, setFocusDate] = useState<string | null>(null);
+  const wantFocus = useRef(false);
+  const todayIso = localDay(today);
+
+  const inMonth = (iso: string) => iso.slice(0, 7) === isoMonth(cursor.y, cursor.m);
+  const activeDate =
+    focusDate && inMonth(focusDate)
+      ? focusDate
+      : inMonth(todayIso)
+        ? todayIso
+        : `${isoMonth(cursor.y, cursor.m)}-01`;
+
+  // Focus is moved in an effect rather than in the handler because crossing a
+  // month boundary re-renders the whole grid first — the target button does not
+  // exist yet at the moment the key is pressed.
+  useEffect(() => {
+    if (!wantFocus.current || !focusDate) return;
+    wantFocus.current = false;
+    document.getElementById(`cal-${focusDate}`)?.focus();
+  }, [focusDate, cursor]);
+
+  function onGridKeyDown(e: React.KeyboardEvent, iso: string) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const target = calendarKeyTarget(e.key, iso);
+    if (!target) return;
+    e.preventDefault();
+    const [ty, tm] = [Number(target.slice(0, 4)), Number(target.slice(5, 7)) - 1];
+    if (ty !== cursor.y || tm !== cursor.m) setCursor({ y: ty, m: tm });
+    wantFocus.current = true;
+    setFocusDate(target);
+  }
+
+  /**
+   * What a screen reader says on each cell. The day number alone — "৫" — told a
+   * non-sighted operator nothing: not the month, not the weekday, and not
+   * whether the day was a holiday, which is the only information on the screen
+   * that matters.
+   */
+  function dayLabel(iso: string, holiday: boolean, mark: { label: string | null } | undefined) {
+    const d = new Date(`${iso}T00:00:00Z`);
+    const dow = DOW_FULL[d.getUTCDay()];
+    const month = MONTHS[d.getUTCMonth()];
+    const date = `${n(d.getUTCDate())} ${t(month[0], month[1])} ${n(d.getUTCFullYear())}`;
+    const weekday = t(dow[0], dow[1]);
+    const state = mark?.label
+      ? mark.label
+      : holiday
+        ? t("ছুটি", "holiday")
+        : t("কর্মদিবস", "working day");
+    const todaySuffix = iso === todayIso ? `, ${t("আজ", "today")}` : "";
+    return `${date}, ${weekday} — ${state}${todaySuffix}`;
+  }
+
   return (
     <div className="flex flex-col gap-5 pb-6">
       <div className="flex flex-wrap items-end gap-3">
@@ -218,46 +291,72 @@ export function CalendarScreen() {
           <ErrorState title={t("পঞ্জি লোড করা যায়নি", "Could not load the calendar")} description={msg(marks.error)} />
         ) : (
           <div className="p-4">
-            <div className="grid grid-cols-7 gap-1.5">
-              {DOW.map(([bn, en]) => (
-                <div key={en} className="pb-1 text-center text-micro font-semibold uppercase tracking-wide text-text-muted">
-                  {t(bn, en)}
+            {/*
+              A-3. This was a `div` of 42 buttons whose only accessible name was
+              the day number — "৫" — with no month, no weekday, no holiday
+              state, no `role="grid"` and no arrow navigation. It is a real grid
+              now: one tab stop, arrows to move by day, PageUp/PageDown by
+              month, and every cell says what it is.
+            */}
+            <div role="grid" aria-label={t(`${monthLabel} এর শিক্ষাপঞ্জি`, `Academic calendar for ${monthLabel}`)} className="flex flex-col gap-1.5">
+              <div role="row" className="grid grid-cols-7 gap-1.5">
+                {DOW.map(([bn, en]) => (
+                  <div key={en} role="columnheader" className="pb-1 text-center text-micro font-semibold uppercase tracking-wide text-text-muted">
+                    {t(bn, en)}
+                  </div>
+                ))}
+              </div>
+              {weeks.map((week, w) => (
+                <div role="row" key={w} className="grid grid-cols-7 gap-1.5">
+                  {week.map((date, i) => {
+                    if (!date) return <div role="gridcell" key={`pad-${w}-${i}`} />;
+                    const mark = byDate.get(date);
+                    const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
+                    // An explicit row wins over the weekly holiday in both
+                    // directions — a make-up class on a Friday is a working day.
+                    const holiday = mark ? !mark.working : weekend.includes(dow);
+                    const isToday = date === todayIso;
+                    return (
+                      <div role="gridcell" key={date}>
+                        <button
+                          id={`cal-${date}`}
+                          type="button"
+                          // Roving tabindex: exactly one cell is reachable by
+                          // Tab; arrows move focus among the rest.
+                          tabIndex={date === activeDate ? 0 : -1}
+                          aria-label={dayLabel(date, holiday, mark)}
+                          aria-current={isToday ? "date" : undefined}
+                          onFocus={() => setFocusDate(date)}
+                          onKeyDown={(e) => onGridKeyDown(e, date)}
+                          onClick={() =>
+                            setEditing({ from: date, to: date, label: mark?.label ?? "", working: mark ? mark.working : !holiday })
+                          }
+                          className={cn(
+                            "flex min-h-16 w-full flex-col items-start gap-0.5 rounded-lg border p-2 text-left transition-colors",
+                            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                            holiday
+                              ? "border-danger-fg/25 bg-danger-bg hover:border-danger-fg/50"
+                              : "border-border-default bg-surface hover:bg-sunken",
+                            isToday && "ring-2 ring-primary ring-offset-1 ring-offset-surface",
+                          )}
+                        >
+                          {/* The visible number is decorative once the button
+                              carries a full aria-label — announcing "৫" after
+                              "5 April 2026, Sunday" is noise. */}
+                          <span aria-hidden className={cn("text-meta font-semibold tnum", holiday ? "text-danger-fg" : "text-text-primary")}>
+                            {n(Number(date.slice(8)))}
+                          </span>
+                          {mark?.label ? (
+                            <span aria-hidden className="line-clamp-2 text-micro leading-tight text-text-secondary">{mark.label}</span>
+                          ) : holiday ? (
+                            <span aria-hidden className="text-micro text-text-muted">{t("সাপ্তাহিক ছুটি", "Weekly holiday")}</span>
+                          ) : null}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
-              {cells.map((date, i) => {
-                if (!date) return <div key={`pad-${i}`} />;
-                const mark = byDate.get(date);
-                const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
-                // An explicit row wins over the weekly holiday in both
-                // directions — a make-up class on a Friday is a working day.
-                const holiday = mark ? !mark.working : weekend.includes(dow);
-                const isToday = date === localDay(today);
-                return (
-                  <button
-                    key={date}
-                    type="button"
-                    onClick={() =>
-                      setEditing({ from: date, to: date, label: mark?.label ?? "", working: mark ? mark.working : !holiday })
-                    }
-                    className={cn(
-                      "flex min-h-16 flex-col items-start gap-0.5 rounded-lg border p-2 text-left transition-colors",
-                      holiday
-                        ? "border-danger-fg/25 bg-danger-bg hover:border-danger-fg/50"
-                        : "border-border-default bg-surface hover:bg-sunken",
-                      isToday && "ring-2 ring-primary ring-offset-1 ring-offset-surface",
-                    )}
-                  >
-                    <span className={cn("text-meta font-semibold tnum", holiday ? "text-danger-fg" : "text-text-primary")}>
-                      {n(Number(date.slice(8)))}
-                    </span>
-                    {mark?.label ? (
-                      <span className="line-clamp-2 text-micro leading-tight text-text-secondary">{mark.label}</span>
-                    ) : holiday ? (
-                      <span className="text-micro text-text-muted">{t("সাপ্তাহিক ছুটি", "Weekly holiday")}</span>
-                    ) : null}
-                  </button>
-                );
-              })}
             </div>
             {marks.isLoading ? <Skeleton className="mt-3 h-4 w-40" /> : (
               <p className="mt-3 text-micro text-text-muted">

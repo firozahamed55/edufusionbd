@@ -45,8 +45,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
+      {/*
+        `w-[calc(100vw-2rem)] max-w-sm` rather than `w-full max-w-sm`.
+
+        `w-full` on a fixed element resolves against the containing block, which
+        is the layout viewport — normally the same as the visual viewport, but
+        not always (a pinch-zoomed phone is the real-world case; a device
+        emulator squeezing the visual viewport is how this was noticed). When
+        they diverge, a 384 px toast can land partly or wholly outside what the
+        operator can see. `100vw` is the one unit here that is always the
+        viewport.
+
+        Worth the two extra characters because every message this component
+        carries is a save confirmation or a save failure — "off-screen" means
+        "the operator never learns the write failed".
+      */}
       <div
-        className="pointer-events-none fixed bottom-4 right-4 z-100 flex w-full max-w-sm flex-col gap-2.5"
+        className="pointer-events-none fixed bottom-4 right-4 z-100 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-2.5"
         role="region"
         aria-label="Notifications"
       >
