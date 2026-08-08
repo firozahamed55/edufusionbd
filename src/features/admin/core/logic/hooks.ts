@@ -10,15 +10,31 @@ import { useCurrentYearId } from "@/shared/services/academicYear/hooks";
 
 const c = () => createClient();
 
-export const useInstitution = () => useQuery({ queryKey: queryKeys.core.institution, queryFn: () => api.fetchInstitution(c()) });
-export const useEducationBoards = () => useQuery({ queryKey: queryKeys.core.boards, queryFn: () => api.fetchEducationBoards(c()), staleTime: 60_000 });
+/**
+ * Configuration changes monthly, not per-interaction (audit M-13).
+ *
+ * Eight of these queries had no `staleTime` at all, so every tab switch inside
+ * Settings refetched the class list, the subject list, the grading schemes and
+ * the institution row — none of which anyone had changed in the two seconds
+ * since they were last read. Two neighbouring queries already carried 60 s and
+ * `useMyPermissions` already carried five minutes with the reasoning written
+ * out; this applies that same reasoning to its actual scope.
+ *
+ * Five minutes, not Infinity: every mutation in this module invalidates the key
+ * it wrote, so a stale read can only happen when ANOTHER operator changed the
+ * data — and five minutes is a reasonable ceiling on noticing that.
+ */
+const CONFIG_STALE = 5 * 60_000;
+
+export const useInstitution = () => useQuery({ queryKey: queryKeys.core.institution, queryFn: () => api.fetchInstitution(c()), staleTime: CONFIG_STALE });
+export const useEducationBoards = () => useQuery({ queryKey: queryKeys.core.boards, queryFn: () => api.fetchEducationBoards(c()), staleTime: CONFIG_STALE });
 export const useTeacherOptions = () => useQuery({ queryKey: queryKeys.core.teacherOptions, queryFn: () => api.fetchTeacherOptions(c()), staleTime: 60_000 });
-export const useSetting = (key: string, scope: string) => useQuery({ queryKey: queryKeys.core.setting(key, scope), queryFn: () => api.fetchSetting(c(), key, scope) });
-export const useClasses = () => useQuery({ queryKey: queryKeys.core.classes, queryFn: () => api.fetchClasses(c()) });
-export const useSubjects = () => useQuery({ queryKey: queryKeys.core.subjects, queryFn: () => api.fetchSubjects(c()) });
-export const useSubjectGroups = () => useQuery({ queryKey: queryKeys.core.groups, queryFn: () => api.fetchSubjectGroups(c()) });
-export const useGradeSchemes = () => useQuery({ queryKey: queryKeys.core.schemes, queryFn: () => api.fetchGradeSchemes(c()) });
-export const useSignatures = () => useQuery({ queryKey: queryKeys.core.signatures, queryFn: () => api.fetchSignatures(c()) });
+export const useSetting = (key: string, scope: string) => useQuery({ queryKey: queryKeys.core.setting(key, scope), queryFn: () => api.fetchSetting(c(), key, scope), staleTime: CONFIG_STALE });
+export const useClasses = () => useQuery({ queryKey: queryKeys.core.classes, queryFn: () => api.fetchClasses(c()), staleTime: CONFIG_STALE });
+export const useSubjects = () => useQuery({ queryKey: queryKeys.core.subjects, queryFn: () => api.fetchSubjects(c()), staleTime: CONFIG_STALE });
+export const useSubjectGroups = () => useQuery({ queryKey: queryKeys.core.groups, queryFn: () => api.fetchSubjectGroups(c()), staleTime: CONFIG_STALE });
+export const useGradeSchemes = () => useQuery({ queryKey: queryKeys.core.schemes, queryFn: () => api.fetchGradeSchemes(c()), staleTime: CONFIG_STALE });
+export const useSignatures = () => useQuery({ queryKey: queryKeys.core.signatures, queryFn: () => api.fetchSignatures(c()), staleTime: CONFIG_STALE });
 export const useUsers = (params: { page: number; q?: string; status?: string }) =>
   useQuery({ queryKey: queryKeys.core.users(params), queryFn: () => api.fetchUsers(c(), params), placeholderData: (prev) => prev });
 

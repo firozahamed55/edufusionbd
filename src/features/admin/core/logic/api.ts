@@ -54,7 +54,19 @@ export type ClassSectionRow = {
    *  teacher as a side effect (audit S-3.4's second half). */
   classTeacherId: string | null;
 };
-// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+/**
+ * Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+ *
+ * The nested `student_enrollment(count)` was flagged in the settings audit
+ * (M-13) as "an N+1-shaped aggregate on a hot path". It was measured against
+ * the live schema before acting on it and it is not one: PostgREST issues this
+ * as a SINGLE request, and the plan is a bitmap index scan on
+ * `ix_class_section_class_id` feeding one on `ix_enrollment_class_section` —
+ * 7 shared buffer hits, 0.36 ms execution. A class has at most a handful of
+ * sections, both sides are indexed, and replacing it with a view would trade a
+ * measured non-problem for a migration. Left alone deliberately; re-measure
+ * before changing it.
+ */
 export async function fetchClassSections(s: BrowserClient, classId: string, yearId: string): Promise<ClassSectionRow[]> {
   const { data, error } = await s
     .from("class_section")
