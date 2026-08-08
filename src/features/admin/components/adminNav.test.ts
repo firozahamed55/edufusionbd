@@ -7,7 +7,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
-import { ADMIN_ALL_MODULES, canSeeModule } from "./adminNav";
+import { ADMIN_ALL_MODULES, canSeeModule, canSeeTab, permissionForPath } from "./adminNav";
 
 const APP_DIR = join(__dirname, "..", "..", "..", "app", "(admin)");
 
@@ -72,6 +72,56 @@ describe("canSeeModule", () => {
     ]);
     for (const m of ADMIN_ALL_MODULES) {
       if (m.permission) expect(SEEDED.has(m.permission), `${m.key} → ${m.permission}`).toBe(true);
+      for (const tab of m.tabs ?? []) {
+        if (tab.permission) expect(SEEDED.has(tab.permission), `${tab.href} → ${tab.permission}`).toBe(true);
+      }
     }
+  });
+});
+
+describe("canSeeTab (settings audit M-4)", () => {
+  const core = mod("core");
+  const tab = (href: string) => core.tabs!.find((x) => x.href === href)!;
+
+  it("hides the three screens the DATABASE gates differently from the module", () => {
+    // Exactly the hole H-1 describes: `core.settings` alone used to show all
+    // eleven tabs, and the three Users tabs then rendered empty tables.
+    const settingsOnly = ["core.settings"];
+    expect(canSeeTab(core, tab("/admin/core/basic-config"), settingsOnly)).toBe(true);
+    expect(canSeeTab(core, tab("/admin/core/user-list"), settingsOnly)).toBe(false);
+    expect(canSeeTab(core, tab("/admin/core/permissions"), settingsOnly)).toBe(false);
+    expect(canSeeTab(core, tab("/admin/core/audit-log"), settingsOnly)).toBe(false);
+  });
+
+  it("an institution admin sees all eleven", () => {
+    const admin = ["core.settings", "core.user_manage", "audit.read"];
+    expect(core.tabs!.filter((x) => canSeeTab(core, x, admin))).toHaveLength(11);
+  });
+
+  it("fails OPEN while loading and for an account with no roles", () => {
+    expect(core.tabs!.filter((x) => canSeeTab(core, x, undefined))).toHaveLength(11);
+    expect(core.tabs!.filter((x) => canSeeTab(core, x, []))).toHaveLength(11);
+  });
+
+  it("an accountant sees none of Settings", () => {
+    const accountant = ["dashboard.view", "student.view", "fee.view", "sms.view"];
+    expect(core.tabs!.filter((x) => canSeeTab(core, x, accountant))).toHaveLength(0);
+  });
+});
+
+describe("permissionForPath", () => {
+  it("resolves the screen's own permission, not the module's", () => {
+    expect(permissionForPath("/admin/core/audit-log")).toBe("audit.read");
+    expect(permissionForPath("/admin/core/user-list")).toBe("core.user_manage");
+    expect(permissionForPath("/admin/core/calendar")).toBe("core.settings");
+  });
+
+  it("falls back to the module for a route with no tab of its own", () => {
+    expect(permissionForPath("/admin/core")).toBe("core.settings");
+    expect(permissionForPath("/admin/dashboard")).toBe("dashboard.view");
+  });
+
+  it("is undefined outside the admin nav", () => {
+    expect(permissionForPath("/login")).toBeUndefined();
   });
 });

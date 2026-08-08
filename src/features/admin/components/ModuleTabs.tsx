@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
+import { useMyPermissions } from "../core/logic/hooks";
+import { canSeeTab } from "./adminNav";
 import { getModule } from "./getModule";
 
 /**
@@ -23,14 +25,21 @@ import { getModule } from "./getModule";
 export function ModuleTabs({ moduleKey }: { moduleKey: string }) {
   const pathname = usePathname();
   const { t } = useT();
+  const { data: permissions } = useMyPermissions();
   const mod = getModule(moduleKey);
   if (!mod.tabs || mod.tabs.length === 0) return null;
+
+  // Settings audit M-4: a tab the caller cannot use is worse than a missing
+  // one, because clicking it produces an empty screen that reads as a bug.
+  // Fails open while permissions load — see `canSeeTab`.
+  const tabs = mod.tabs.filter((tab) => canSeeTab(mod, tab, permissions));
+  if (tabs.length === 0) return null;
 
   let lastGroup: string | undefined;
 
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-border-default" role="tablist" aria-label={t(mod.bn, mod.en)}>
-      {mod.tabs.map((tab) => {
+      {tabs.map((tab) => {
         const groupKey = tab.group ? t(tab.group.bn, tab.group.en) : undefined;
         const showGroup = groupKey && groupKey !== lastGroup;
         lastGroup = groupKey;
