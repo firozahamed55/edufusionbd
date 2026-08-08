@@ -31,3 +31,4 @@ export { OfflineBanner } from "./OfflineBanner";
 export { ToastProvider, useToast } from "./Toast";
 export { BarChart, Donut, type BarDatum } from "./Chart";
 export { FileDrop } from "./FileDrop";
+export { JsonDiff, type JsonDiffProps } from "./JsonDiff";

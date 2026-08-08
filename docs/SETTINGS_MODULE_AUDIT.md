@@ -50,8 +50,45 @@ Total: **~2,523 lines of screen code + 282 lines of data access + 129 lines of h
 | **0.2 Guard `fn_permission_matrix`** | ✅ **Done** — the sweep added to catch it found a second, worse hole | `dc1b5fa` |
 | **0.3 Fix lost-update on settings** | ✅ **Done** | `2e25960` |
 | **0.4 Constrain uploads** | ✅ **Done** | `0010b1b` |
-| 1 — Access control | ⏸ Blocked on a working-tree collision (see below) | — |
+| **1.1 Per-tab permissions** | ✅ **Done** | `a7ee1b1` |
+| **1.2 Invite + account operations** | ✅ **Done** — and suspension turned out to be decorative | `5edc45c` |
+| **1.3 Audit-log investigation tools** | ✅ **Done** — the action filter had never matched a single row | `2b7dc06` |
 | 2–9 | Not started | — |
+
+**What Phase 1 turned up that the audit did not.**
+
+1. **Suspension was decorative.** `private.has_permission` never looked at
+   `profile.status`, and a search of `pg_policies` for a status predicate
+   returns zero rows. "Suspend" wrote the column, greyed the row, and left the
+   account holding every permission it had a minute earlier, indefinitely. The
+   product reported a control it did not have — worse than the missing invite
+   it was found next to. The status now gates the permission and the RPC deletes
+   the refresh tokens.
+2. **`last_login_at` was never written by anything.** Nothing in the repository
+   assigns it, so the Users list has rendered an empty "Last sign-in" column in
+   every institution since it shipped — read as "nobody has ever signed in",
+   not as "not recorded". It is also the column you would use to find dormant
+   accounts to revoke.
+3. **The `invited` status had no producer.** It is the default for every profile
+   the auth trigger creates and the list offers it as a filter, but no code path
+   could set it. Sign-in now flips `invited` → `active`, closing the loop the
+   audit's own test asks for.
+4. **The audit log's action filter had never worked.** It offered
+   `INSERT`/`UPDATE`/`DELETE`; `private.audit_trigger` writes
+   `insert`/`update`/`delete`. Every value it offered matched zero of 1,918 rows
+   and rendered as "No audit records found" — a dead control that fails as an
+   empty result, which is exactly the failure shape M-4 describes for
+   permissions.
+5. **Redacting audit PII needed a grant change, not a client change.** Masking
+   in React would have left the values on the wire. `before`/`after` are now
+   revoked from `authenticated` at column level and served only through
+   `fn_audit_log` (masked) and `fn_audit_reveal` (logged) — the remaining
+   columns stay granted so the dashboard activity strip is untouched.
+
+**Owner action still outstanding:** `SUPABASE_SERVICE_ROLE_KEY` is absent from
+`.env.local` and from the deployment. The invite route answers
+"Invitations are not configured on this deployment" until it is set; every other
+account operation works without it.
 
 **What Phase 0 turned up that the audit did not.**
 

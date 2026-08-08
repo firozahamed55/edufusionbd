@@ -250,5 +250,6 @@ export const queryKeys = {
   auditLog: {
     all: ["auditLog"] as const,
     list: (filters?: Filters) => ["auditLog", "list", filters ?? {}] as const,
+    actors: ["auditLog", "actors"] as const,
   },
 } as const;

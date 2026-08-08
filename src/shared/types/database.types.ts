@@ -5722,6 +5722,22 @@ export type Database = {
       }
       fn_set_user_roles: { Args: { payload: Json }; Returns: undefined }
       fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
+      fn_audit_log: {
+        Args: {
+          p_action?: string
+          p_changed_by?: string
+          p_dir?: string
+          p_entity?: string
+          p_entity_id?: string
+          p_from?: string
+          p_page?: number
+          p_per_page?: number
+          p_to?: string
+        }
+        Returns: Json
+      }
+      fn_audit_reveal: { Args: { p_id: string; p_reason?: string }; Returns: Json }
+      fn_audit_actors: { Args: never; Returns: Json }
       fn_admin_revoke_sessions: {
         Args: { p_profile_id: string; p_reason?: string }
         Returns: number
