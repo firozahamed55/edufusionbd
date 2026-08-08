@@ -227,7 +227,7 @@ export function StartupScreen() {
                     className="size-18 rounded-2xl object-cover"
                   />
                 ) : (
-                  <div className="grid size-18 place-items-center rounded-2xl bg-primary text-xl font-bold text-text-on-primary">
+                  <div className="grid size-18 place-items-center rounded-2xl bg-primary text-h4 font-bold text-text-on-primary">
                     {(f.name_en || "?").slice(0, 3).toUpperCase()}
                   </div>
                 )}
@@ -292,7 +292,7 @@ function MarksheetHeaderPreview({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="mb-1 size-12 object-contain" />
         ) : null}
-        <p className="text-base font-bold leading-tight text-text-primary">
+        <p className="text-label font-bold leading-tight text-text-primary">
           {(isBn ? nameBn : nameEn) || t("প্রতিষ্ঠানের নাম", "Institution name")}
         </p>
         {address ? <p className="text-micro text-text-secondary">{address}</p> : null}

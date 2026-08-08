@@ -236,8 +236,8 @@ export function SubjectScreen() {
             <TR key={r.id}>
               <TD><span className="rounded-md bg-sunken px-2 py-0.5 font-latin text-meta font-semibold text-text-secondary">{r.code ?? "—"}</span></TD>
               <TD>
-                <p className="text-sm font-semibold text-text-primary">{isBn ? r.name_bn : r.name_en}</p>
-                <p className="text-xs text-text-muted">{r.name_bn} — {r.name_en}</p>
+                <p className="text-meta font-semibold text-text-primary">{isBn ? r.name_bn : r.name_en}</p>
+                <p className="text-micro text-text-muted">{r.name_bn} — {r.name_en}</p>
               </TD>
               <TD className="text-meta text-text-secondary">{TYPES.find((x) => x.value === r.type)?.[isBn ? "bn" : "en"] ?? r.type}</TD>
               <TD className="text-right text-meta font-semibold text-text-primary tnum">{r.full_marks != null ? n(r.full_marks) : "—"}</TD>

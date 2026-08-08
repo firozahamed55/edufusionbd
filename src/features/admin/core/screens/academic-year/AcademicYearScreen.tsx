@@ -144,7 +144,7 @@ export function AcademicYearScreen() {
             <TR key={r.id}>
               <TD>
                 <span className="flex items-center gap-2">
-                  <span className="font-latin text-sm font-semibold text-text-primary">{r.year_label}</span>
+                  <span className="font-latin text-meta font-semibold text-text-primary">{r.year_label}</span>
                   {r.is_current ? <Badge tone="success" dot>{t("চলতি", "Current")}</Badge> : null}
                 </span>
               </TD>

@@ -271,7 +271,7 @@ export function SettingsHubScreen() {
         <section className="flex flex-col gap-3 rounded-2xl border border-border-default bg-surface p-4.5 shadow-e1">
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-semibold text-text-primary">{t("প্রাথমিক সেটআপ", "Setup checklist")}</h2>
+              <h2 className="text-label font-semibold text-text-primary">{t("প্রাথমিক সেটআপ", "Setup checklist")}</h2>
               <p className="text-micro text-text-muted">
                 {t(
                   `${n(doneCount)}/${n(steps.length)} ধাপ সম্পন্ন — বাকিগুলো শেষ না হলে ফলাফল ও সার্টিফিকেট অসম্পূর্ণ থাকবে`,
@@ -313,7 +313,7 @@ export function SettingsHubScreen() {
           onChange={(e) => setQ(e.target.value)}
           aria-label={t("সেটিংস খুঁজুন", "Search settings")}
           placeholder={t("সেটিংস খুঁজুন — যেমন “পাস মার্ক”", "Search settings — try “pass mark”")}
-          className="h-10.5 w-full rounded-lg border border-border-strong bg-surface pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
+          className="h-10.5 w-full rounded-lg border border-border-strong bg-surface pl-9 pr-3 text-meta text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
         />
       </div>
 

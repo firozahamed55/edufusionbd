@@ -678,7 +678,7 @@ function TermsPanel({ yearId }: { yearId: string | undefined }) {
           {(terms.data ?? []).map((term) => (
             <li key={term.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                <p className="flex items-center gap-2 text-meta font-medium text-text-primary">
                   {(isBn ? term.name_bn : term.name_en) || term.name_en}
                   {term.is_current ? <Badge tone="success" dot>{t("চলমান", "Current")}</Badge> : null}
                 </p>

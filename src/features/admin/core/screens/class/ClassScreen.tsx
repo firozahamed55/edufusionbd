@@ -200,8 +200,8 @@ export function ClassScreen() {
                     r.id === selectedId && "bg-primary-subtle",
                   )}
                 >
-                  <span className={cn("text-sm", r.id === selectedId ? "font-semibold text-text-primary" : "font-medium text-text-secondary")}>{isBn ? r.name_bn : r.name_en}</span>
-                  <span className="text-xs text-text-muted">{t(`${n(r.sectionCount)} শাখা`, `${n(r.sectionCount)} sections`)}</span>
+                  <span className={cn("text-meta", r.id === selectedId ? "font-semibold text-text-primary" : "font-medium text-text-secondary")}>{isBn ? r.name_bn : r.name_en}</span>
+                  <span className="text-micro text-text-muted">{t(`${n(r.sectionCount)} শাখা`, `${n(r.sectionCount)} sections`)}</span>
                 </button>
               ))}
             </div>
@@ -280,8 +280,8 @@ export function ClassScreen() {
                       <TR key={s.id}>
                         <TD>
                           <span className="flex items-center gap-2">
-                            <span className="grid size-7 place-items-center rounded-lg bg-primary-subtle text-sm font-bold text-primary">{s.sectionName.slice(0, 1)}</span>
-                            <span className="text-sm font-semibold text-text-primary">{t(`শাখা ${s.sectionName}`, s.sectionName)}</span>
+                            <span className="grid size-7 place-items-center rounded-lg bg-primary-subtle text-meta font-bold text-primary">{s.sectionName.slice(0, 1)}</span>
+                            <span className="text-meta font-semibold text-text-primary">{t(`শাখা ${s.sectionName}`, s.sectionName)}</span>
                           </span>
                         </TD>
                         {/* S-3.3: enrolled and capacity as a ratio, with the

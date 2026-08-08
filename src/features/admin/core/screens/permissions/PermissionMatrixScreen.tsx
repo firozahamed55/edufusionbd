@@ -121,7 +121,7 @@ export function PermissionMatrixScreen() {
                 {roles.map((r) => (
                   <TH key={r.id} className="w-37.5 text-center">
                     <span className="block text-text-primary">{r.name}</span>
-                    <span className="block font-latin text-xs font-normal text-text-muted">{r.code}</span>
+                    <span className="block font-latin text-micro font-normal text-text-muted">{r.code}</span>
                   </TH>
                 ))}
               </TR>
@@ -145,8 +145,8 @@ export function PermissionMatrixScreen() {
                           away with it — leaving a row of ticks whose subject
                           was off-screen. */}
                       <TH scope="row" className="sticky left-0 z-[1] bg-surface text-left font-normal">
-                        <span className="block text-sm text-text-primary">{p.label}</span>
-                        <span className="block font-latin text-xs text-text-muted">{p.code}</span>
+                        <span className="block text-meta text-text-primary">{p.label}</span>
+                        <span className="block font-latin text-micro text-text-muted">{p.code}</span>
                       </TH>
                       {roles.map((r) => {
                         const on = has(r.id, p.id);

@@ -222,8 +222,8 @@ export function GradingScreen() {
                   {sortedScales.map((s, i) => (
                     <TR key={i}>
                       <TD><Badge tone={gradeTone(s.grade_letter)}>{s.grade_letter}</Badge></TD>
-                      <TD className="text-sm text-text-secondary tnum">{n(s.min_marks)} – {n(s.max_marks)}</TD>
-                      <TD className="text-sm font-semibold text-text-primary tnum">{n(s.gpa_point.toFixed(2))}</TD>
+                      <TD className="text-meta text-text-secondary tnum">{n(s.min_marks)} – {n(s.max_marks)}</TD>
+                      <TD className="text-meta font-semibold text-text-primary tnum">{n(s.gpa_point.toFixed(2))}</TD>
                       <TD className="text-meta text-text-secondary">{t(...(REMARKS[s.grade_letter] ?? ["—", "—"]))}</TD>
                       <TD className="text-right">
                         {/* S-8.1: the affordance says "edit this grade"; the
@@ -294,7 +294,7 @@ export function GradingScreen() {
           {/* The editable band grid. A <table> here is what makes the column
               header the accessible name of every input under it — the inputs
               carry no visible label of their own. */}
-          <Table minWidth={560} className="text-xs">
+          <Table minWidth={560} className="text-micro">
             <THead>
               <TR>
                 <TH className="w-24">{t("গ্রেড", "Grade")}</TH>

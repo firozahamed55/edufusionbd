@@ -222,7 +222,7 @@ export function UserListScreen() {
               ) : (
                 rows.map((r) => (
                   <TR key={r.id}>
-                    <TD className="text-sm font-medium text-text-primary">
+                    <TD className="text-meta font-medium text-text-primary">
                       {r.full_name ?? "—"}
                       {r.roles ? null : (
                         // Audit S-9.8: a user with no role was warned about at
@@ -484,14 +484,14 @@ function InviteDialog({
               <label key={r.id} className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2.5 hover:bg-sunken">
                 <Checkbox className="mt-0.5" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} />
                 <span className="flex min-w-0 flex-col">
-                  <span className="text-sm font-medium text-text-primary">{r.name}</span>
+                  <span className="text-meta font-medium text-text-primary">{r.name}</span>
                   {r.description ? <span className="text-micro text-text-muted">{r.description}</span> : null}
                 </span>
               </label>
             ))
           )}
           {form.errors.role_ids ? (
-            <span role="alert" className="text-xs font-medium text-danger-fg">{form.errors.role_ids}</span>
+            <span role="alert" className="text-micro font-medium text-danger-fg">{form.errors.role_ids}</span>
           ) : null}
         </fieldset>
       </div>
@@ -560,7 +560,7 @@ function RoleEditor({
             <label key={r.id} className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2.5 hover:bg-sunken">
               <Checkbox className="mt-0.5" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-sm font-medium text-text-primary">{r.name}</span>
+                <span className="text-meta font-medium text-text-primary">{r.name}</span>
                 {/* Audit S-9.7: the dialog listed `name` + `code` and left the
                     operator to guess what ticking the box grants. */}
                 {r.description ? <span className="text-micro text-text-muted">{r.description}</span> : null}

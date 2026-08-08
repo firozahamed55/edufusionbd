@@ -182,6 +182,36 @@ const config = [
       ],
     },
   },
+
+  /**
+   * The named type scale, enforced (settings audit M-10 / Phase 7).
+   *
+   * A named scale existed — `--text-micro` 11px through `--text-h1` 40px — and
+   * the Settings screens mixed it with Tailwind's defaults in the same file,
+   * sometimes on adjacent lines. Two scales in one screen is not a scale.
+   *
+   * SCOPED TO THE SETTINGS MODULE, DELIBERATELY. There are ~170 raw font-size
+   * utilities elsewhere in `src/features`, and turning them all into build
+   * failures in one commit would either block the build or force a blind
+   * find-and-replace across screens nobody has looked at — and `text-sm` (14px)
+   * and `text-meta` (13px) are not the same size, so every substitution is a
+   * visual decision, not a rename. Widen this `files` glob one module at a
+   * time, as each is swept and actually looked at. A rule that lands with its
+   * violations already fixed is a rule that stays on.
+   */
+  {
+    files: ["src/features/admin/core/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/(?:^|\\s)text-(?:xs|sm|base|lg|xl|2xl|3xl|4xl)(?:\\s|$)/]",
+          message:
+            "Use the named type scale (text-micro, text-meta, text-body, text-label, text-h4…), not Tailwind's default font sizes. Mixing the two is what made this module look unfinished (settings audit M-10).",
+        },
+      ],
+    },
+  },
 ];
 
 export default config;

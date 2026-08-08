@@ -164,9 +164,9 @@ export function SubjectGroupScreen() {
           {rows.map((g) => (
             <div key={g.id} className="flex flex-col gap-3.5 rounded-2xl border border-border-default bg-surface p-4.5 shadow-e1">
               <div className="flex items-center gap-3">
-                <span className="grid size-10.5 shrink-0 place-items-center rounded-lg bg-primary-subtle text-lg font-bold text-primary">{groupLabel(g).slice(0, 1)}</span>
+                <span className="grid size-10.5 shrink-0 place-items-center rounded-lg bg-primary-subtle text-label font-bold text-primary">{groupLabel(g).slice(0, 1)}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-semibold text-text-primary">{groupLabel(g)}</p>
+                  <p className="truncate text-label font-semibold text-text-primary">{groupLabel(g)}</p>
                   <p className="text-micro text-text-muted">{t(`${n(g.subject_ids.length)}টি বিষয়`, `${n(g.subject_ids.length)} subjects`)}</p>
                 </div>
                 <button onClick={() => openEdit(g)} aria-label={t(`${groupLabel(g)} সম্পাদনা`, `Edit ${g.name}`)} className="grid size-8.5 shrink-0 place-items-center rounded-lg border border-border-strong text-text-secondary hover:bg-sunken"><Pencil size={15} /></button>
