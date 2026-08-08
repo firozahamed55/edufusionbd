@@ -37,6 +37,20 @@ export type AdminTab = {
   en: string;
   /** Optional group heading rendered before this tab (and any tabs sharing it). */
   group?: { bn: string; en: string };
+  /**
+   * Permission code that makes this SCREEN usable, when it differs from the
+   * module's (settings audit M-4).
+   *
+   * Settings is the case that forced this: one module permission
+   * (`core.settings`) gated eleven tabs, three of which the database gates on
+   * `core.user_manage` / `audit.read`. Holding only `core.settings` showed the
+   * Users & Roles tab, and clicking it produced an empty table — RLS working
+   * exactly as designed, and indistinguishable from a school with no users yet.
+   *
+   * Omitted => inherits the module's permission, which is right for the eight
+   * screens where module and screen really are the same access decision.
+   */
+  permission?: string;
 };
 
 export type AdminModule = {
@@ -265,24 +279,31 @@ export const ADMIN_NAV_ZONES: AdminZone[] = [
 
 export const ADMIN_SETTINGS_MODULE: AdminModule = {
   key: "core",
-  href: "/admin/core/basic-config",
+  // The hub, not a form. Settings is the module a new administrator meets
+  // during onboarding and returns to least often, and it used to open on
+  // `basic-config` — fifteen fields, no context (audit M-6).
+  href: "/admin/core",
   match: "/admin/core",
   icon: Settings,
   bn: "সেটিংস",
   en: "Settings",
   permission: "core.settings",
   tabs: [
+    { href: "/admin/core", bn: "ওভারভিউ", en: "Overview" },
     { href: "/admin/core/basic-config", bn: "বেসিক কনফিগ", en: "Basic Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
-    { href: "/admin/core/startup", bn: "স্টার্টআপ", en: "StartUp", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
+    // Renamed from "StartUp", which named a setup step rather than the thing
+    // it edits (audit §4.3). The route stays put so bookmarks survive.
+    { href: "/admin/core/startup", bn: "প্রতিষ্ঠানের পরিচিতি", en: "Institution Identity", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/class", bn: "ক্লাস কনফিগ", en: "Class Config", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/calendar", bn: "শিক্ষাপঞ্জি", en: "Academic Calendar", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
+    { href: "/admin/core/academic-year", bn: "শিক্ষাবর্ষ", en: "Academic Year", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/signature", bn: "স্বাক্ষর", en: "Signature", group: { bn: "প্রতিষ্ঠান", en: "Institution" } },
     { href: "/admin/core/subject", bn: "বিষয় তালিকা", en: "Subject List", group: { bn: "বিষয়", en: "Subjects" } },
     { href: "/admin/core/subject-group", bn: "বিষয় গ্রুপ", en: "Subject Group", group: { bn: "বিষয়", en: "Subjects" } },
     { href: "/admin/core/grading", bn: "গ্রেডিং স্কিম", en: "Grading Scheme", group: { bn: "বিষয়", en: "Subjects" } },
-    { href: "/admin/core/user-list", bn: "ইউজার ও ভূমিকা", en: "Users & Roles", group: { bn: "ইউজার", en: "Users" } },
-    { href: "/admin/core/permissions", bn: "অনুমতি ম্যাট্রিক্স", en: "Permission Matrix", group: { bn: "ইউজার", en: "Users" } },
-    { href: "/admin/core/audit-log", bn: "পরিবর্তনের ইতিহাস", en: "Audit Log", group: { bn: "ইউজার", en: "Users" } },
+    { href: "/admin/core/user-list", bn: "ইউজার ও ভূমিকা", en: "Users & Roles", group: { bn: "ইউজার", en: "Users" }, permission: "core.user_manage" },
+    { href: "/admin/core/permissions", bn: "অনুমতি ম্যাট্রিক্স", en: "Permission Matrix", group: { bn: "ইউজার", en: "Users" }, permission: "core.user_manage" },
+    { href: "/admin/core/audit-log", bn: "পরিবর্তনের ইতিহাস", en: "Audit Log", group: { bn: "ইউজার", en: "Users" }, permission: "audit.read" },
   ],
 };
 
@@ -300,6 +321,36 @@ export function canSeeModule(mod: AdminModule, permissions: readonly string[] | 
   if (!mod.permission) return true;
   if (!permissions || permissions.length === 0) return true;
   return permissions.includes(mod.permission);
+}
+
+/**
+ * Same decision, one level down: may the caller use this SCREEN?
+ *
+ * Fails open on the same terms as `canSeeModule`, and inherits the module's
+ * permission when the tab does not name its own — so adding a tab keeps the
+ * behaviour it had before per-tab codes existed.
+ */
+export function canSeeTab(
+  mod: AdminModule,
+  tab: AdminTab,
+  permissions: readonly string[] | undefined,
+): boolean {
+  const code = tab.permission ?? mod.permission;
+  if (!code) return true;
+  if (!permissions || permissions.length === 0) return true;
+  return permissions.includes(code);
+}
+
+/** The permission a route needs, resolved by longest matching tab href. */
+export function permissionForPath(pathname: string): string | undefined {
+  for (const mod of ADMIN_ALL_MODULES) {
+    if (!pathname.startsWith(mod.match)) continue;
+    const tab = (mod.tabs ?? [])
+      .filter((t) => pathname.startsWith(t.href))
+      .sort((a, b) => b.href.length - a.href.length)[0];
+    return tab?.permission ?? mod.permission;
+  }
+  return undefined;
 }
 
 /** Every module in rail order — used for longest-prefix active resolution and the command palette. */

@@ -124,10 +124,16 @@ export const queryKeys = {
     myPermissions: ["core", "my-permissions"] as const,
     entitySearch: (term: string) => ["core", "entity-search", term] as const,
     permissionMatrix: ["core", "permission-matrix"] as const,
+    settingsStatus: ["core", "settings-status"] as const,
+    academicYears: ["core", "academic-years"] as const,
     setting: (key: string, scope: string) => ["core", "setting", key, scope] as const,
+    /** "What points at this record" — fetched only while a confirm is open. */
+    entityImpact: (entity: string, id: string | null) => ["core", "impact", entity, id] as const,
+    calendarImpact: (from: string | null, to: string | null) => ["core", "impact", "calendar", from, to] as const,
     calendarAll: ["core", "calendar"] as const,
     calendar: (from: string, to: string) => ["core", "calendar", from, to] as const,
     calendarDay: (date: string) => ["core", "calendar", "day", date] as const,
+    nationalHolidays: (year: number) => ["core", "national-holidays", year] as const,
     termsAll: ["core", "terms"] as const,
     terms: (yearId: Id) => ["core", "terms", yearId] as const,
   },
@@ -250,5 +256,6 @@ export const queryKeys = {
   auditLog: {
     all: ["auditLog"] as const,
     list: (filters?: Filters) => ["auditLog", "list", filters ?? {}] as const,
+    actors: ["auditLog", "actors"] as const,
   },
 } as const;

@@ -14,7 +14,7 @@ begin;
 -- Created inside the test transaction and rolled back with it, so pgTAP never
 -- lands in a real database. Nothing in production needs this extension.
 create extension if not exists pgtap with schema extensions;
-select plan(51);
+select plan(60);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures — four accounts on one tenant, differing only in role/linkage.
@@ -373,6 +373,68 @@ select throws_ok(
   $q$select public.fn_permission_matrix()$q$,
   '42501', null,
   'a no-role user cannot read the permission matrix');
+
+-- ---------------------------------------------------------------------------
+-- §4 — user administration (settings audit M-15).
+--
+-- The invite flow is the keystone: until it existed, an institution ran on one
+-- shared credential and none of the RBAC model above could be exercised. These
+-- assertions cover the three ways it could be got wrong.
+-- ---------------------------------------------------------------------------
+
+-- 4.1 — the guard. A teacher may not invite, reset a password, or end someone
+-- else's session, however the request is shaped.
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select throws_ok(
+  $q$select public.fn_invite_user_precheck('someone@school.test')$q$,
+  '42501', null, 'a teacher cannot start an invitation');
+select throws_ok(
+  $q$select public.fn_admin_revoke_sessions('aaaaaaaa-0000-0000-0000-000000000001'::uuid)$q$,
+  '42501', null, 'a teacher cannot revoke an administrator''s sessions');
+select throws_ok(
+  $q$select public.fn_authorize_account_action('aaaaaaaa-0000-0000-0000-000000000001'::uuid, 'password_reset')$q$,
+  '42501', null, 'a teacher cannot trigger a password reset for someone else');
+
+-- 4.2 — the administrator can, and a malformed address is refused before any
+-- account is created.
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-0000-0000-0000-000000000001","role":"authenticated"}', true);
+select throws_ok(
+  $q$select public.fn_invite_user_precheck('not-an-email')$q$,
+  'INV01', null, 'a malformed email is rejected by the precheck');
+select throws_ok(
+  $q$select public.fn_invite_user_precheck('rls-teacher@test.local')$q$,
+  'INV02', null, 'an address that already has an account is refused');
+select lives_ok(
+  $q$select public.fn_invite_user_precheck('brand-new@school.test')$q$,
+  'an administrator can start an invitation for a new address');
+
+-- 4.3 — a profile that already belongs to an institution cannot be re-claimed.
+-- This is what stops an invite completion from pulling another school's user
+-- across tenants.
+select throws_ok(
+  $q$select public.fn_complete_user_invite(
+        jsonb_build_object('profile_id', 'aaaaaaaa-0000-0000-0000-000000000002', 'role_ids', '[]'::jsonb))$q$,
+  'INV03', null, 'an already-claimed profile cannot be claimed again');
+
+-- ---------------------------------------------------------------------------
+-- 4.4 — suspension was decorative. `has_permission` never looked at
+-- `profile.status`, and no policy joins to it, so a suspended account kept
+-- every permission it had. The screen said the account was stopped; the
+-- database had not been told.
+-- ---------------------------------------------------------------------------
+update public.profile set status = 'suspended'
+ where id = 'aaaaaaaa-0000-0000-0000-000000000002'::uuid;
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select is(private.has_permission('attendance.view'), false,
+  'a suspended account holds no permission, whatever its roles say');
+
+update public.profile set status = 'active'
+ where id = 'aaaaaaaa-0000-0000-0000-000000000002'::uuid;
+select is(private.has_permission('attendance.view'), true,
+  'and reactivating restores it — the gate is the status, not a revocation');
 
 select * from finish();
 rollback;

@@ -49,6 +49,42 @@ export async function clearCalendarRange(s: BrowserClient, from: string, to: str
   return Number(data ?? 0);
 }
 
+/* ------------------------------------------------- national holidays (S-4.8) */
+
+export type NationalHoliday = { date: string; name_bn: string; name_en: string; already_marked: boolean };
+
+/**
+ * The fixed-date government holidays for a year, each flagged with whether the
+ * institution has already marked it.
+ *
+ * Only the FIXED-DATE ones. Eid, Durga Puja, Buddha Purnima and the rest are
+ * lunar or lunisolar and are announced annually by the Ministry of Public
+ * Administration; a guessed Eid date in the attendance register is exactly the
+ * error an inspector notices, and the operator would never think to check a
+ * date the product filled in for them. See the migration for the full argument.
+ */
+export async function fetchNationalHolidays(s: BrowserClient, year: number): Promise<NationalHoliday[]> {
+  const { data, error } = await s.rpc("fn_national_holidays", { p_year: year });
+  if (error) throw new Error(error.message);
+  const rows = ((data ?? {}) as { holidays?: unknown[] }).holidays ?? [];
+  return rows.map((raw) => {
+    const r = raw as Record<string, unknown>;
+    return {
+      date: String(r.date), name_bn: String(r.name_bn), name_en: String(r.name_en),
+      already_marked: Boolean(r.already_marked),
+    };
+  });
+}
+
+export async function importNationalHolidays(s: BrowserClient, year: number, academicYearId?: string): Promise<number> {
+  const { data, error } = await s.rpc("fn_import_national_holidays", {
+    p_year: year,
+    p_academic_year_id: academicYearId,
+  });
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}
+
 /* ----------------------------------------------------------------- terms */
 
 export type TermRow = {
@@ -104,4 +140,51 @@ export function monthGrid(year: number, month: number): (string | null)[] {
   }
   while (cells.length % 7 !== 0) cells.push(null);
   return cells;
+}
+
+/**
+ * Where a keystroke moves the focused date (audit A-3, WCAG 2.1.1).
+ *
+ * The month grid was 42 `<button>`s in a `<div>`, reachable only by Tab — so
+ * reaching 28 April cost 28 Tab presses, and there was no way to leave the
+ * month by keyboard at all. This is the movement half of the fix.
+ *
+ * It is DATE arithmetic, not cell arithmetic. Right at the end of a row lands
+ * on the next day, which is the first cell of the next row, and Right on the
+ * last day of the month lands on the first of the next one — the operator is
+ * moving through a year, not around a 7×6 rectangle. That is also why this
+ * lives here rather than in `shared/lib/useGridNavigation`, which is built for
+ * grids of inputs where Tab already means the right thing and deliberately
+ * does not take it over.
+ *
+ * Returns the target ISO date, or null when the key is not ours to handle.
+ */
+export function calendarKeyTarget(key: string, iso: string): string | null {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  const shift = (days: number) => {
+    const next = new Date(d.getTime() + days * 86_400_000);
+    return next.toISOString().slice(0, 10);
+  };
+  const shiftMonths = (months: number) => {
+    const y = d.getUTCFullYear();
+    const m = d.getUTCMonth() + months;
+    // Clamp the day: 31 March + 1 month is 30 April, not 1 May.
+    const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    const day = Math.min(d.getUTCDate(), lastDay);
+    return new Date(Date.UTC(y, m, day)).toISOString().slice(0, 10);
+  };
+
+  switch (key) {
+    case "ArrowRight": return shift(1);
+    case "ArrowLeft": return shift(-1);
+    case "ArrowDown": return shift(7);
+    case "ArrowUp": return shift(-7);
+    // Saturday-first week, matching `monthGrid`: Saturday is column 0.
+    case "Home": return shift(-((d.getUTCDay() + 1) % 7));
+    case "End": return shift(6 - ((d.getUTCDay() + 1) % 7));
+    case "PageUp": return shiftMonths(-1);
+    case "PageDown": return shiftMonths(1);
+    default: return null;
+  }
 }

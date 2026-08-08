@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/i18n/useT";
+import { useMyPermissions } from "../core/logic/hooks";
+import { canSeeTab } from "./adminNav";
 import { getModule } from "./getModule";
 
 /**
@@ -23,18 +25,36 @@ import { getModule } from "./getModule";
 export function ModuleTabs({ moduleKey }: { moduleKey: string }) {
   const pathname = usePathname();
   const { t } = useT();
+  const { data: permissions } = useMyPermissions();
   const mod = getModule(moduleKey);
   if (!mod.tabs || mod.tabs.length === 0) return null;
+
+  // Settings audit M-4: a tab the caller cannot use is worse than a missing
+  // one, because clicking it produces an empty screen that reads as a bug.
+  // Fails open while permissions load — see `canSeeTab`.
+  const tabs = mod.tabs.filter((tab) => canSeeTab(mod, tab, permissions));
+  if (tabs.length === 0) return null;
+
+  /*
+   * Longest prefix wins, not first prefix.
+   *
+   * The Settings hub lives at `/admin/core`, which is a prefix of all eleven
+   * other tabs — a plain `startsWith` would light up "Overview" on every screen
+   * in the module and mark two tabs current at once. Same rule the rail uses.
+   */
+  const activeHref = tabs
+    .filter((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`))
+    .reduce<string | null>((best, tab) => (best && best.length >= tab.href.length ? best : tab.href), null);
 
   let lastGroup: string | undefined;
 
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-border-default" role="tablist" aria-label={t(mod.bn, mod.en)}>
-      {mod.tabs.map((tab) => {
+      {tabs.map((tab) => {
         const groupKey = tab.group ? t(tab.group.bn, tab.group.en) : undefined;
         const showGroup = groupKey && groupKey !== lastGroup;
         lastGroup = groupKey;
-        const active = pathname.startsWith(tab.href);
+        const active = tab.href === activeHref;
         return (
           <div key={tab.href} className="flex shrink-0 items-center">
             {showGroup ? (

@@ -1,6 +1,7 @@
 // Supabase data access for Core Settings. RLS-scoped; writes via fn_* RPCs.
 import type { BrowserClient, RpcPayload } from "@/shared/services/supabase/types";
 import { MAX_OPTIONS } from "@/shared/services/supabase/paging";
+import type { InviteUserPayload } from "./users";
 
 // One narrow seam for the RPCs this module calls: they all return the affected
 // row id, so the shared "throw on error, coalesce to string" shape is worth a
@@ -45,12 +46,31 @@ export async function fetchTeacherOptions(s: BrowserClient): Promise<TeacherOpti
 }
 
 /* class sections (Class Config master-detail) */
-export type ClassSectionRow = { id: string; sectionName: string; capacity: number | null; enrolled: number; classTeacherName: string | null };
-// Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+export type ClassSectionRow = {
+  id: string; sectionName: string; capacity: number | null; enrolled: number;
+  classTeacherName: string | null;
+  /** Needed to PREFILL the edit form. Without it, editing a section's capacity
+   *  sent an empty teacher id and the RPC's `nullif(...)` cleared the class
+   *  teacher as a side effect (audit S-3.4's second half). */
+  classTeacherId: string | null;
+};
+/**
+ * Year-scoped (audit A-M16): see shared/services/academicYear/api.ts.
+ *
+ * The nested `student_enrollment(count)` was flagged in the settings audit
+ * (M-13) as "an N+1-shaped aggregate on a hot path". It was measured against
+ * the live schema before acting on it and it is not one: PostgREST issues this
+ * as a SINGLE request, and the plan is a bitmap index scan on
+ * `ix_class_section_class_id` feeding one on `ix_enrollment_class_section` —
+ * 7 shared buffer hits, 0.36 ms execution. A class has at most a handful of
+ * sections, both sides are indexed, and replacing it with a view would trade a
+ * measured non-problem for a migration. Left alone deliberately; re-measure
+ * before changing it.
+ */
 export async function fetchClassSections(s: BrowserClient, classId: string, yearId: string): Promise<ClassSectionRow[]> {
   const { data, error } = await s
     .from("class_section")
-    .select("id, capacity, section:section_id(name), teacher:class_teacher_id(name_bn, name_en), enrollments:student_enrollment(count)")
+    .select("id, capacity, class_teacher_id, section:section_id(name), teacher:class_teacher_id(name_bn, name_en), enrollments:student_enrollment(count)")
     .eq("class_id", classId)
     .eq("academic_year_id", yearId)
     .is("deleted_at", null).limit(MAX_OPTIONS);
@@ -58,6 +78,7 @@ export async function fetchClassSections(s: BrowserClient, classId: string, year
   return (data ?? []).map((r) => ({
     id: r.id, sectionName: r.section?.name ?? "—", capacity: r.capacity,
     enrolled: r.enrollments?.[0]?.count ?? 0, classTeacherName: r.teacher ? `${r.teacher.name_bn}` : null,
+    classTeacherId: r.class_teacher_id,
   }));
 }
 export const upsertClassSection = (s: BrowserClient, payload: RpcPayload) => call(s, "fn_upsert_class_section", { payload });
@@ -136,13 +157,49 @@ export const upsertSubject = (s: BrowserClient, payload: RpcPayload) => call(s, 
 export const deleteSubject = (s: BrowserClient, id: string) => call(s, "fn_delete_subject", { p_id: id });
 
 /* subject groups */
-export type GroupRow = { id: string; name: string; subject_ids: string[]; subject_names: string };
+export type GroupMember = { id: string; name_bn: string; name_en: string; is_elective: boolean };
+export type GroupRow = {
+  id: string; name: string;
+  /** Every sibling entity carries both names; the group carried one untranslated
+   *  `name`, so a Bangla operator read an English label next to Bangla subject
+   *  chips (audit S-7.9). Null until the operator supplies one. */
+  name_bn: string | null;
+  /** How many of the elective pool a student takes. Null = no elective rule. */
+  elective_pick: number | null;
+  /** The classes this group applies to. A group attached to none is a template
+   *  nobody uses (audit S-7.5). */
+  class_ids: string[];
+  members: GroupMember[];
+  subject_ids: string[];
+  subject_names: string;
+};
+
 export async function fetchSubjectGroups(s: BrowserClient): Promise<GroupRow[]> {
-  const { data, error } = await s.from("subject_group").select("id, name, members:subject_group_member(subject:subject_id(id, name_en))").order("name").limit(MAX_OPTIONS);
+  const { data, error } = await s
+    .from("subject_group")
+    .select("id, name, name_bn, elective_pick, members:subject_group_member(is_elective, subject:subject_id(id, name_bn, name_en)), classes:subject_group_class(class_id)")
+    .order("name")
+    .limit(MAX_OPTIONS);
   if (error) throw error;
   return (data ?? []).map((r) => {
-    const subs = (r.members ?? []).map((m) => m.subject).filter(Boolean) as { id: string; name_en: string }[];
-    return { id: r.id, name: r.name, subject_ids: subs.map((x) => x.id), subject_names: subs.map((x) => x.name_en).join(", ") };
+    const members: GroupMember[] = (r.members ?? [])
+      .filter((m) => m.subject)
+      .map((m) => ({
+        id: m.subject!.id,
+        name_bn: m.subject!.name_bn,
+        name_en: m.subject!.name_en,
+        is_elective: m.is_elective,
+      }));
+    return {
+      id: r.id,
+      name: r.name,
+      name_bn: r.name_bn,
+      elective_pick: r.elective_pick,
+      class_ids: (r.classes ?? []).map((c) => c.class_id),
+      members,
+      subject_ids: members.map((m) => m.id),
+      subject_names: members.map((m) => m.name_en).join(", "),
+    };
   });
 }
 export const upsertSubjectGroup = (s: BrowserClient, payload: RpcPayload) => call(s, "fn_upsert_subject_group", { payload });
@@ -174,6 +231,9 @@ export type UserRow = {
   id: string;
   full_name: string | null;
   phone: string | null;
+  /** Denormalized from `auth.users` — RLS cannot read it there (audit S-9.3).
+   *  Two teachers called Rahim were previously indistinguishable in this list. */
+  email: string | null;
   status: string;
   /** Display string, comma-joined. */
   roles: string;
@@ -194,11 +254,11 @@ export async function fetchUsers(
   const to = from + perPage - 1;
   let query = s
     .from("profile")
-    .select("id, full_name, phone, status, last_login_at, roles:user_role(role_id, role:role_id(name))", { count: "exact" })
+    .select("id, full_name, phone, email, status, last_login_at, roles:user_role(role_id, role:role_id(name))", { count: "exact" })
     .order("created_at");
 
   const needle = q.trim().replace(/[%,]/g, "");
-  if (needle) query = query.or(`full_name.ilike.%${needle}%,phone.ilike.%${needle}%`);
+  if (needle) query = query.or(`full_name.ilike.%${needle}%,phone.ilike.%${needle}%,email.ilike.%${needle}%`);
   if (status) query = query.eq("status", status);
 
   const { data, error, count } = await query.range(from, to);
@@ -207,6 +267,7 @@ export async function fetchUsers(
     id: r.id,
     full_name: r.full_name,
     phone: r.phone,
+    email: r.email,
     status: r.status,
     roles: (r.roles ?? []).map((x) => x.role?.name).filter(Boolean).join(", "),
     roleIds: (r.roles ?? []).map((x) => x.role_id).filter(Boolean),
@@ -215,13 +276,99 @@ export async function fetchUsers(
   return { rows, total: count ?? 0 };
 }
 
+/* --------------------------------------------------------- settings status */
+
+/**
+ * The per-area counts and setup flags the Settings hub renders (audit M-6).
+ *
+ * One RPC rather than eleven `count` queries: this is the first screen an
+ * administrator meets when they click Settings, and eleven round trips before
+ * first paint is the wrong trade for a page whose whole job is to orient
+ * someone quickly.
+ */
+export type SettingsStatus = {
+  classes: number; sections: number; subjects: number; subject_groups: number;
+  grade_schemes: number; signatures: number; users: number; roles: number;
+  terms: number; calendar_days: number; audit_events_30d: number;
+  identity: { name: boolean; eiin: boolean; address: boolean; logo: boolean; head_teacher: boolean };
+};
+
+const ZERO_STATUS: SettingsStatus = {
+  classes: 0, sections: 0, subjects: 0, subject_groups: 0, grade_schemes: 0,
+  signatures: 0, users: 0, roles: 0, terms: 0, calendar_days: 0, audit_events_30d: 0,
+  identity: { name: false, eiin: false, address: false, logo: false, head_teacher: false },
+};
+
+export async function fetchSettingsStatus(s: BrowserClient): Promise<SettingsStatus> {
+  const { data, error } = await s.rpc("fn_settings_status");
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Partial<SettingsStatus>;
+  return { ...ZERO_STATUS, ...d, identity: { ...ZERO_STATUS.identity, ...(d.identity ?? {}) } };
+}
+
+/* -------------------------------------------------- academic year (Phase 6) */
+
+/**
+ * Creating, switching and closing an academic year.
+ *
+ * `AcademicYearProvider` shipped, archived years render read-only, seven tables
+ * are year-scoped — and there was no way to create a year. A school reaching
+ * the end of its first session had no path into its second one except a direct
+ * SQL statement.
+ */
+export type AcademicYearRow = {
+  id: string; year_label: string; start_date: string | null; end_date: string | null; is_current: boolean;
+  sections: number; enrollments: number; exams: number; terms: number;
+};
+
+export async function fetchAcademicYearRows(s: BrowserClient): Promise<AcademicYearRow[]> {
+  const [years, stats] = await Promise.all([
+    s.from("academic_year").select("id, year_label, start_date, end_date, is_current")
+      .is("deleted_at", null).order("year_label", { ascending: false }).limit(MAX_OPTIONS),
+    s.rpc("fn_academic_year_stats"),
+  ]);
+  if (years.error) throw years.error;
+  if (stats.error) throw new Error(stats.error.message);
+
+  const byId = new Map(
+    ((stats.data ?? []) as Record<string, unknown>[]).map((r) => [String(r.id), r]),
+  );
+  return (years.data ?? []).map((y) => {
+    const c = byId.get(y.id) ?? {};
+    return {
+      id: y.id, year_label: y.year_label, start_date: y.start_date, end_date: y.end_date,
+      is_current: y.is_current,
+      sections: Number(c.sections ?? 0), enrollments: Number(c.enrollments ?? 0),
+      exams: Number(c.exams ?? 0), terms: Number(c.terms ?? 0),
+    };
+  });
+}
+
+export const upsertAcademicYear = (s: BrowserClient, payload: RpcPayload) => call(s, "fn_upsert_academic_year", { payload });
+
+export async function setCurrentAcademicYear(s: BrowserClient, id: string): Promise<void> {
+  const { error } = await s.rpc("fn_set_current_academic_year", { p_id: id });
+  if (error) throw new Error(error.message);
+}
+
+export async function closeAcademicYear(s: BrowserClient, id: string): Promise<void> {
+  const { error } = await s.rpc("fn_close_academic_year", { p_id: id });
+  if (error) throw new Error(error.message);
+}
+
 /* ------------------------------------------------------------------ RBAC */
 
 /**
  * Roles, permissions and grants — the model that shipped in migration
  * 20260726043308 and had no way into the product (SRA F-4).
  */
-export type RoleRow = { id: string; code: string; name: string; is_system: boolean };
+export type RoleRow = {
+  id: string; code: string; name: string; is_system: boolean;
+  /** What ticking this box actually grants (audit S-9.7). */
+  description: string | null;
+  /** How many people in THIS institution hold it (audit S-10.4). */
+  user_count: number;
+};
 export type PermissionRow = { id: string; code: string; label: string; module: string };
 export type PermissionMatrix = {
   roles: RoleRow[];
@@ -253,10 +400,78 @@ export async function setUserRoles(s: BrowserClient, profileId: string, roleIds:
   if (error) throw new Error(error.message);
 }
 
-/** Suspend/reactivate. Never a delete — a profile carries audit attribution. */
-export async function setUserStatus(s: BrowserClient, profileId: string, status: "active" | "suspended"): Promise<void> {
-  const { error } = await s.rpc("fn_set_user_status", { payload: { profile_id: profileId, status } });
+/**
+ * Suspend/reactivate. Never a delete — a profile carries audit attribution.
+ *
+ * `reason` is optional but recorded (audit S-9.10): MFA reset has required one
+ * since it shipped, and suspension — the comparable action — recorded nothing
+ * but a status flip. The RPC also deletes the target's refresh tokens, so a
+ * suspension now actually ends the session rather than greying out a row.
+ */
+export async function setUserStatus(
+  s: BrowserClient,
+  profileId: string,
+  status: "active" | "suspended",
+  reason?: string,
+): Promise<void> {
+  const { error } = await s.rpc("fn_set_user_status", {
+    payload: { profile_id: profileId, status, reason: reason ?? null },
+  });
   if (error) throw new Error(error.message);
+}
+
+/* ------------------------------------------------------- account operations */
+
+/**
+ * Invite a new user. The only write in this module that goes through a route
+ * rather than an RPC — creating an auth user needs the service-role key.
+ * See `src/server/users/inviteUser.ts`.
+ */
+export async function inviteUser(payload: InviteUserPayload): Promise<string> {
+  const res = await fetch("/api/admin/users/invite", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const body = (await res.json().catch(() => ({}))) as { profileId?: string; message?: string };
+  if (!res.ok) throw new Error(body.message ?? "Could not send the invitation");
+  return body.profileId ?? "";
+}
+
+/**
+ * Send a password-reset mail to an existing user.
+ *
+ * Two steps, deliberately. `fn_authorize_account_action` is the control: it
+ * checks `core.user_manage`, checks the target is in the caller's institution,
+ * rate-limits, writes the audit row, and hands back the address. Only then does
+ * the browser call GoTrue's `resetPasswordForEmail`, which is an
+ * unauthenticated endpoint and needs no service-role key — so this needs no
+ * route, and the admin never learns an address the database would not give
+ * them.
+ */
+export async function sendPasswordReset(s: BrowserClient, profileId: string): Promise<void> {
+  const { data, error } = await s.rpc("fn_authorize_account_action", {
+    p_profile_id: profileId,
+    p_action: "password_reset",
+  });
+  if (error) throw new Error(error.message);
+  const email = (data as { email?: string } | null)?.email;
+  if (!email) throw new Error("That account has no email address on file");
+
+  const { error: mailError } = await s.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  if (mailError) throw new Error(mailError.message);
+}
+
+/** End every session the target holds. Returns how many were killed. */
+export async function revokeUserSessions(s: BrowserClient, profileId: string, reason?: string): Promise<number> {
+  const { data, error } = await s.rpc("fn_admin_revoke_sessions", {
+    p_profile_id: profileId,
+    p_reason: reason ?? undefined,
+  });
+  if (error) throw new Error(error.message);
+  return (data as number) ?? 0;
 }
 
 /* ----------------------------------------------------- global entity search */

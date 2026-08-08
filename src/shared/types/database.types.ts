@@ -3072,9 +3072,12 @@ export type Database = {
         Row: {
           avatar_file_id: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           institution_id: string | null
+          invited_at: string | null
+          invited_by: string | null
           is_platform_admin: boolean
           last_login_at: string | null
           linked_guardian_id: string | null
@@ -3087,9 +3090,12 @@ export type Database = {
         Insert: {
           avatar_file_id?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
           institution_id?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           is_platform_admin?: boolean
           last_login_at?: string | null
           linked_guardian_id?: string | null
@@ -3102,9 +3108,12 @@ export type Database = {
         Update: {
           avatar_file_id?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           institution_id?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           is_platform_admin?: boolean
           last_login_at?: string | null
           linked_guardian_id?: string | null
@@ -4485,24 +4494,51 @@ export type Database = {
           },
         ]
       }
+      subject_group_class: {
+        Row: { class_id: string; subject_group_id: string }
+        Insert: { class_id: string; subject_group_id: string }
+        Update: { class_id?: string; subject_group_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "subject_group_class_subject_group_id_fkey"
+            columns: ["subject_group_id"]
+            isOneToOne: false
+            referencedRelation: "subject_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_group_class_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subject_group: {
         Row: {
           created_at: string
           id: string
           institution_id: string
           name: string
+          name_bn: string | null
+          elective_pick: number | null
         }
         Insert: {
           created_at?: string
           id?: string
           institution_id: string
           name: string
+          name_bn?: string | null
+          elective_pick?: number | null
         }
         Update: {
           created_at?: string
           id?: string
           institution_id?: string
           name?: string
+          name_bn?: string | null
+          elective_pick?: number | null
         }
         Relationships: [
           {
@@ -4525,14 +4561,17 @@ export type Database = {
         Row: {
           subject_group_id: string
           subject_id: string
+          is_elective: boolean
         }
         Insert: {
           subject_group_id: string
           subject_id: string
+          is_elective?: boolean
         }
         Update: {
           subject_group_id?: string
           subject_id?: string
+          is_elective?: boolean
         }
         Relationships: [
           {
@@ -5713,6 +5752,41 @@ export type Database = {
       }
       fn_set_user_roles: { Args: { payload: Json }; Returns: undefined }
       fn_set_user_status: { Args: { payload: Json }; Returns: undefined }
+      fn_entity_impact: { Args: { p_entity: string; p_id: string }; Returns: Json }
+      fn_settings_status: { Args: never; Returns: Json }
+      fn_upsert_academic_year: { Args: { payload: Json }; Returns: string }
+      fn_set_current_academic_year: { Args: { p_id: string }; Returns: undefined }
+      fn_close_academic_year: { Args: { p_id: string }; Returns: undefined }
+      fn_academic_year_stats: { Args: never; Returns: Json }
+      fn_national_holidays: { Args: { p_year: number }; Returns: Json }
+      fn_import_national_holidays: { Args: { p_year: number; p_academic_year_id?: string }; Returns: number }
+      fn_calendar_impact: { Args: { p_from: string; p_to: string }; Returns: Json }
+      fn_audit_log: {
+        Args: {
+          p_action?: string
+          p_changed_by?: string
+          p_dir?: string
+          p_entity?: string
+          p_entity_id?: string
+          p_from?: string
+          p_page?: number
+          p_per_page?: number
+          p_to?: string
+        }
+        Returns: Json
+      }
+      fn_audit_reveal: { Args: { p_id: string; p_reason?: string }; Returns: Json }
+      fn_audit_actors: { Args: never; Returns: Json }
+      fn_admin_revoke_sessions: {
+        Args: { p_profile_id: string; p_reason?: string }
+        Returns: number
+      }
+      fn_authorize_account_action: {
+        Args: { p_action: string; p_profile_id: string; p_reason?: string }
+        Returns: Json
+      }
+      fn_complete_user_invite: { Args: { payload: Json }; Returns: string }
+      fn_invite_user_precheck: { Args: { p_email: string }; Returns: Json }
       fn_sms_campaign_totals: { Args: never; Returns: Json }
       fn_student_report_summary: {
         Args: { p_academic_year_id?: string; p_filters?: Json }

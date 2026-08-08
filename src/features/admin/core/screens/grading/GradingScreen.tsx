@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Pencil, Award, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Award, X, Download } from "lucide-react";
 import { useT } from "@/shared/i18n/useT";
 import {
-  Field, Input, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader,
-  Table, THead, TBody, TR, TH, TD,
+  Field, Input, Select, Button, Badge, EmptyState, ConfirmDialog, Modal, useToast, PageHeader,
+  Table, THead, TBody, TR, TH, TD, Checkbox, ImpactPreview,
 } from "@/shared/ui";
+import { exportCsv } from "@/shared/lib/exportCsv";
 import { useGradeSchemes, useUpsertScheme, useDeleteScheme } from "../../logic/hooks";
 import { validateGradeScale } from "../../logic/gradeScale";
+import { useEntityImpact, useImpactLabel } from "../../logic/impact";
 import type { GradeScale } from "../../logic/api";
 import { useErrorMessage } from "@/shared/services/errors";
 
@@ -34,6 +36,21 @@ function gradeTone(letter: string): "success" | "info" | "warning" | "danger" {
   return "warning";
 }
 
+/**
+ * Core · Grading Scheme.
+ *
+ * The highest-consequence unguarded action in the module used to live here
+ * (audit S-8.5). Marks are stored; the bands that turn a mark into a letter are
+ * not versioned. So editing a scheme that has already graded a cohort does not
+ * change the marks — it changes what those marks MEAN, retroactively, and a
+ * marksheet reprinted next year comes out with different grades from the one
+ * the parent is holding. Nothing warned about it.
+ *
+ * The fix is a refusal rather than a warning, in both layers: the editor
+ * refuses band edits once results exist and offers copy-to-new-scheme instead,
+ * and `private.fn_check_grade_scheme` raises `CHK02` for any caller that skips
+ * the browser.
+ */
 export function GradingScreen() {
   const { t, n } = useT();
   const msg = useErrorMessage();
@@ -51,8 +68,17 @@ export function GradingScreen() {
   const [delId, setDelId] = useState<string | null>(null);
 
   const rows = schemes.data ?? [];
+  const impactLabel = useImpactLabel();
+  const delImpact = useEntityImpact("grade_scheme", delId);
+  /** What the scheme OPEN IN THE EDITOR is already responsible for (S-8.5). */
+  const editImpact = useEntityImpact("grade_scheme", open && id ? id : null);
+  const processed = editImpact.data?.items.find((i) => i.key === "processed_results")?.count ?? 0;
+  /** True once the scheme has graded something: bands become read-only. */
+  const bandsLocked = processed > 0;
   useEffect(() => { if (!activeId && schemes.data && schemes.data.length > 0) setActiveId(schemes.data[0].id); }, [schemes.data, activeId]);
   const active = rows.find((r) => r.id === activeId) ?? null;
+  /** Which scheme ticking "default" would displace (audit S-8.3). */
+  const currentDefault = rows.find((r) => r.is_default) ?? null;
   const sortedScales = useMemo(() => [...(active?.scales ?? [])].sort((a, b) => b.min_marks - a.min_marks), [active]);
   const passMark = sortedScales.filter((s) => s.gpa_point > 0).reduce((min, s) => Math.min(min, s.min_marks), Infinity);
   const maxGp = sortedScales.reduce((max, s) => Math.max(max, s.gpa_point), 0);
@@ -61,6 +87,20 @@ export function GradingScreen() {
   function openEdit() {
     if (!active) return;
     setId(active.id); setName(active.name); setIsDefault(active.is_default); setScales(active.scales.length ? active.scales : DEFAULT_SCALES);
+    setOpen(true);
+  }
+  /**
+   * S-8.5's escape hatch. A scheme whose bands are locked can still be changed
+   * — by becoming a new scheme, leaving the graded one intact and reproducible.
+   * The copy is unsaved until the operator presses Save, so it is a starting
+   * point rather than a side effect of clicking a button.
+   */
+  function openCopy() {
+    if (!active) return;
+    setId("");
+    setName(t(`${active.name} (নতুন সংস্করণ)`, `${active.name} (new version)`));
+    setIsDefault(false);
+    setScales(active.scales.length ? active.scales : DEFAULT_SCALES);
     setOpen(true);
   }
   const setScale = (i: number, k: keyof GradeScale, v: string) => setScales((p) => p.map((r, j) => j === i ? { ...r, [k]: k === "grade_letter" ? v : Number(v) } : r));
@@ -76,17 +116,28 @@ export function GradingScreen() {
 
   function save() {
     if (!name.trim()) { toast({ title: t("স্কিমের নাম আবশ্যক", "Scheme name required"), variant: "error" }); return; }
-    if (scaleProblems.length > 0) {
+    if (!bandsLocked && scaleProblems.length > 0) {
       toast({ title: t("গ্রেড পরিসরে সমস্যা আছে", "Fix the grade ranges first"), variant: "error" });
       return;
     }
-    upsert.mutate({ id: id || undefined, name, is_default: isDefault, scales }, {
+    /*
+     * When the bands are locked, `scales` is omitted entirely rather than sent
+     * unchanged. The server refuses ANY `scales` key on a scheme with processed
+     * results — which is the correct rule for an untrusted caller, and would
+     * otherwise block the operator from renaming a scheme they are allowed to
+     * rename.
+     */
+    const payload = bandsLocked
+      ? { id, name, is_default: isDefault }
+      : { id: id || undefined, name, is_default: isDefault, scales };
+    upsert.mutate(payload, {
       onSuccess: (savedId) => { toast({ title: t("গ্রেডিং স্কিম সংরক্ষিত", "Grading scheme saved"), variant: "success" }); setOpen(false); if (!id) setActiveId(savedId as string); },
       onError: (e: unknown) => toast({ title: msg(e, { bn: "সংরক্ষণ ব্যর্থ", en: "Save failed" }), variant: "error" }),
     });
   }
   function remove() {
-    if (!delId) return; const target = delId; setDelId(null);
+    if (!delId || delImpact.data?.blocking) return;
+    const target = delId; setDelId(null);
     del.mutate(target, {
       onSuccess: () => { toast({ title: t("মুছে ফেলা হয়েছে", "Deleted"), variant: "success" }); if (activeId === target) setActiveId(null); },
       onError: (e: unknown) => toast({ title: msg(e), variant: "error" }),
@@ -97,7 +148,7 @@ export function GradingScreen() {
     <div className="flex flex-col gap-5 pb-6">
       <div className="flex flex-wrap items-start gap-3">
         <PageHeader
-          crumbs={[{ label: t("কোর সেটিংস", "Core Settings"), href: "/admin/core/basic-config" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("গ্রেডিং স্কিম", "Grading Scheme") }]}
+          crumbs={[{ label: t("সেটিংস", "Settings"), href: "/admin/core" }, { label: t("বিষয় সেটিংস", "Subject Settings") }, { label: t("গ্রেডিং স্কিম", "Grading Scheme") }]}
           title={t("গ্রেডিং স্কিম", "Grading Scheme")}
           subtitle={t("GPA ৫.০ ভিত্তিক গ্রেড, নম্বর সীমা ও গ্রেড পয়েন্ট", "GPA-5 based grades, mark ranges & grade points")}
           className="flex-1"
@@ -110,10 +161,41 @@ export function GradingScreen() {
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2.5">
-            <select value={activeId ?? ""} onChange={(e) => setActiveId(e.target.value)} className="h-10.5 rounded-lg border border-border-strong bg-surface px-3 text-meta font-medium text-text-secondary">
-              {rows.map((r) => <option key={r.id} value={r.id}>{t(`স্কিম: ${r.name}`, `Scheme: ${r.name}`)}</option>)}
-            </select>
+            {/* M-10: was a raw <select> with hand-written classes beside ten
+                screens' worth of the shared control. */}
+            <Select
+              value={activeId ?? ""}
+              onChange={(e) => setActiveId(e.target.value)}
+              aria-label={t("স্কিম নির্বাচন", "Select scheme")}
+              className="w-auto min-w-56"
+              options={rows.map((r) => ({ value: r.id, label: t(`স্কিম: ${r.name}`, `Scheme: ${r.name}`) }))}
+            />
             <div className="flex-1" />
+            {/*
+              M-8: "a grading scheme cannot be exported for the board" was a
+              literal finding. A scheme is a table a board asks for on paper,
+              and the only way to produce one was a screenshot.
+            */}
+            {active ? (
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  exportCsv(
+                    `grading-${active.name.replace(/[^\w.-]+/g, "-").toLowerCase()}.csv`,
+                    sortedScales.map((x) => ({
+                      grade: x.grade_letter,
+                      min_marks: x.min_marks,
+                      max_marks: x.max_marks,
+                      grade_point: x.gpa_point,
+                    })),
+                    { kind: "core.grade_scheme", params: { scheme: active.name, bands: sortedScales.length } },
+                  )
+                }
+              >
+                <Download size={14} /> {t("এক্সপোর্ট", "Export")}
+              </Button>
+            ) : null}
+            {active ? <MarkTester scales={sortedScales} /> : null}
             {active ? (
               <div className="flex items-center gap-2 rounded-lg bg-primary-subtle px-3 py-2 text-primary">
                 <span className="text-meta">ⓘ</span>
@@ -140,11 +222,15 @@ export function GradingScreen() {
                   {sortedScales.map((s, i) => (
                     <TR key={i}>
                       <TD><Badge tone={gradeTone(s.grade_letter)}>{s.grade_letter}</Badge></TD>
-                      <TD className="text-sm text-text-secondary tnum">{n(s.min_marks)} – {n(s.max_marks)}</TD>
-                      <TD className="text-sm font-semibold text-text-primary tnum">{n(s.gpa_point.toFixed(2))}</TD>
+                      <TD className="text-meta text-text-secondary tnum">{n(s.min_marks)} – {n(s.max_marks)}</TD>
+                      <TD className="text-meta font-semibold text-text-primary tnum">{n(s.gpa_point.toFixed(2))}</TD>
                       <TD className="text-meta text-text-secondary">{t(...(REMARKS[s.grade_letter] ?? ["—", "—"]))}</TD>
                       <TD className="text-right">
-                        <button onClick={openEdit} aria-label={t(`${s.grade_letter} সম্পাদনা`, `Edit ${s.grade_letter}`)} className="grid size-8 place-items-center rounded-md text-text-muted hover:bg-sunken"><Pencil size={15} /></button>
+                        {/* S-8.1: the affordance says "edit this grade"; the
+                            behaviour is "edit every grade". Per-band inline
+                            editing is Phase 5 — until then the label is honest
+                            about what the button does. */}
+                        <button onClick={openEdit} aria-label={t("সব গ্রেড সম্পাদনা", "Edit all grades")} title={t("সব গ্রেড সম্পাদনা", "Edit all grades")} className="grid size-8 place-items-center rounded-md text-text-muted hover:bg-sunken"><Pencil size={15} /></button>
                       </TD>
                     </TR>
                   ))}
@@ -160,17 +246,55 @@ export function GradingScreen() {
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title={id ? t("স্কিম সম্পাদনা", "Edit scheme") : t("নতুন গ্রেডিং স্কিম", "New grading scheme")}
-        footer={<><Button variant="secondary" onClick={() => setOpen(false)}>{t("বাতিল", "Cancel")}</Button><Button variant="primary" onClick={save} disabled={upsert.isPending || scaleProblems.length > 0}>{upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button></>}
+        footer={<><Button variant="secondary" onClick={() => setOpen(false)}>{t("বাতিল", "Cancel")}</Button><Button variant="primary" onClick={save} disabled={upsert.isPending || (!bandsLocked && scaleProblems.length > 0)}>{upsert.isPending ? t("সংরক্ষণ…", "Saving…") : t("সংরক্ষণ করুন", "Save")}</Button></>}
       >
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("স্কিমের নাম", "Scheme name")} required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="GPA 5.0" /></Field>
-            <label className="flex items-center gap-2 self-end pb-2.5 text-meta text-text-secondary"><input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="size-4 accent-primary" /> {t("ডিফল্ট স্কিম", "Default scheme")}</label>
+            {/* A-9: was a raw checkbox. S-8.3: setting a default displaces
+                another one, and the screen never said which. */}
+            <label className="flex items-center gap-2 self-end pb-2.5 text-meta text-text-secondary">
+              <Checkbox checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} />
+              {t("ডিফল্ট স্কিম", "Default scheme")}
+            </label>
           </div>
+          {isDefault && currentDefault && currentDefault.id !== id ? (
+            <p className="rounded-lg bg-warning-bg px-3 py-2 text-meta text-warning-fg">
+              {t(
+                `"${currentDefault.name}" আর ডিফল্ট থাকবে না।`,
+                `"${currentDefault.name}" will stop being the default.`,
+              )}
+            </p>
+          ) : null}
+
+          {/*
+            S-8.5. Rendered from the live count rather than a static warning, so
+            it says how much is at stake and disappears the moment it does not
+            apply.
+          */}
+          {bandsLocked ? (
+            <div className="flex flex-col gap-2 rounded-xl border border-warning-fg/30 bg-warning-bg px-4 py-3 text-meta text-warning-fg">
+              <p className="font-semibold">
+                {t(
+                  `এই স্কিম দিয়ে ইতিমধ্যে ${n(processed)}টি ফলাফল প্রসেস হয়েছে।`,
+                  `This scheme has already graded ${n(processed)} results.`,
+                )}
+              </p>
+              <p>
+                {t(
+                  "নম্বর সংরক্ষিত থাকে, কিন্তু গ্রেডের সীমা নয় — সীমা বদলালে আগে ছাপানো মার্কশিট আর মেলানো যাবে না। নাম ও ডিফল্ট বদলাতে পারবেন; সীমা বদলাতে হলে নতুন স্কিম তৈরি করুন।",
+                  "Marks are stored; the bands that turn them into letters are not. Change the bands and a marksheet printed last term can no longer be reproduced. You can still rename it or change the default — to change the bands, copy it to a new scheme.",
+                )}
+              </p>
+              <Button variant="secondary" onClick={openCopy} className="self-start">
+                {t("নতুন স্কিমে কপি করুন", "Copy to a new scheme")}
+              </Button>
+            </div>
+          ) : null}
           {/* The editable band grid. A <table> here is what makes the column
               header the accessible name of every input under it — the inputs
               carry no visible label of their own. */}
-          <Table minWidth={560} className="text-xs">
+          <Table minWidth={560} className="text-micro">
             <THead>
               <TR>
                 <TH className="w-24">{t("গ্রেড", "Grade")}</TH>
@@ -183,20 +307,22 @@ export function GradingScreen() {
             <TBody>
               {scales.map((s, i) => (
                 <TR key={i}>
-                  <TD className="px-3 py-1.5"><Input value={s.grade_letter} onChange={(e) => setScale(i, "grade_letter", e.target.value)} aria-label={t("গ্রেড", "Grade")} className="h-8 font-latin" /></TD>
-                  <TD className="px-3 py-1.5"><Input type="number" value={String(s.gpa_point)} onChange={(e) => setScale(i, "gpa_point", e.target.value)} aria-label={t("GPA", "GPA")} className="h-8 font-latin" /></TD>
-                  <TD className="px-3 py-1.5"><Input type="number" value={String(s.min_marks)} onChange={(e) => setScale(i, "min_marks", e.target.value)} aria-label={t("সর্বনিম্ন নম্বর", "Min marks")} className="h-8 font-latin" /></TD>
-                  <TD className="px-3 py-1.5"><Input type="number" value={String(s.max_marks)} onChange={(e) => setScale(i, "max_marks", e.target.value)} aria-label={t("সর্বোচ্চ নম্বর", "Max marks")} className="h-8 font-latin" /></TD>
+                  <TD className="px-3 py-1.5"><Input value={s.grade_letter} disabled={bandsLocked} onChange={(e) => setScale(i, "grade_letter", e.target.value)} aria-label={t("গ্রেড", "Grade")} className="h-8 font-latin" /></TD>
+                  <TD className="px-3 py-1.5"><Input type="number" disabled={bandsLocked} value={String(s.gpa_point)} onChange={(e) => setScale(i, "gpa_point", e.target.value)} aria-label={t("GPA", "GPA")} className="h-8 font-latin" /></TD>
+                  <TD className="px-3 py-1.5"><Input type="number" disabled={bandsLocked} value={String(s.min_marks)} onChange={(e) => setScale(i, "min_marks", e.target.value)} aria-label={t("সর্বনিম্ন নম্বর", "Min marks")} className="h-8 font-latin" /></TD>
+                  <TD className="px-3 py-1.5"><Input type="number" disabled={bandsLocked} value={String(s.max_marks)} onChange={(e) => setScale(i, "max_marks", e.target.value)} aria-label={t("সর্বোচ্চ নম্বর", "Max marks")} className="h-8 font-latin" /></TD>
                   <TD className="px-3 py-1.5">
-                    <button onClick={() => setScales((p) => p.filter((_, j) => j !== i))} aria-label={t("এই গ্রেড সরান", "Remove this grade")} className="grid size-8 place-items-center rounded-md text-danger-fg hover:bg-sunken"><X size={15} /></button>
+                    <button onClick={() => setScales((p) => p.filter((_, j) => j !== i))} disabled={bandsLocked} aria-label={t("এই গ্রেড সরান", "Remove this grade")} className="grid size-8 place-items-center rounded-md text-danger-fg hover:bg-sunken disabled:opacity-40"><X size={15} /></button>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-          <button onClick={() => setScales((p) => [...p, { grade_letter: "", gpa_point: 0, min_marks: 0, max_marks: 0 }])} className="flex items-center gap-1.5 self-start rounded-md px-1 py-0.5 text-meta font-semibold text-primary hover:underline"><Plus size={14} /> {t("গ্রেড যোগ করুন", "Add grade")}</button>
+          {!bandsLocked ? (
+            <button onClick={() => setScales((p) => [...p, { grade_letter: "", gpa_point: 0, min_marks: 0, max_marks: 0 }])} className="flex items-center gap-1.5 self-start rounded-md px-1 py-0.5 text-meta font-semibold text-primary hover:underline"><Plus size={14} /> {t("গ্রেড যোগ করুন", "Add grade")}</button>
+          ) : null}
 
-          {scaleProblems.length > 0 ? (
+          {!bandsLocked && scaleProblems.length > 0 ? (
             <div role="alert" className="flex flex-col gap-1 rounded-xl border border-danger-fg/30 bg-danger-bg px-4 py-3 text-meta text-danger-fg">
               <p className="font-semibold">{t("এই স্কিম দিয়ে ফলাফল প্রসেস করলে ভুল গ্রেড আসবে:", "Processing results with this scheme would produce wrong grades:")}</p>
               <ul className="list-disc pl-4">
@@ -207,7 +333,85 @@ export function GradingScreen() {
         </div>
       </Modal>
 
-      <ConfirmDialog open={!!delId} onClose={() => setDelId(null)} onConfirm={remove} tone="danger" title={t("স্কিম মুছবেন?", "Delete scheme?")} confirmLabel={t("মুছুন", "Delete")} cancelLabel={t("বাতিল", "Cancel")} loading={del.isPending} />
+      {/* S-8.2 / M-16: "Delete scheme?" was the entire confirm for a record that
+          `basic_config.grading_system_id` may point at and that may have graded
+          a cohort. */}
+      <ConfirmDialog
+        open={!!delId}
+        onClose={() => setDelId(null)}
+        onConfirm={remove}
+        tone="danger"
+        title={t("স্কিম মুছবেন?", "Delete scheme?")}
+        description={rows.find((r) => r.id === delId)?.name}
+        confirmLabel={t("মুছুন", "Delete")}
+        cancelLabel={t("বাতিল", "Cancel")}
+        confirmDisabled={delImpact.isLoading || delImpact.data?.blocking}
+        loading={del.isPending}
+      >
+        <ImpactPreview
+          items={delImpact.data?.items ?? []}
+          loading={delImpact.isLoading}
+          label={impactLabel}
+          emptyLabel={t("কিছুই এই স্কিমের উপর নির্ভর করছে না।", "Nothing depends on this scheme.")}
+          blockedLabel={t(
+            "এই স্কিম দিয়ে ফলাফল প্রসেস হয়েছে — মুছলে ছাপানো মার্কশিট আর তৈরি করা যাবে না।",
+            "Results were graded with this scheme — deleting it makes those marksheets impossible to reproduce.",
+          )}
+        />
+      </ConfirmDialog>
+    </div>
+  );
+}
+
+/**
+ * "What grade does 67 produce under this scheme?" (audit S-8.4).
+ *
+ * That question could not be asked anywhere in the product, and it is the
+ * question an operator actually has — the bands table answers it only by
+ * arithmetic they have to do themselves, against a table whose correctness is
+ * the thing they are trying to check. Five lines of component, and it removes
+ * the main reason to distrust this screen.
+ *
+ * It resolves marks the same way `fn_process_exam_result` does — the band whose
+ * inclusive range contains the mark — so a disagreement between this and a
+ * printed marksheet is a real defect rather than two different rules.
+ */
+function MarkTester({ scales }: { scales: GradeScale[] }) {
+  const { t, n } = useT();
+  const [mark, setMark] = useState("");
+
+  const value = mark.trim() === "" ? null : Number(mark);
+  const valid = value != null && Number.isFinite(value) && value >= 0 && value <= 100;
+  const band = valid ? scales.find((s) => value >= s.min_marks && value <= s.max_marks) ?? null : null;
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border-default bg-surface px-3 py-1.5">
+      <label htmlFor="mark-tester" className="text-meta text-text-muted">
+        {t("নম্বর পরীক্ষা", "Try a mark")}
+      </label>
+      <Input
+        id="mark-tester"
+        type="number"
+        min={0}
+        max={100}
+        value={mark}
+        onChange={(e) => setMark(e.target.value)}
+        className="h-8 w-18 font-latin"
+        placeholder="67"
+      />
+      <span className="min-w-24 text-meta" aria-live="polite">
+        {!valid ? (
+          <span className="text-text-muted">—</span>
+        ) : band ? (
+          <span className="font-semibold text-text-primary">
+            {band.grade_letter} · GP {n(band.gpa_point.toFixed(2))}
+          </span>
+        ) : (
+          /* Only reachable when the bands leave a hole — which `validateGradeScale`
+             blocks at save, but an older scheme may still carry. */
+          <span className="font-semibold text-danger-fg">{t("কোনো গ্রেড নেই", "no grade covers this")}</span>
+        )}
+      </span>
     </div>
   );
 }

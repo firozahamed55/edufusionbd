@@ -50,8 +50,80 @@ Total: **~2,523 lines of screen code + 282 lines of data access + 129 lines of h
 | **0.2 Guard `fn_permission_matrix`** | ✅ **Done** — the sweep added to catch it found a second, worse hole | `dc1b5fa` |
 | **0.3 Fix lost-update on settings** | ✅ **Done** | `2e25960` |
 | **0.4 Constrain uploads** | ✅ **Done** | `0010b1b` |
-| 1 — Access control | ⏸ Blocked on a working-tree collision (see below) | — |
-| 2–9 | Not started | — |
+| **1.1 Per-tab permissions** | ✅ **Done** | `a7ee1b1` |
+| **1.2 Invite + account operations** | ✅ **Done** — and suspension turned out to be decorative | `5edc45c` |
+| **1.3 Audit-log investigation tools** | ✅ **Done** — the action filter had never matched a single row | `2deb951` |
+| **2 Validation and data integrity** | ✅ **Done** — and Signature turned out to be saving on blur | `df2bdd9` |
+| **3 Accessibility** | ✅ **Done** | `4a08628` |
+| **4 Hub, data contract, IA** | ✅ **Done** — with the Basic Config split and two merges deliberately declined | `f34fc36` |
+| **5 Screen features** | 🟡 **Partial** — the High items shipped; the Medium list is stated in the commit | `732757d` |
+| **6 New screens** | 🟡 **Partial** — Academic Year shipped; Integrations and Security policy blocked on a design decision | `3046b16` |
+| **7 Design system** | ✅ **Done** — type scale enforced, scoped to this module | `32968a9` |
+| **8 Performance** | ✅ **Done** — one of its findings measured away rather than fixed | `3bd0b58` |
+| **9 Testing and readiness** | ✅ **Done** — 509 tests; two live defects found by the gate itself | this commit |
+
+**What Phases 2–9 turned up that the audit did not.**
+
+1. **Every modal form in the product lost focus after one keystroke.** Found by
+   a Phase 9 behaviour test, then reproduced in a browser. `useFocusTrap`
+   depended on `onClose` in its dependency array, and every caller passes
+   `onClose={() => setOpen(false)}` — a new identity on every render. So each
+   keystroke tore the trap down (restoring focus to the trigger behind the
+   modal) and rebuilt it (focusing the dialog's close button). It affected
+   every `Modal` and `ConfirmDialog` in the app, not only Settings, and it
+   survived review because the dependency array *looks* correct.
+2. **Eighteen SECURITY DEFINER functions were anon-reachable, against a
+   recorded baseline of one.** Found by re-running the advisors as part of the
+   gate. Supabase's default privileges grant `EXECUTE` to `anon` on every
+   function created in `public`, so `grant execute … to authenticated` at the
+   end of a migration restricts nothing — it restates a grant that already
+   exists and leaves `anon` beside it. The guards held, so this was defence in
+   depth rather than a live leak, but the first fix (`revoke … from public`)
+   was itself wrong: the grant is not to PUBLIC.
+3. **Three settings were read by nothing.** `currency`, `date_format` and
+   `timezone` were written by Basic Config and consumed nowhere — the taka sign
+   is a literal at fifteen call sites and `format.ts` hard-codes its date shape.
+   Raised by the product owner, not by the audit.
+4. **A half-landed fix from Phase 2.** `fetchClassSections` was extended with
+   `classTeacherId` specifically so editing a section would not clear its
+   teacher; the form still sent `""`, which the RPC reads as "unassign".
+5. **M-13's "N+1-shaped aggregate" is not one.** Measured before acting:
+   7 shared buffer hits, 0.36 ms, index scans on both sides.
+
+**What Phase 1 turned up that the audit did not.**
+
+1. **Suspension was decorative.** `private.has_permission` never looked at
+   `profile.status`, and a search of `pg_policies` for a status predicate
+   returns zero rows. "Suspend" wrote the column, greyed the row, and left the
+   account holding every permission it had a minute earlier, indefinitely. The
+   product reported a control it did not have — worse than the missing invite
+   it was found next to. The status now gates the permission and the RPC deletes
+   the refresh tokens.
+2. **`last_login_at` was never written by anything.** Nothing in the repository
+   assigns it, so the Users list has rendered an empty "Last sign-in" column in
+   every institution since it shipped — read as "nobody has ever signed in",
+   not as "not recorded". It is also the column you would use to find dormant
+   accounts to revoke.
+3. **The `invited` status had no producer.** It is the default for every profile
+   the auth trigger creates and the list offers it as a filter, but no code path
+   could set it. Sign-in now flips `invited` → `active`, closing the loop the
+   audit's own test asks for.
+4. **The audit log's action filter had never worked.** It offered
+   `INSERT`/`UPDATE`/`DELETE`; `private.audit_trigger` writes
+   `insert`/`update`/`delete`. Every value it offered matched zero of 1,918 rows
+   and rendered as "No audit records found" — a dead control that fails as an
+   empty result, which is exactly the failure shape M-4 describes for
+   permissions.
+5. **Redacting audit PII needed a grant change, not a client change.** Masking
+   in React would have left the values on the wire. `before`/`after` are now
+   revoked from `authenticated` at column level and served only through
+   `fn_audit_log` (masked) and `fn_audit_reveal` (logged) — the remaining
+   columns stay granted so the dashboard activity strip is untouched.
+
+**Owner action still outstanding:** `SUPABASE_SERVICE_ROLE_KEY` is absent from
+`.env.local` and from the deployment. The invite route answers
+"Invitations are not configured on this deployment" until it is set; every other
+account operation works without it.
 
 **What Phase 0 turned up that the audit did not.**
 
@@ -1088,17 +1160,46 @@ Sequenced. Each phase is independently shippable. `[FE]` frontend, `[BE]` backen
 - [ ] No new hard-coded label that belongs in the database.
 - [ ] `graphify update .` run after the change.
 
-**9.6 Production-readiness gate**
-- [ ] All Phase 0 items closed and verified against the live project.
-- [ ] Schema drift check green in CI.
-- [ ] `profile > 1` in production — the institution has real, individually attributed accounts.
-- [ ] `signature > 0` — certificates are signed.
-- [ ] `academic_calendar` populated for the current year.
-- [ ] Every screen has a test file.
-- [ ] Zero axe violations across the module.
-- [ ] Advisors: zero ERROR, WARNs triaged with written rationale.
-- [ ] Runbook updated with settings-recovery procedures.
-- [ ] Rollback plan documented for the Basic Config split migration.
+**9.6 Production-readiness gate** — state as of the Phase 9 commit
+
+- [x] All Phase 0 items closed and verified against the live project.
+- [x] Schema drift check green in CI.
+- [x] Every screen has a test file — `settings.a11y.test.tsx` (11 screens, both
+      languages) and `settings.behaviour.test.tsx` (what each screen refuses to
+      send), on the shared harness in `screens/testHarness.tsx`.
+- [x] Zero axe violations across the module, in Bangla and English.
+- [x] Advisors: **zero ERROR**. WARNs triaged:
+      `authenticated_security_definer_function_executable` × 101 — every one is
+      either guarded by `require_permission` or listed in
+      `private.unguarded_function_allowlist` with a written reason (verified by
+      query, not by inspection); `anon_security_definer_function_executable`
+      now × 1 (`fn_verify_document`, deliberate — a third party holding a
+      printed certificate has no account), down from 18;
+      `rls_enabled_no_policy` × 7 INFO — partition defaults and archive tables,
+      documented.
+- [x] Rollback plan for the Basic Config split — **not needed, the split was
+      declined**; see the Phase 4 commit for the argument.
+
+**Owner actions still outstanding — these cannot be closed from the codebase:**
+
+- [ ] **`auth_leaked_password_protection` is disabled.** A Supabase auth
+      setting, changed in the project dashboard. No screen can toggle it.
+- [ ] **`SUPABASE_SERVICE_ROLE_KEY` is absent** from `.env.local` and from the
+      deployment, so the invite route answers "Invitations are not configured
+      on this deployment". Every other account operation works without it.
+- [ ] **`profile = 1` in production.** The invite flow shipped in Phase 1; the
+      institution still runs on one shared credential until someone uses it —
+      which needs the service-role key above.
+- [ ] **`signature = 0` in production.** Every certificate printed to date is
+      unsigned. The screen now says so on arrival, and the hub shows it as a
+      warning chip, but only the institution can upload a signature.
+- [ ] **`academic_calendar` has no non-working days for the current year.** The
+      government-holiday import shipped in Phase 5 and takes one click; the
+      lunar holidays still have to be entered by hand each year.
+
+The last three are data, not code. They are the difference between "shippable"
+and "shipped", and the product now makes each of them visible on the Settings
+hub instead of leaving them to be discovered by the failure they cause.
 
 ---
 

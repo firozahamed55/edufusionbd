@@ -81,7 +81,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("স্ক্রিন, শিক্ষার্থী বা শিক্ষক খুঁজুন…", "Jump to a screen, student or teacher…")}
-            className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+            className="w-full bg-transparent text-meta text-text-primary placeholder:text-text-muted focus:outline-none"
           />
         </div>
 
@@ -102,7 +102,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             <li key={`${r.href}-${i}`}>
               <button
                 onClick={() => go(r.href)}
-                className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-text-primary hover:bg-sunken"
+                className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-meta text-text-primary hover:bg-sunken"
               >
                 {isBn ? r.bn : r.en}
               </button>
@@ -127,8 +127,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 >
                   <Icon size={16} className="shrink-0 text-text-muted" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-text-primary">{isBn ? h.name_bn : h.name_en}</span>
-                    <span className="block truncate text-xs text-text-muted">
+                    <span className="block truncate text-meta text-text-primary">{isBn ? h.name_bn : h.name_en}</span>
+                    <span className="block truncate text-micro text-text-muted">
                       {[h.code ? n(h.code) : null, h.detail].filter(Boolean).join(" · ") || t(h.kind === "student" ? "শিক্ষার্থী" : "শিক্ষক", h.kind)}
                     </span>
                   </span>

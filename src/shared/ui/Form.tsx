@@ -208,11 +208,20 @@ export function SaveBar({
 }) {
   return (
     <div
-      className="sticky bottom-0 z-[var(--z-savebar)] mt-2 border-t border-border-default bg-surface/90 py-3.5 backdrop-blur"
+      className="sticky bottom-0 z-[var(--z-savebar)] mt-2 border-t border-border-default bg-surface/90 pt-3.5 backdrop-blur"
       style={{
         marginInline: "calc(-1 * var(--shell-pad))",
         marginBottom: "calc(-1 * var(--shell-pad))",
         paddingInline: "var(--shell-pad)",
+        /*
+         * Safe-area inset (settings audit §7, mobile).
+         *
+         * A sticky bottom bar on an iPhone sits under the home indicator, so
+         * the Save button of every form in the product was partly covered by
+         * system chrome. `env()` resolves to 0 everywhere else, which is why
+         * this costs nothing on a desktop.
+         */
+        paddingBottom: "calc(0.875rem + env(safe-area-inset-bottom, 0px))",
       }}
     >
       <div className="flex items-center gap-3">

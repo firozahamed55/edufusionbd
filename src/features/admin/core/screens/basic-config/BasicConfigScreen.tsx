@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useUnsavedGuard } from "@/shared/lib/useUnsavedGuard";
 import { useT } from "@/shared/i18n/useT";
-import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast, ConfirmDialog } from "@/shared/ui";
+import { FormCard, Field, Input, Select, Button, Skeleton, SaveBar, UnsavedDot, useToast, ConfirmDialog, PageHeader, Switch } from "@/shared/ui";
 import { useSetting, useSaveSetting, useGradeSchemes } from "../../logic/hooks";
+import { weekendConflict } from "../../logic/schemas";
 import { useErrorMessage, classifyError } from "@/shared/services/errors";
 import type { RpcPayload } from "@/shared/services/supabase/types";
 import type { Json } from "@/shared/types/database.types";
@@ -29,18 +30,33 @@ const WEEKENDS = [
   ["fri_sat", "শুক্র – শনি", "Fri – Sat"], ["sat_sun", "শনি – রবি", "Sat – Sun"], ["fri_only", "শুক্রবার", "Friday only"],
 ] as const;
 const LANGUAGES = [["bn", "বাংলা", "Bangla"], ["en", "English", "English"]] as const;
-const CURRENCIES = [["BDT", "৳ টাকা (BDT)", "৳ Taka (BDT)"], ["USD", "$ ডলার (USD)", "$ Dollar (USD)"]] as const;
-const DATE_FORMATS = [["DD/MM/YYYY", "DD/MM/YYYY", "DD/MM/YYYY"], ["YYYY-MM-DD", "YYYY-MM-DD", "YYYY-MM-DD"], ["MM/DD/YYYY", "MM/DD/YYYY", "MM/DD/YYYY"]] as const;
 const NUMBER_SYSTEMS = [["bn", "বাংলা সংখ্যা", "Bangla numerals"], ["en", "ইংরেজি সংখ্যা", "English numerals"]] as const;
 const ATTENDANCE_TYPES = [["daily", "দৈনিক", "Daily"], ["period", "পিরিয়ড-ভিত্তিক", "Per-period"]] as const;
 
 type Toggle = { key: string; bn: string; en: string; sub_bn: string; sub_en: string };
+
+/**
+ * EduSathi is deliberately NOT in this list any more (audit S-1.7).
+ *
+ * It is the product's headline differentiator and it sat as the second of four
+ * undifferentiated checkboxes — an institution-wide kill switch with no
+ * confirmation and no statement of who it affects, rendered identically to
+ * "leave a signature line on the printout". It gets its own card below, with
+ * the scope controls that make it a configuration surface rather than a
+ * boolean.
+ */
 const TOGGLES: Toggle[] = [
   { key: "parent_sms_notification", bn: "অভিভাবক SMS বিজ্ঞপ্তি", en: "Parent SMS notifications", sub_bn: "অনুপস্থিতি, ফলাফল ও ফি বিষয়ে স্বয়ংক্রিয় বার্তা", sub_en: "Automatic messages for absence, results & fees" },
-  { key: "edusathi_ai_assistant", bn: "EduSathi AI সহকারী", en: "EduSathi AI assistant", sub_bn: "স্টাফদের জন্য AI সহকারী সক্রিয় করুন", sub_en: "Enable the AI assistant for staff" },
   { key: "online_fee_payment", bn: "অনলাইন ফি পরিশোধ", en: "Online fee payment", sub_bn: "বিকাশ, নগদ ও কার্ড গেটওয়ে", sub_en: "bKash, Nagad & card gateways" },
   { key: "marksheet_parent_signature", bn: "মার্কশিটে অভিভাবকের স্বাক্ষর", en: "Parent signature on marksheet", sub_bn: "প্রিন্টে স্বাক্ষরের স্থান রাখুন", sub_en: "Leave a signature line on the printout" },
 ];
+
+/** Which staff roles may use the assistant. Stored as a string array. */
+const EDUSATHI_ROLES = [
+  ["admin", "অ্যাডমিন", "Administrators"],
+  ["teacher", "শিক্ষক", "Teachers"],
+  ["accountant", "হিসাবরক্ষক", "Accountants"],
+] as const;
 
 function opts(list: readonly (readonly [string, string, string])[], isBn: boolean) {
   return list.map(([value, bn, en]) => ({ value, label: isBn ? bn : en }));
@@ -85,6 +101,7 @@ export function BasicConfigScreen() {
   /** The `updated_at` this screen loaded, and the baseline the RPC checks. */
   const [baseline, setBaseline] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [confirmEduSathiOff, setConfirmEduSathiOff] = useState(false);
 
   useEffect(() => {
     if (!config.data) return;
@@ -112,6 +129,24 @@ export function BasicConfigScreen() {
         out[key] = t(rule.bn, rule.en);
       }
     }
+
+    /*
+     * The one rule `NUMERIC_RULES` cannot express (audit S-1.10).
+     *
+     * `working_days` and `weekend` are two independent selects over the same
+     * seven days and nothing checked that they agree, so a Sun–Thu working week
+     * with a Sat–Sun weekend was accepted and Sunday became simultaneously a
+     * teaching day and a holiday. Attendance reads one half of that
+     * contradiction and the calendar reads the other.
+     */
+    const clash = weekendConflict(form.working_days, form.weekend);
+    if (clash.length > 0) {
+      const names = clash.map((d) => t(DAYS[d][1], DAYS[d][2])).join(", ");
+      out.weekend = t(
+        `${names} একই সাথে কার্যদিবস ও ছুটি হিসেবে ধরা হচ্ছে`,
+        `${names} would be both a working day and a weekend`,
+      );
+    }
     return out;
   }, [form, t]);
 
@@ -120,6 +155,9 @@ export function BasicConfigScreen() {
     error: touched.has(k) ? errors[k] : undefined,
     onBlur: () => setTouched((p) => (p.has(k) ? p : new Set(p).add(k))),
   });
+
+  const edusathiOn = Boolean(form.edusathi_ai_assistant);
+  const edusathiRoles = Array.isArray(form.edusathi_roles) ? (form.edusathi_roles as string[]) : [];
 
   /** Just the touched keys — see `changed`. */
   const patch = useMemo(() => {
@@ -153,13 +191,16 @@ export function BasicConfigScreen() {
     );
   }
 
+  /** Screen order, so "the first invalid field" means the first one you see. */
+  const VALIDATED_KEYS = ["academic_year", "daily_periods", "period_duration", "weekend", "pass_mark"];
+
   function onSave() {
     if (Object.keys(errors).length > 0) {
-      setTouched(new Set(Object.keys(NUMERIC_RULES)));
+      setTouched(new Set(VALIDATED_KEYS));
       toast({ title: t("চিহ্নিত ফিল্ডগুলো ঠিক করুন", "Fix the highlighted fields"), variant: "error" });
       // Land the operator on the problem rather than leaving them on the Save
       // button with a toast and no route to it (audit A-4 / WCAG 3.3.1).
-      const first = Object.keys(NUMERIC_RULES).find((k) => errors[k]);
+      const first = VALIDATED_KEYS.find((k) => errors[k]);
       if (first) document.getElementById(`f-${first}`)?.focus();
       return;
     }
@@ -174,10 +215,13 @@ export function BasicConfigScreen() {
 
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <h1 className="mt-1.5 text-h4 font-bold text-text-primary">{t("বেসিক কনফিগারেশন", "Basic Configuration")}</h1>
-        <p className="mt-1 text-meta text-text-muted">{t("একাডেমিক, আঞ্চলিক ও ডিফল্ট নীতিমালা", "Academic, regional & default policies")}</p>
-      </header>
+      {/* S-1.4: this and StartUp were the only two screens in the module with a
+          raw <header> and no breadcrumbs. */}
+      <PageHeader
+        crumbs={[{ label: t("সেটিংস", "Settings"), href: "/admin/core" }, { label: t("প্রতিষ্ঠান সেটিংস", "Institution Settings") }, { label: t("বেসিক কনফিগারেশন", "Basic Configuration") }]}
+        title={t("বেসিক কনফিগারেশন", "Basic Configuration")}
+        subtitle={t("একাডেমিক, ভাষা ও ডিফল্ট নীতিমালা", "Academic, language & default policies")}
+      />
 
       {config.isLoading ? (
         <div className="flex flex-col gap-3 rounded-2xl bg-surface p-6 shadow-e1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-11" />)}</div>
@@ -194,8 +238,14 @@ export function BasicConfigScreen() {
               <Field label={t("সপ্তাহ শুরু", "Week start day")}>
                 <Select value={String(form.week_start_day ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(DAYS, isBn)} onChange={(e) => set("week_start_day", e.target.value)} />
               </Field>
-              <Field label={t("কার্যদিবস", "Working days")}>
-                <Select value={String(form.working_days ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WORKING_DAYS, isBn)} onChange={(e) => set("working_days", e.target.value)} />
+              {/* S-1.10: `working_days` and `weekend` constrain each other, and
+                  they used to sit in different cards — so the contradiction was
+                  never on screen at the same time as its cause. */}
+              <Field label={t("কার্যদিবস", "Working days")} {...bind("weekend")}>
+                <Select id="f-working_days" value={String(form.working_days ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WORKING_DAYS, isBn)} onChange={(e) => set("working_days", e.target.value)} />
+              </Field>
+              <Field label={t("সপ্তাহান্ত", "Weekend")} {...bind("weekend")}>
+                <Select id="f-weekend" value={String(form.weekend ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WEEKENDS, isBn)} onChange={(e) => set("weekend", e.target.value)} />
               </Field>
               <Field label={t("দৈনিক পিরিয়ড সংখ্যা", "Daily periods")} {...bind("daily_periods")}>
                 <Input type="number" min={1} value={String(form.daily_periods ?? "")} id="f-daily_periods" onChange={(e) => set("daily_periods", e.target.value)} className="font-latin" />
@@ -206,25 +256,28 @@ export function BasicConfigScreen() {
             </div>
           </FormCard>
 
-          <FormCard title={t("আঞ্চলিক সেটিংস", "Regional Settings")}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label={t("ডিফল্ট ভাষা", "Default language")}>
+          {/*
+            This card used to hold six controls. Three of them — Timezone,
+            Currency and Date format — were read by nothing in the product:
+            `৳` is written literally at fifteen call sites, `formatDate` in
+            `shared/lib/format.ts` hard-codes `31 Jul 2026`, and the timezone
+            was a DISABLED input showing a constant. An operator could set
+            "MM/DD/YYYY" and "$ Dollar", save, get a green toast, and nothing
+            anywhere would change. A control that lies about what it does costs
+            more than a missing one: it produces a support ticket the second
+            time someone notices, and it is the reason nobody trusts the rest of
+            the screen. They are gone; the stored keys are dropped by migration
+            20260808150000. If EduFusionBD ever sells outside UTC+6 or outside
+            Bangladesh, wire the setting through `format.ts` FIRST and bring the
+            control back after — see the ponytail note at the top of that file.
+          */}
+          <FormCard title={t("ভাষা ও প্রদর্শন", "Language & Display")}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={t("ডিফল্ট ভাষা", "Default language")} hint={t("নতুন ব্যবহারকারী যে ভাষায় শুরু করবেন", "The language a new user starts in")}>
                 <Select value={String(form.default_language ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(LANGUAGES, isBn)} onChange={(e) => set("default_language", e.target.value)} />
               </Field>
-              <Field label={t("টাইমজোন", "Timezone")}>
-                <Input value="Asia/Dhaka (GMT+6)" disabled className="font-latin" />
-              </Field>
-              <Field label={t("মুদ্রা", "Currency")}>
-                <Select value={String(form.currency ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(CURRENCIES, isBn)} onChange={(e) => set("currency", e.target.value)} />
-              </Field>
-              <Field label={t("তারিখ ফরম্যাট", "Date format")}>
-                <Select value={String(form.date_format ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(DATE_FORMATS, isBn)} onChange={(e) => set("date_format", e.target.value)} />
-              </Field>
-              <Field label={t("সংখ্যা পদ্ধতি", "Number system")}>
+              <Field label={t("সংখ্যা পদ্ধতি", "Number system")} hint={t("রোল, নম্বর ও টাকার অঙ্ক কোন সংখ্যায় ছাপা হবে", "Which numerals roll numbers, marks and amounts print in")}>
                 <Select value={String(form.number_system ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(NUMBER_SYSTEMS, isBn)} onChange={(e) => set("number_system", e.target.value)} />
-              </Field>
-              <Field label={t("সপ্তাহান্ত", "Weekend")}>
-                <Select value={String(form.weekend ?? "")} placeholder={t("নির্বাচন করুন", "Select")} options={opts(WEEKENDS, isBn)} onChange={(e) => set("weekend", e.target.value)} />
               </Field>
             </div>
           </FormCard>
@@ -248,24 +301,83 @@ export function BasicConfigScreen() {
                 </Field>
               </div>
 
+              {/* A-1: four `<button>`s styled as switches, none of which
+                  announced its state — "Parent SMS notifications, button",
+                  identically on and off. */}
               <div className="flex flex-col gap-1">
                 {TOGGLES.map((tg, i) => (
-                  <div key={tg.key} className={i > 0 ? "flex items-center gap-3 border-t border-border-default py-3.5" : "flex items-center gap-3 py-1.5"}>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-text-primary">{t(tg.bn, tg.en)}</p>
-                      <p className="mt-0.5 text-xs text-text-muted">{t(tg.sub_bn, tg.sub_en)}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => set(tg.key, !form[tg.key])}
-                      aria-label={t(tg.bn, tg.en)}
-                      className={`relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors ${form[tg.key] ? "bg-primary" : "bg-border-strong"}`}
-                    >
-                      <span className={`absolute size-5 rounded-full bg-white transition-all ${form[tg.key] ? "right-0.5" : "left-0.5"}`} />
-                    </button>
-                  </div>
+                  <Switch
+                    key={tg.key}
+                    checked={Boolean(form[tg.key])}
+                    onChange={(next) => set(tg.key, next)}
+                    label={t(tg.bn, tg.en)}
+                    description={t(tg.sub_bn, tg.sub_en)}
+                    className={i > 0 ? "border-t border-border-default py-2" : "py-1"}
+                  />
                 ))}
               </div>
+            </div>
+          </FormCard>
+
+          {/*
+            S-1.7. EduSathi is what the product is sold on, and switching it off
+            for the whole institution was one checkbox in a row of four, with no
+            confirmation and no statement of who it affects. A kill switch for
+            the headline feature should not be easier to hit by accident than
+            deleting a subject.
+          */}
+          <FormCard title={t("EduSathi AI সহকারী", "EduSathi AI assistant")}>
+            <Switch
+              checked={edusathiOn}
+              onChange={(next) => {
+                // Turning it OFF asks; turning it back on does not. Confirming
+                // an enable is friction with nothing behind it.
+                if (!next) { setConfirmEduSathiOff(true); return; }
+                set("edusathi_ai_assistant", true);
+              }}
+              label={t("প্রতিষ্ঠানে সক্রিয়", "Enabled for this institution")}
+              description={t(
+                "স্টাফ যেকোনো স্ক্রিন থেকে প্রশ্ন করতে পারবেন — উপস্থিতি, ফলাফল, ফি ও রুটিন নিয়ে।",
+                "Staff can ask questions from any screen — attendance, results, fees and routines.",
+              )}
+            />
+
+            <div className="flex flex-col gap-2 border-t border-border-default pt-3.5">
+              <span id="edusathi-roles-label" className="text-meta font-medium text-text-secondary">
+                {t("কারা ব্যবহার করতে পারবেন", "Who can use it")}
+              </span>
+              <div role="group" aria-labelledby="edusathi-roles-label" className="flex flex-wrap gap-2">
+                {EDUSATHI_ROLES.map(([value, bn, en]) => {
+                  const on = edusathiRoles.includes(value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={!edusathiOn}
+                      aria-pressed={on}
+                      onClick={() =>
+                        set(
+                          "edusathi_roles",
+                          on ? edusathiRoles.filter((r) => r !== value) : [...edusathiRoles, value],
+                        )
+                      }
+                      className={
+                        on
+                          ? "rounded-full border border-primary bg-primary-subtle px-3 py-1.5 text-meta font-medium text-primary disabled:opacity-50"
+                          : "rounded-full border border-border-default px-3 py-1.5 text-meta text-text-secondary hover:border-border-strong disabled:opacity-50"
+                      }
+                    >
+                      {t(bn, en)}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-micro text-text-muted">
+                {t(
+                  "কেউ নির্বাচিত না থাকলে সব স্টাফ ব্যবহার করতে পারবেন।",
+                  "With nobody selected, every staff role can use it.",
+                )}
+              </p>
             </div>
           </FormCard>
 
@@ -293,6 +405,20 @@ export function BasicConfigScreen() {
             confirmLabel={t("আমার পরিবর্তন রাখুন", "Keep my changes")}
             cancelLabel={t("রিলোড করুন", "Reload")}
             loading={save.isPending}
+          />
+
+          <ConfirmDialog
+            open={confirmEduSathiOff}
+            onClose={() => setConfirmEduSathiOff(false)}
+            onConfirm={() => { set("edusathi_ai_assistant", false); setConfirmEduSathiOff(false); }}
+            tone="danger"
+            title={t("EduSathi বন্ধ করবেন?", "Turn EduSathi off?")}
+            description={t(
+              "প্রতিষ্ঠানের সব স্টাফের জন্য AI সহকারী বন্ধ হয়ে যাবে — কোনো স্ক্রিনে আর প্রশ্ন করা যাবে না। যেকোনো সময় আবার চালু করা যাবে।",
+              "The assistant stops for every member of staff in the institution — no screen will offer it. You can switch it back on at any time.",
+            )}
+            confirmLabel={t("বন্ধ করুন", "Turn off")}
+            cancelLabel={t("বাতিল", "Cancel")}
           />
         </>
       )}
